@@ -6,7 +6,7 @@ function TestimonialSection() {
   return (
     <section className="testimonial-section">
       <div className="testimonial-section__container">
-        <h2 className="testimonial-section__title">Đánh giá từ khách hàng</h2>
+        <h2 className="testimonial-section__title">Khách hàng nói gì về chúng tôi</h2>
         <div className="testimonial-section__line" />
 
         <div className="testimonial-section__grid">

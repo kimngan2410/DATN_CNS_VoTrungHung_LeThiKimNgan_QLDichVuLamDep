@@ -1,0 +1,297 @@
+.account-page {
+  min-height: 100vh;
+  background: #faf8f5;
+}
+
+.account-main {
+  padding: 48px 20px 80px;
+}
+
+.account-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.account-content {
+  min-width: 0;
+}
+
+.account-content-card {
+  background: #ffffff;
+  border: 1px solid #ece7e1;
+  border-radius: 24px;
+  padding: 34px 40px 36px;
+  box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
+}
+
+.account-content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.account-content-header h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  color: #152238;
+}
+
+.account-edit-btn {
+  border: none;
+  background: transparent;
+  color: #d4a62a;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.account-divider {
+  height: 1px;
+  background: #ebeef2;
+  margin: 18px 0 28px;
+}
+
+.account-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 26px 28px;
+}
+
+.account-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.account-form-group-full {
+  grid-column: 1 / -1;
+  max-width: 420px;
+}
+
+.account-form-group label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #152238;
+}
+
+.account-form-group input,
+.account-form-group select {
+  width: 100%;
+  height: 58px;
+  border: 1px solid #d9dee7;
+  border-radius: 16px;
+  background: #f9fafb;
+  padding: 0 18px;
+  font-size: 14px;
+  color: #344054;
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.account-form-group input:focus,
+.account-form-group select:focus {
+  border-color: #d4a62a;
+  background: #ffffff;
+}
+
+.account-form-group input:disabled,
+.account-form-group select:disabled {
+  color: #667085;
+  cursor: not-allowed;
+}
+
+.account-action-row {
+  margin-top: 30px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+}
+
+.account-btn {
+  min-width: 140px;
+  height: 50px;
+  border-radius: 14px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.account-btn.primary {
+  background: #d4a62a;
+  color: #ffffff;
+}
+
+.account-btn.primary:hover {
+  background: #bf9425;
+}
+
+.account-btn.secondary {
+  background: #eff2f7;
+  color: #344054;
+}
+
+.account-btn.secondary:hover {
+  background: #e6e9ef;
+}
+
+/* Logout popup */
+
+.logout-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(15, 15, 15, 0.48);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: logout-fade 0.18s ease;
+}
+
+.logout-popup {
+  width: 420px;
+  max-width: 100%;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 34px 30px 28px;
+  text-align: center;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+  animation: logout-pop 0.2s ease;
+}
+
+.logout-popup-icon {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: rgba(217, 45, 32, 0.12);
+  color: #d92d20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-popup h3 {
+  margin: 0;
+  color: #152238;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.logout-popup p {
+  margin: 12px 0 26px;
+  color: #667085;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.logout-popup-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.logout-popup-btn {
+  height: 52px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.logout-popup-btn-cancel {
+  background: #f2f4f7;
+  color: #344054;
+}
+
+.logout-popup-btn-cancel:hover {
+  background: #e6e9ef;
+}
+
+.logout-popup-btn-confirm {
+  background: #d92d20;
+  color: #ffffff;
+}
+
+.logout-popup-btn-confirm:hover {
+  background: #b42318;
+}
+
+@keyframes logout-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes logout-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (max-width: 992px) {
+  .account-container {
+    grid-template-columns: 1fr;
+  }
+
+  .account-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-form-group-full {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  .account-main {
+    padding: 24px 14px 60px;
+  }
+
+  .account-content-card {
+    padding: 22px 18px;
+    border-radius: 20px;
+  }
+
+  .account-content-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .account-action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .account-btn {
+    width: 100%;
+  }
+
+  .logout-popup-actions {
+    grid-template-columns: 1fr;
+  }
+}
