@@ -1,15 +1,6 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import {
-  CalendarDays,
-  Clock3,
-  LogOut,
-  Tag,
-  Timer,
-  TriangleAlert,
-  Users,
-  X,
-} from "lucide-react"
+import { CalendarDays, Clock3, LogOut, Users, X } from "lucide-react"
 
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
@@ -23,68 +14,110 @@ function MyAppointmentsPage() {
 
   const [appointments, setAppointments] = useState([
     {
-      id: "#A1001",
+      id: "LH20250101",
       services: [
         {
-          name: "Chăm sóc da mặt chuyên sâu",
-          price: 850000,
-          duration: 90,
+          name: "Cắt tóc",
+          price: 150000,
+          duration: 35,
+          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
         },
         {
-          name: "Dưỡng trắng cấp ẩm chuyên sâu",
-          price: 990000,
-          duration: 75,
+          name: "Gội đầu dưỡng sinh",
+          price: 120000,
+          duration: 40,
+          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+
         },
       ],
-      date: "2026-04-25",
-      time: "14:30",
+      date: "2025-05-02",
+      time: "10:00",
       peopleCount: 1,
       status: "pending",
     },
     {
-      id: "#A1002",
+      id: "LH20250102",
+      services: [
+        {
+          name: "Nhuộm tóc",
+          price: 350000,
+          duration: 120,
+          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+        },
+      ],
+      date: "2025-05-03",
+      time: "14:00",
+      peopleCount: 1,
+      status: "confirmed",
+    },
+    {
+      id: "LH20250103",
+      services: [
+        {
+          name: "Chăm sóc da mặt",
+          price: 300000,
+          duration: 75,
+          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+        },
+        {
+          name: "Nail art",
+          price: 150000,
+          duration: 60,
+          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+        },
+      ],
+      date: "2025-04-28",
+      time: "09:00",
+      peopleCount: 2,
+      status: "checkedin",
+    },
+    {
+      id: "LH20250104",
+      services: [
+        {
+          name: "Cắt tóc",
+          price: 120000,
+          duration: 45,
+          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+        },
+        {
+          name: "Nhuộm tóc",
+          price: 350000,
+          duration: 120,
+          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+        },
+        {
+          name: "Gội đầu dưỡng sinh",
+          price: 150000,
+          duration: 45,
+          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+        },
+      ],
+      date: "2025-04-20",
+      time: "10:30",
+      peopleCount: 1,
+      status: "completed",
+    },
+    {
+      id: "LH20250105",
       services: [
         {
           name: "Massage body đá nóng",
           price: 650000,
           duration: 60,
+          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
         },
       ],
-      date: "2026-04-22",
-      time: "10:00",
+      date: "2025-04-18",
+      time: "15:00",
       peopleCount: 1,
-      status: "confirmed",
-    },
-    {
-      id: "#A1006",
-      services: [
-        {
-          name: "Gội đầu dưỡng sinh",
-          price: 250000,
-          duration: 45,
-        },
-        {
-          name: "Nail Art Cao Cấp",
-          price: 350000,
-          duration: 60,
-        },
-      ],
-      date: "2026-04-30",
-      time: "09:00",
-      peopleCount: 2,
-      status: "checkedin",
+      status: "cancelled",
     },
   ])
 
-  const [showRescheduleModal, setShowRescheduleModal] = useState(false)
-  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [activeStatus, setActiveStatus] = useState("all")
   const [showLogoutPopup, setShowLogoutPopup] = useState(false)
-
-  const [selectedAppointment, setSelectedAppointment] = useState(null)
-  const [selectedDate, setSelectedDate] = useState("")
-  const [selectedTime, setSelectedTime] = useState("")
-  const [cancelReason, setCancelReason] = useState("")
-  const [customCancelReason, setCustomCancelReason] = useState("")
+  const [detailAppointment, setDetailAppointment] = useState(null)
 
   const profileData = {
     avatar:
@@ -92,6 +125,25 @@ function MyAppointmentsPage() {
     fullName: "Nguyễn Thị Mai",
     email: "admin@gmail.com",
   }
+
+  const statusTabs = [
+    {
+      value: "all",
+      label: "Tất cả",
+    },
+    {
+      value: "pending",
+      label: "Chờ xác nhận",
+    },
+    {
+      value: "confirmed",
+      label: "Đã xác nhận",
+    },
+    {
+      value: "checkedin",
+      label: "Đã check-in",
+    },
+  ]
 
   const statusMap = {
     pending: {
@@ -106,51 +158,55 @@ function MyAppointmentsPage() {
       label: "Đã check-in",
       className: "status-checkedin",
     },
+    completed: {
+      label: "Đã hoàn thành",
+      className: "status-completed",
+    },
+    cancelled: {
+      label: "Đã hủy",
+      className: "status-cancelled",
+    },
   }
 
-  const cancelReasonOptions = [
-    "Bận việc đột xuất",
-    "Thay đổi kế hoạch",
-    "Vấn đề sức khoẻ",
-    "Đã đặt nhầm dịch vụ/thời gian",
-    "Khác",
-  ]
-
-  const dateOptions = [
-    "2026-04-25",
-    "2026-04-26",
-    "2026-04-27",
-    "2026-04-28",
-    "2026-04-29",
-  ]
-
-  const timeSlots = [
-    "09:00",
-    "09:30",
-    "10:00",
-    "10:30",
-    "11:00",
-    "11:30",
-    "13:00",
-    "13:30",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-    "17:00",
-    "17:30",
-    "18:00",
-    "18:30",
-  ]
-
-  const appointmentCount = useMemo(() => {
-    return appointments.length
+  const activeAppointments = useMemo(() => {
+    return appointments.filter((item) =>
+      ["pending", "confirmed", "checkedin"].includes(item.status)
+    )
   }, [appointments])
 
+  const appointmentCount = useMemo(() => {
+    return activeAppointments.length
+  }, [activeAppointments])
+
+  const filteredAppointments = useMemo(() => {
+    if (activeStatus === "all") return activeAppointments
+
+    return activeAppointments.filter((item) => item.status === activeStatus)
+  }, [activeAppointments, activeStatus])
+
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN").format(price) + " ₫"
+    return new Intl.NumberFormat("vi-VN").format(price) + "đ"
+  }
+
+  const formatVietnameseDate = (dateString) => {
+    const date = new Date(dateString)
+
+    const weekdays = [
+      "Chủ Nhật",
+      "Thứ Hai",
+      "Thứ Ba",
+      "Thứ Tư",
+      "Thứ Năm",
+      "Thứ Sáu",
+      "Thứ Bảy",
+    ]
+
+    const weekday = weekdays[date.getDay()]
+    const day = String(date.getDate()).padStart(2, "0")
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const year = date.getFullYear()
+
+    return `${weekday}, ${day}/${month}/${year}`
   }
 
   const getAppointmentTotalPrice = (appointment) => {
@@ -167,86 +223,77 @@ function MyAppointmentsPage() {
     }, 0)
   }
 
+  const formatDurationText = (minutes) => {
+    const total = Number(minutes || 0)
+    const hours = Math.floor(total / 60)
+    const mins = total % 60
+
+    if (hours > 0 && mins > 0) return `${hours} giờ ${mins} phút`
+    if (hours > 0) return `${hours} giờ`
+    return `${mins} phút`
+  }
+
+  const getEndTime = (startTime, durationMinutes) => {
+    const [hour, minute] = startTime.split(":").map(Number)
+
+    const startDate = new Date()
+    startDate.setHours(hour)
+    startDate.setMinutes(minute)
+    startDate.setSeconds(0)
+
+    startDate.setMinutes(startDate.getMinutes() + durationMinutes)
+
+    const endHour = String(startDate.getHours()).padStart(2, "0")
+    const endMinute = String(startDate.getMinutes()).padStart(2, "0")
+
+    return `${endHour}:${endMinute}`
+  }
+
+  const getTimeRange = (appointment) => {
+    const totalDuration = getAppointmentTotalDuration(appointment)
+    const endTime = getEndTime(appointment.time, totalDuration)
+
+    return `${appointment.time} - ${endTime}`
+  }
+
+  const getServiceNames = (appointment) => {
+    return appointment.services.map((service) => service.name).join(", ")
+  }
+
+  const getServiceNamesPreview = (appointment) => {
+    const serviceNames = appointment.services.map((service) => service.name)
+
+    if (serviceNames.length <= 2) {
+      return serviceNames.join(", ")
+    }
+
+    return `${serviceNames.slice(0, 2).join(", ")}, ...`
+  }
+
   const canUpdateAppointment = (status) => {
     return status === "pending" || status === "confirmed"
   }
+  const handleCancelAppointment = (appointmentId) => {
+    const confirmCancel = window.confirm("Bạn có chắc chắn muốn hủy lịch hẹn này không?")
 
-  const openRescheduleModal = (appointment) => {
-    setSelectedAppointment(appointment)
-    setSelectedDate(appointment.date)
-    setSelectedTime(appointment.time)
-    setShowRescheduleModal(true)
-  }
-
-  const closeRescheduleModal = () => {
-    setShowRescheduleModal(false)
-    setSelectedAppointment(null)
-    setSelectedDate("")
-    setSelectedTime("")
-  }
-
-  const handleConfirmReschedule = () => {
-    if (!selectedAppointment || !selectedDate || !selectedTime) {
-      alert("Vui lòng chọn đầy đủ ngày và giờ mới.")
-      return
-    }
+    if (!confirmCancel) return
 
     setAppointments((prev) =>
       prev.map((item) =>
-        item.id === selectedAppointment.id
+        item.id === appointmentId
           ? {
               ...item,
-              date: selectedDate,
-              time: selectedTime,
+              status: "cancelled",
             }
           : item
       )
     )
 
-    closeRescheduleModal()
-    alert("Đổi lịch hẹn thành công!")
+    setDetailAppointment(null)
   }
 
-  const openCancelModal = (appointment) => {
-    setSelectedAppointment(appointment)
-    setCancelReason("")
-    setCustomCancelReason("")
-    setShowCancelModal(true)
-  }
-
-  const closeCancelModal = () => {
-    setShowCancelModal(false)
-    setSelectedAppointment(null)
-    setCancelReason("")
-    setCustomCancelReason("")
-  }
-
-  const handleConfirmCancel = () => {
-    if (!cancelReason) {
-      alert("Vui lòng chọn lý do huỷ lịch.")
-      return
-    }
-
-    if (cancelReason === "Khác" && !customCancelReason.trim()) {
-      alert("Vui lòng nhập lý do huỷ lịch cụ thể.")
-      return
-    }
-
-    const finalCancelReason =
-      cancelReason === "Khác" ? customCancelReason.trim() : cancelReason
-
-    console.log({
-      appointmentId: selectedAppointment.id,
-      cancelReason: finalCancelReason,
-      status: "cancelled",
-    })
-
-    setAppointments((prev) =>
-      prev.filter((item) => item.id !== selectedAppointment.id)
-    )
-
-    closeCancelModal()
-    alert("Huỷ lịch hẹn thành công. Lịch hẹn đã được chuyển sang lịch sử.")
+  const handleRescheduleAppointment = (appointment) => {
+    alert(`Mở chức năng đổi lịch hẹn ${appointment.id}`)
   }
 
   const handleLogout = () => {
@@ -280,153 +327,98 @@ function MyAppointmentsPage() {
           <section className="my-appointments-content">
             <h2 className="my-appointments-title">Lịch hẹn của tôi</h2>
 
-            {appointments.length === 0 ? (
+            <div className="appointment-status-tabs-wrap">
+              <div className="appointment-status-tabs">
+                {statusTabs.map((tab) => (
+                  <button
+                    key={tab.value}
+                    type="button"
+                    className={`appointment-status-tab ${
+                      activeStatus === tab.value ? "active" : ""
+                    }`}
+                    onClick={() => setActiveStatus(tab.value)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {filteredAppointments.length === 0 ? (
               <div className="my-appointments-empty">
-                <p>Bạn chưa có lịch hẹn nào đang xử lý.</p>
+                <p>Không có lịch hẹn nào thuộc trạng thái này.</p>
               </div>
             ) : (
               <div className="my-appointments-list">
-                {appointments.map((appointment) => {
+                {filteredAppointments.map((appointment) => {
                   const statusInfo = statusMap[appointment.status]
-                  const allowAction = canUpdateAppointment(appointment.status)
 
                   return (
-                    <div className="appointment-card" key={appointment.id}>
-                      <div className="appointment-card-header">
-                        <div>
-                          <p className="appointment-code">
-                            Mã LH: {appointment.id}
-                          </p>
+                    <article
+                      className="appointment-card"
+                      key={appointment.id}
+                      onClick={() => setDetailAppointment(appointment)}
+                    >
+                      <div className="appointment-card-top">
+                        <div className="appointment-card-info">
+                          <p className="appointment-code">{appointment.id}</p>
+
+                          <h3
+                            className="appointment-service-name"
+                            title={getServiceNames(appointment)}
+                          >
+                            {getServiceNamesPreview(appointment)}
+                          </h3>
                         </div>
 
-                        <span
-                          className={`appointment-status ${statusInfo.className}`}
-                        >
+                        <span className={`appointment-status ${statusInfo.className}`}>
                           {statusInfo.label}
                         </span>
                       </div>
 
-                      <div className="appointment-meta-row">
-                        <div className="appointment-meta-item">
-                          <div className="appointment-meta-icon">
-                            <CalendarDays size={18} />
-                          </div>
-
-                          <div>
-                            <span className="meta-label">Ngày hẹn</span>
-                            <strong className="meta-value">
-                              {appointment.date}
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="appointment-meta-item">
-                          <div className="appointment-meta-icon">
-                            <Clock3 size={18} />
-                          </div>
-
-                          <div>
-                            <span className="meta-label">Giờ hẹn</span>
-                            <strong className="meta-value">
-                              {appointment.time}
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="appointment-meta-item">
-                          <div className="appointment-meta-icon">
-                            <Users size={18} />
-                          </div>
-
-                          <div>
-                            <span className="meta-label">Số lượng người</span>
-                            <strong className="meta-value">
-                              {appointment.peopleCount} người
-                            </strong>
-                          </div>
-                        </div>
+                      <div className="appointment-date-row">
+                        <CalendarDays size={16} />
+                        <span>{formatVietnameseDate(appointment.date)}</span>
                       </div>
 
-                      <div className="appointment-table-box">
-                        <div className="appointment-table-title">
-                          Danh sách dịch vụ
-                        </div>
-
-                        <div className="appointment-table-scroll">
-                          <table className="appointment-service-table">
-                            <thead>
-                              <tr>
-                                <th>STT</th>
-                                <th>Dịch vụ</th>
-                                <th>Thời lượng</th>
-                                <th>Đơn giá</th>
-                              </tr>
-                            </thead>
-
-                            <tbody>
-                              {appointment.services.map((service, index) => (
-                                <tr key={index}>
-                                  <td>{index + 1}</td>
-
-                                  <td className="service-name-cell">
-                                    {service.name}
-                                  </td>
-
-                                  <td>
-                                    <span className="table-duration">
-                                      <Timer size={16} />
-                                      {service.duration} phút
-                                    </span>
-                                  </td>
-
-                                  <td className="table-price">
-                                    {formatPrice(service.price)}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        <div className="appointment-summary-box">
-                          <div className="appointment-summary-item">
-                            <span>Tổng thời lượng</span>
-                            <strong>
-                              {getAppointmentTotalDuration(appointment)} phút
-                            </strong>
-                          </div>
-
-                          <div className="appointment-summary-item">
-                            <span>Tổng tiền</span>
-                            <strong className="summary-price">
-                              {formatPrice(
-                                getAppointmentTotalPrice(appointment)
-                              )}
-                            </strong>
-                          </div>
-                        </div>
+                      <div className="appointment-time-range-row">
+                        <Clock3 size={16} />
+                        <span>
+                          Thời gian hẹn: <strong>{getTimeRange(appointment)}</strong>
+                        </span>
                       </div>
 
-                      {allowAction && (
-                        <div className="appointment-action-row">
+                      <div className="appointment-card-divider"></div>
+
+                      <div className="appointment-card-bottom">
+                        <span>{appointment.peopleCount} người</span>
+
+                        <strong>{formatPrice(getAppointmentTotalPrice(appointment))}</strong>
+                      </div>
+
+                      {canUpdateAppointment(appointment.status) && (
+                        <div
+                          className="appointment-card-actions"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
                             type="button"
-                            className="appointment-btn appointment-btn-secondary"
-                            onClick={() => openRescheduleModal(appointment)}
+                            className="appointment-card-btn appointment-card-btn-primary"
+                            onClick={() => handleRescheduleAppointment(appointment)}
                           >
-                            Đổi lịch
+                            Đổi lịch hẹn
                           </button>
 
                           <button
                             type="button"
-                            className="appointment-btn appointment-btn-danger"
-                            onClick={() => openCancelModal(appointment)}
+                            className="appointment-card-btn appointment-card-btn-danger"
+                            onClick={() => handleCancelAppointment(appointment.id)}
                           >
-                            Huỷ lịch
+                            Hủy lịch hẹn
                           </button>
                         </div>
                       )}
-                    </div>
+                    </article>
                   )
                 })}
               </div>
@@ -438,160 +430,97 @@ function MyAppointmentsPage() {
       <Footer />
       <FloatingChat />
 
-      {showRescheduleModal && selectedAppointment && (
-        <div className="appointment-modal-overlay">
-          <div className="appointment-modal">
-            <div className="appointment-modal-header">
-              <h3>Đổi lịch hẹn</h3>
+      {detailAppointment && (
+        <div
+          className="appointment-detail-overlay"
+          onClick={() => setDetailAppointment(null)}
+        >
+          <div
+            className="appointment-detail-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="appointment-detail-close"
+              onClick={() => setDetailAppointment(null)}
+            >
+              <X size={22} />
+            </button>
 
-              <button
-                type="button"
-                className="appointment-modal-close"
-                onClick={closeRescheduleModal}
-              >
-                <X size={28} />
-              </button>
-            </div>
+            <div className="appointment-detail-card">
+              <div className="appointment-detail-top">
+                <p className="appointment-detail-code">
+                  {detailAppointment.id}
+                </p>
 
-            <div className="appointment-modal-body">
-              <div className="appointment-form-group">
-                <label>Ngày mới</label>
-
-                <select
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                <span
+                  className={`appointment-status ${
+                    statusMap[detailAppointment.status].className
+                  }`}
                 >
-                  {dateOptions.map((date) => (
-                    <option key={date} value={date}>
-                      {date}
-                      {date === selectedAppointment.date ? " (Hiện tại)" : ""}
-                    </option>
-                  ))}
-                </select>
+                  {statusMap[detailAppointment.status].label}
+                </span>
               </div>
 
-              <div className="appointment-form-group">
-                <label>Giờ mới</label>
+              <div className="appointment-detail-service">
+                <span>Dịch vụ</span>
 
-                <div className="appointment-time-grid">
-                  {timeSlots.map((time) => (
-                    <button
-                      type="button"
-                      key={time}
-                      className={`appointment-time-slot ${
-                        selectedTime === time ? "active" : ""
-                      }`}
-                      onClick={() => setSelectedTime(time)}
-                    >
-                      {time}
-                    </button>
-                  ))}
+              <div className="appointment-detail-service-list">
+                {detailAppointment.services.map((service, index) => (
+                  <div className="appointment-detail-service-row" key={index}>
+                    <div className="appointment-detail-service-left">
+                      <div className="appointment-detail-service-thumb">
+                        {service.image ? (
+                          <img src={service.image} alt={service.name} />
+                        ) : (
+                          <span>{service.name.charAt(0)}</span>
+                        )}
+                      </div>
+
+                      <p>{service.name}</p>
+                    </div>
+
+                    <strong>{formatPrice(service.price)}</strong>
+                  </div>
+                ))}
+              </div>
+              </div>
+
+              <div className="appointment-detail-info-grid">
+                <div className="appointment-detail-info-item">
+                  <CalendarDays size={19} />
+                  <span>{formatVietnameseDate(detailAppointment.date)}</span>
+                </div>
+
+                <div className="appointment-detail-info-item">
+                  <Clock3 size={19} />
+                  <span>{detailAppointment.time}</span>
+                </div>
+
+                <div className="appointment-detail-info-item">
+                  <Users size={19} />
+                  <span>{detailAppointment.peopleCount} người</span>
+                </div>
+
+                <div className="appointment-detail-info-item">
+                  <Clock3 size={19} />
+                  <span>
+                    {formatDurationText(
+                      getAppointmentTotalDuration(detailAppointment)
+                    )}
+                  </span>
                 </div>
               </div>
-            </div>
 
-            <div className="appointment-modal-footer">
-              <button
-                type="button"
-                className="appointment-btn-modal appointment-btn-outline"
-                onClick={closeRescheduleModal}
-              >
-                Đóng
-              </button>
+              <div className="appointment-detail-divider"></div>
 
-              <button
-                type="button"
-                className="appointment-btn-modal appointment-btn-dark"
-                onClick={handleConfirmReschedule}
-              >
-                Xác nhận
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <div className="appointment-detail-total">
+                <span>Tổng tiền dự kiến</span>
 
-      {showCancelModal && selectedAppointment && (
-        <div className="appointment-modal-overlay">
-          <div className="appointment-modal">
-            <div className="appointment-modal-header">
-              <div className="appointment-modal-title danger">
-                <TriangleAlert size={28} />
-                <h3>Huỷ lịch hẹn</h3>
-              </div>
-
-              <button
-                type="button"
-                className="appointment-modal-close"
-                onClick={closeCancelModal}
-              >
-                <X size={28} />
-              </button>
-            </div>
-
-            <div className="appointment-modal-body">
-              <p className="appointment-cancel-message">
-                Bạn có chắc chắn muốn huỷ lịch hẹn{" "}
-                <strong>{selectedAppointment.id}</strong> vào lúc{" "}
                 <strong>
-                  {selectedAppointment.time} - {selectedAppointment.date}
-                </strong>{" "}
-                không?
-              </p>
-
-              <div className="appointment-form-group">
-                <label>
-                  Lý do huỷ lịch <span>*</span>
-                </label>
-
-                <div className="appointment-reason-list">
-                  {cancelReasonOptions.map((reason) => (
-                    <label className="appointment-reason-item" key={reason}>
-                      <input
-                        type="radio"
-                        name="cancelReason"
-                        value={reason}
-                        checked={cancelReason === reason}
-                        onChange={(e) => {
-                          setCancelReason(e.target.value)
-
-                          if (e.target.value !== "Khác") {
-                            setCustomCancelReason("")
-                          }
-                        }}
-                      />
-                      <span>{reason}</span>
-                    </label>
-                  ))}
-
-                  {cancelReason === "Khác" && (
-                    <textarea
-                      className="appointment-cancel-textarea"
-                      placeholder="Nhập lý do cụ thể..."
-                      value={customCancelReason}
-                      onChange={(e) => setCustomCancelReason(e.target.value)}
-                    />
-                  )}
-                </div>
+                  {formatPrice(getAppointmentTotalPrice(detailAppointment))}
+                </strong>
               </div>
-            </div>
-
-            <div className="appointment-modal-footer">
-              <button
-                type="button"
-                className="appointment-btn-modal appointment-btn-outline"
-                onClick={closeCancelModal}
-              >
-                Đóng
-              </button>
-
-              <button
-                type="button"
-                className="appointment-btn-modal appointment-btn-red"
-                onClick={handleConfirmCancel}
-              >
-                Xác nhận huỷ
-              </button>
             </div>
           </div>
         </div>

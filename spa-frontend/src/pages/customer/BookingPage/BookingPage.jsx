@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { useLocation } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import {
@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Check,
   Users,
+  Loader2,
 } from "lucide-react"
 
 import Header from "../../../components/Header/Header"
@@ -53,6 +54,8 @@ const timeSlots = [
 
 function BookingPage() {
   const location = useLocation()
+  const navigate = useNavigate()
+
   const params = new URLSearchParams(location.search)
   const serviceSlug = params.get("service")
 
@@ -78,6 +81,7 @@ function BookingPage() {
 
   const [step, setStep] = useState(1)
   const [bookingSuccess, setBookingSuccess] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [selectedServiceIds, setSelectedServiceIds] = useState(
     defaultService?.id ? [defaultService.id] : []
@@ -134,6 +138,37 @@ function BookingPage() {
   const totalDuration = selectedServices.reduce((sum, service) => {
     return sum + Number(service.duration || 0)
   }, 0)
+
+  const formatDurationText = (minutes) => {
+    const total = Number(minutes || 0)
+    const hours = Math.floor(total / 60)
+    const mins = total % 60
+
+    if (hours > 0 && mins > 0) return `${hours} giờ ${mins} phút`
+    if (hours > 0) return `${hours} giờ`
+    return `${mins} phút`
+  }
+
+  const formatVietnameseDate = (date) => {
+    if (!date) return ""
+
+    const weekdays = [
+      "Chủ Nhật",
+      "Thứ Hai",
+      "Thứ Ba",
+      "Thứ Tư",
+      "Thứ Năm",
+      "Thứ Sáu",
+      "Thứ Bảy",
+    ]
+
+    const weekday = weekdays[date.getDay()]
+    const day = String(date.getDate()).padStart(2, "0")
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const year = date.getFullYear()
+
+    return `${weekday}, ${day}/${month}/${year}`
+  }
 
   const categoryPreviewMap = useMemo(() => {
     const result = {}
@@ -256,30 +291,47 @@ function BookingPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
 
-    console.log({
-      lichHen: {
-        soLuongNguoi: peopleCount,
-        tongTien: finalTotalPrice,
-        tongThoiLuong: totalDuration,
-        ngayHen: selectedDate,
-        gioHen: selectedTime,
-        ghiChu: note,
-        trangThai: "Chờ xác nhận",
-      },
-      chiTietLichHen: selectedServices.map((service) => ({
-        idDichVu: service.id,
-        tenDichVu: service.title,
-        donGia: service.price,
-        thoiLuongPhut: service.duration,
-        soLuong: peopleCount,
-      })),
-    })
+    if (isSubmitting) return
 
-    setBookingSuccess(true)
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    setIsSubmitting(true)
+
+    try {
+      console.log({
+        lichHen: {
+          soLuongNguoi: peopleCount,
+          tongTien: finalTotalPrice,
+          tongThoiLuong: totalDuration,
+          ngayHen: selectedDate,
+          gioHen: selectedTime,
+          ghiChu: note,
+          trangThai: "Chờ xác nhận",
+        },
+        chiTietLichHen: selectedServices.map((service) => ({
+          idDichVu: service.id,
+          tenDichVu: service.title,
+          donGia: service.price,
+          thoiLuongPhut: service.duration,
+          soLuong: peopleCount,
+        })),
+      })
+
+      // Giả lập thời gian gửi dữ liệu lên server
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+
+      setBookingSuccess(true)
+      window.scrollTo({ top: 0, behavior: "smooth" })
+      } catch {
+        showNotice({
+          type: "warning",
+          title: "Đặt lịch thất bại",
+          message: "Có lỗi xảy ra khi đặt lịch. Vui lòng thử lại.",
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
   }
 
   if (bookingSuccess) {
@@ -317,8 +369,7 @@ function BookingPage() {
                 <div>
                   <span>Thời gian</span>
                   <strong>
-                    {selectedTime} -{" "}
-                    {selectedDate?.toLocaleDateString("vi-VN")}
+                    {selectedTime} - {selectedDate?.toLocaleDateString("vi-VN")}
                   </strong>
                 </div>
 
@@ -344,9 +395,7 @@ function BookingPage() {
             <button
               type="button"
               className="booking-success-primary"
-              onClick={() => {
-                console.log("Xem lịch hẹn của tôi")
-              }}
+              onClick={() => navigate("/lich-hen-cua-toi")}
             >
               Xem lịch hẹn của tôi
             </button>
@@ -354,9 +403,7 @@ function BookingPage() {
             <button
               type="button"
               className="booking-success-secondary"
-              onClick={() => {
-                window.location.href = "/"
-              }}
+              onClick={() => navigate("/")}
             >
               Về trang chủ
             </button>
@@ -584,71 +631,75 @@ function BookingPage() {
             )}
 
             {step === 2 && (
-              <div className="booking-confirm booking-confirm-modern">
-                <h3>Xác nhận thông tin đặt lịch</h3>
+              <div className="booking-confirm booking-confirm-new">
+                <div className="confirm-booking-box">
+                  <h3>Thông tin đặt lịch</h3>
 
-                <div className="confirm-divider"></div>
+                  <div className="confirm-booking-content">
+                    <div className="confirm-booking-row">
+                      <span>Khách hàng</span>
+                      <strong>{customerInfo.fullName}</strong>
+                    </div>
 
-                <div className="confirm-info-list">
-                  <div className="confirm-info-row">
-                    <span>Khách hàng</span>
-                    <strong>{customerInfo.fullName}</strong>
+                    <div className="confirm-booking-row">
+                      <span>Số điện thoại</span>
+                      <strong>{customerInfo.phone}</strong>
+                    </div>
+
+                    <div className="confirm-booking-row">
+                      <span>Số lượng người</span>
+                      <strong>{peopleCount}</strong>
+                    </div>
+
+                    <div className="confirm-booking-row">
+                      <span>Ngày hẹn</span>
+                      <strong>{formatVietnameseDate(selectedDate)}</strong>
+                    </div>
+
+                    <div className="confirm-booking-row">
+                      <span>Giờ hẹn</span>
+                      <strong>{selectedTime}</strong>
+                    </div>
                   </div>
 
-                  <div className="confirm-info-row">
-                    <span>Số điện thoại</span>
-                    <strong>{customerInfo.phone}</strong>
-                  </div>
+                  <div className="confirm-booking-divider"></div>
 
-                  <div className="confirm-info-row confirm-info-row--top">
-                    <span>Dịch vụ</span>
+                  <div className="confirm-service-selected">
+                    <h4>Dịch vụ đã chọn</h4>
 
-                    <div className="confirm-service-summary">
+                    <div className="confirm-service-list-new">
                       {selectedServices.map((service) => (
-                        <div className="confirm-service-line" key={service.id}>
-                          <strong>{service.title}</strong>
-                          <small>
-                            {service.duration
-                              ? `${service.duration} phút`
-                              : "Dịch vụ"}{" "}
-                            · {formatPrice(service.price)}
-                          </small>
+                        <div className="confirm-service-row-new" key={service.id}>
+                          <span>{service.title}</span>
+
+                          <strong>
+                            {formatPrice(Number(service.price || 0) * peopleCount)}
+                          </strong>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="confirm-info-row">
-                    <span>Số lượng người</span>
-                    <strong>{peopleCount} người</strong>
-                  </div>
+                  <div className="confirm-booking-divider"></div>
 
-                  <div className="confirm-info-row">
-                    <span>Thời gian</span>
-                    <strong className="confirm-highlight">
-                      {selectedTime} -{" "}
-                      {selectedDate?.toLocaleDateString("vi-VN")}
-                    </strong>
-                  </div>
-
-                  <div className="confirm-info-row">
-                    <span>Tổng thời lượng</span>
-                    <strong>{totalDuration} phút</strong>
-                  </div>
-
-                  <div className="confirm-info-row">
-                    <span>Tổng tiền dự kiến</span>
-                    <strong className="confirm-total">
-                      {formatPrice(finalTotalPrice)}
-                    </strong>
-                  </div>
-
-                  {note && (
-                    <div className="confirm-info-row confirm-info-row--top">
-                      <span>Ghi chú</span>
-                      <strong className="confirm-note">{note}</strong>
+                  <div className="confirm-booking-content">
+                    <div className="confirm-booking-row">
+                      <span>Tổng thời lượng</span>
+                      <strong>{formatDurationText(totalDuration)}</strong>
                     </div>
-                  )}
+
+                    <div className="confirm-booking-row confirm-booking-total-row">
+                      <span>Tổng tiền dự kiến</span>
+                      <strong>{formatPrice(finalTotalPrice)}</strong>
+                    </div>
+
+                    {note && (
+                      <div className="confirm-booking-row confirm-booking-note-row">
+                        <span>Ghi chú</span>
+                        <strong>{note}</strong>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="confirm-actions confirm-actions-modern">
@@ -660,8 +711,19 @@ function BookingPage() {
                     Quay lại
                   </button>
 
-                  <button type="submit" className="booking-submit">
-                    Xác nhận đặt lịch
+                  <button
+                    type="submit"
+                    className="booking-submit booking-submit-loading"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 size={20} className="booking-loading-icon" />
+                        Đang đặt lịch...
+                      </>
+                    ) : (
+                      "Xác nhận đặt lịch"
+                    )}
                   </button>
                 </div>
               </div>
