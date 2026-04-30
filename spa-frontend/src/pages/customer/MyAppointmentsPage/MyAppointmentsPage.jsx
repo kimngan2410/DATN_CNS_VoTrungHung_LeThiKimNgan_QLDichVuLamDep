@@ -1,6 +1,13 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { CalendarDays, Clock3, LogOut, Users, X } from "lucide-react"
+import {
+  AlertTriangle,
+  CalendarDays,
+  Clock3,
+  LogOut,
+  Users,
+  X,
+} from "lucide-react"
 
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
@@ -11,6 +18,7 @@ import "./MyAppointmentsPage.css"
 
 function MyAppointmentsPage() {
   const navigate = useNavigate()
+  const rescheduleDateInputRef = useRef(null)
 
   const [appointments, setAppointments] = useState([
     {
@@ -20,14 +28,15 @@ function MyAppointmentsPage() {
           name: "Cắt tóc",
           price: 150000,
           duration: 35,
-          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+          image:
+            "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
         },
         {
           name: "Gội đầu dưỡng sinh",
           price: 120000,
           duration: 40,
-          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
-
+          image:
+            "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=300&q=80",
         },
       ],
       date: "2025-05-02",
@@ -42,7 +51,8 @@ function MyAppointmentsPage() {
           name: "Nhuộm tóc",
           price: 350000,
           duration: 120,
-          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+          image:
+            "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=300&q=80",
         },
       ],
       date: "2025-05-03",
@@ -57,13 +67,15 @@ function MyAppointmentsPage() {
           name: "Chăm sóc da mặt",
           price: 300000,
           duration: 75,
-          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+          image:
+            "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=300&q=80",
         },
         {
           name: "Nail art",
           price: 150000,
           duration: 60,
-          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+          image:
+            "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=300&q=80",
         },
       ],
       date: "2025-04-28",
@@ -78,19 +90,22 @@ function MyAppointmentsPage() {
           name: "Cắt tóc",
           price: 120000,
           duration: 45,
-          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+          image:
+            "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
         },
         {
           name: "Nhuộm tóc",
           price: 350000,
           duration: 120,
-          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+          image:
+            "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=300&q=80",
         },
         {
           name: "Gội đầu dưỡng sinh",
           price: 150000,
           duration: 45,
-          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+          image:
+            "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=300&q=80",
         },
       ],
       date: "2025-04-20",
@@ -105,7 +120,8 @@ function MyAppointmentsPage() {
           name: "Massage body đá nóng",
           price: 650000,
           duration: 60,
-          image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=300&q=80",
+          image:
+            "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=300&q=80",
         },
       ],
       date: "2025-04-18",
@@ -118,6 +134,43 @@ function MyAppointmentsPage() {
   const [activeStatus, setActiveStatus] = useState("all")
   const [showLogoutPopup, setShowLogoutPopup] = useState(false)
   const [detailAppointment, setDetailAppointment] = useState(null)
+
+  const [cancelModalData, setCancelModalData] = useState(null)
+  const [selectedCancelReason, setSelectedCancelReason] = useState("")
+  const [otherCancelReason, setOtherCancelReason] = useState("")
+
+  const [rescheduleModalData, setRescheduleModalData] = useState(null)
+  const [rescheduleDate, setRescheduleDate] = useState("")
+  const [rescheduleTime, setRescheduleTime] = useState("")
+
+  const cancelReasonOptions = [
+    "Bận việc đột xuất",
+    "Thay đổi kế hoạch",
+    "Vấn đề sức khỏe",
+    "Đã đặt nhầm dịch vụ/thời gian",
+    "Khác",
+  ]
+
+  const timeSlots = [
+    "09:00",
+    "09:30",
+    "10:00",
+    "10:30",
+    "11:00",
+    "11:30",
+    "13:00",
+    "13:30",
+    "14:00",
+    "14:30",
+    "15:00",
+    "15:30",
+    "16:00",
+    "16:30",
+    "17:00",
+    "17:30",
+    "18:00",
+    "18:30",
+  ]
 
   const profileData = {
     avatar:
@@ -209,6 +262,15 @@ function MyAppointmentsPage() {
     return `${weekday}, ${day}/${month}/${year}`
   }
 
+  const formatCancelPopupDate = (dateString) => {
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+
+    return `${year}-${month}-${day}`
+  }
+
   const getAppointmentTotalPrice = (appointment) => {
     const serviceTotal = appointment.services.reduce((sum, service) => {
       return sum + Number(service.price || 0)
@@ -273,27 +335,99 @@ function MyAppointmentsPage() {
   const canUpdateAppointment = (status) => {
     return status === "pending" || status === "confirmed"
   }
-  const handleCancelAppointment = (appointmentId) => {
-    const confirmCancel = window.confirm("Bạn có chắc chắn muốn hủy lịch hẹn này không?")
 
-    if (!confirmCancel) return
+  const openCancelModal = (appointment) => {
+    setCancelModalData(appointment)
+    setSelectedCancelReason("")
+    setOtherCancelReason("")
+  }
+
+  const closeCancelModal = () => {
+    setCancelModalData(null)
+    setSelectedCancelReason("")
+    setOtherCancelReason("")
+  }
+
+  const handleConfirmCancelAppointment = () => {
+    if (!cancelModalData) return
+
+    if (!selectedCancelReason) {
+      alert("Vui lòng chọn lý do hủy lịch.")
+      return
+    }
+
+    if (selectedCancelReason === "Khác" && !otherCancelReason.trim()) {
+      alert("Vui lòng nhập lý do hủy lịch.")
+      return
+    }
+
+    const finalReason =
+      selectedCancelReason === "Khác"
+        ? otherCancelReason.trim()
+        : selectedCancelReason
 
     setAppointments((prev) =>
       prev.map((item) =>
-        item.id === appointmentId
+        item.id === cancelModalData.id
           ? {
               ...item,
               status: "cancelled",
+              cancelReason: finalReason,
             }
           : item
       )
     )
 
-    setDetailAppointment(null)
+    if (detailAppointment?.id === cancelModalData.id) {
+      setDetailAppointment(null)
+    }
+
+    closeCancelModal()
   }
 
-  const handleRescheduleAppointment = (appointment) => {
-    alert(`Mở chức năng đổi lịch hẹn ${appointment.id}`)
+  const openRescheduleModal = (appointment) => {
+    setRescheduleModalData(appointment)
+    setRescheduleDate(appointment.date)
+    setRescheduleTime(appointment.time)
+  }
+
+  const closeRescheduleModal = () => {
+    setRescheduleModalData(null)
+    setRescheduleDate("")
+    setRescheduleTime("")
+  }
+
+  const openNativeDatePicker = () => {
+    if (rescheduleDateInputRef.current?.showPicker) {
+      rescheduleDateInputRef.current.showPicker()
+    } else {
+      rescheduleDateInputRef.current?.focus()
+    }
+  }
+
+  const handleConfirmRescheduleAppointment = () => {
+    if (!rescheduleModalData || !rescheduleDate || !rescheduleTime) {
+      alert("Vui lòng chọn đầy đủ ngày và giờ mới.")
+      return
+    }
+
+    setAppointments((prev) =>
+      prev.map((item) =>
+        item.id === rescheduleModalData.id
+          ? {
+              ...item,
+              date: rescheduleDate,
+              time: rescheduleTime,
+            }
+          : item
+      )
+    )
+
+    if (detailAppointment?.id === rescheduleModalData.id) {
+      setDetailAppointment(null)
+    }
+
+    closeRescheduleModal()
   }
 
   const handleLogout = () => {
@@ -371,7 +505,9 @@ function MyAppointmentsPage() {
                           </h3>
                         </div>
 
-                        <span className={`appointment-status ${statusInfo.className}`}>
+                        <span
+                          className={`appointment-status ${statusInfo.className}`}
+                        >
                           {statusInfo.label}
                         </span>
                       </div>
@@ -384,7 +520,8 @@ function MyAppointmentsPage() {
                       <div className="appointment-time-range-row">
                         <Clock3 size={16} />
                         <span>
-                          Thời gian hẹn: <strong>{getTimeRange(appointment)}</strong>
+                          Thời gian hẹn:{" "}
+                          <strong>{getTimeRange(appointment)}</strong>
                         </span>
                       </div>
 
@@ -393,7 +530,9 @@ function MyAppointmentsPage() {
                       <div className="appointment-card-bottom">
                         <span>{appointment.peopleCount} người</span>
 
-                        <strong>{formatPrice(getAppointmentTotalPrice(appointment))}</strong>
+                        <strong>
+                          {formatPrice(getAppointmentTotalPrice(appointment))}
+                        </strong>
                       </div>
 
                       {canUpdateAppointment(appointment.status) && (
@@ -404,17 +543,23 @@ function MyAppointmentsPage() {
                           <button
                             type="button"
                             className="appointment-card-btn appointment-card-btn-primary"
-                            onClick={() => handleRescheduleAppointment(appointment)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openRescheduleModal(appointment)
+                            }}
                           >
-                            Đổi lịch hẹn
+                            Đổi lịch
                           </button>
 
                           <button
                             type="button"
                             className="appointment-card-btn appointment-card-btn-danger"
-                            onClick={() => handleCancelAppointment(appointment.id)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              openCancelModal(appointment)
+                            }}
                           >
-                            Hủy lịch hẹn
+                            Hủy lịch
                           </button>
                         </div>
                       )}
@@ -465,25 +610,28 @@ function MyAppointmentsPage() {
               <div className="appointment-detail-service">
                 <span>Dịch vụ</span>
 
-              <div className="appointment-detail-service-list">
-                {detailAppointment.services.map((service, index) => (
-                  <div className="appointment-detail-service-row" key={index}>
-                    <div className="appointment-detail-service-left">
-                      <div className="appointment-detail-service-thumb">
-                        {service.image ? (
-                          <img src={service.image} alt={service.name} />
-                        ) : (
-                          <span>{service.name.charAt(0)}</span>
-                        )}
+                <div className="appointment-detail-service-list">
+                  {detailAppointment.services.map((service, index) => (
+                    <div
+                      className="appointment-detail-service-row"
+                      key={index}
+                    >
+                      <div className="appointment-detail-service-left">
+                        <div className="appointment-detail-service-thumb">
+                          {service.image ? (
+                            <img src={service.image} alt={service.name} />
+                          ) : (
+                            <span>{service.name.charAt(0)}</span>
+                          )}
+                        </div>
+
+                        <p>{service.name}</p>
                       </div>
 
-                      <p>{service.name}</p>
+                      <strong>{formatPrice(service.price)}</strong>
                     </div>
-
-                    <strong>{formatPrice(service.price)}</strong>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
               </div>
 
               <div className="appointment-detail-info-grid">
@@ -521,6 +669,176 @@ function MyAppointmentsPage() {
                   {formatPrice(getAppointmentTotalPrice(detailAppointment))}
                 </strong>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rescheduleModalData && (
+        <div
+          className="reschedule-booking-overlay"
+          onClick={closeRescheduleModal}
+        >
+          <div
+            className="reschedule-booking-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="reschedule-booking-header">
+              <h3>Đổi lịch hẹn</h3>
+
+              <button
+                type="button"
+                className="reschedule-booking-close"
+                onClick={closeRescheduleModal}
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="reschedule-booking-body">
+              <div className="reschedule-form-group">
+                <label>Ngày mới</label>
+
+                <div
+                  className="reschedule-date-select-wrap"
+                  onClick={openNativeDatePicker}
+                >
+                  <CalendarDays size={21} />
+
+                  <input
+                    ref={rescheduleDateInputRef}
+                    type="date"
+                    value={rescheduleDate}
+                    min={new Date().toISOString().split("T")[0]}
+                    onChange={(e) => setRescheduleDate(e.target.value)}
+                  />
+                </div>
+
+                {rescheduleDate === rescheduleModalData.date && (
+                  <p className="reschedule-current-date-note">Ngày hiện tại</p>
+                )}
+              </div>
+
+              <div className="reschedule-form-group">
+                <label>Giờ mới</label>
+
+                <div className="reschedule-time-grid">
+                  {timeSlots.map((time) => (
+                    <button
+                      key={time}
+                      type="button"
+                      className={`reschedule-time-slot ${
+                        rescheduleTime === time ? "active" : ""
+                      }`}
+                      onClick={() => setRescheduleTime(time)}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="reschedule-booking-footer">
+              <button
+                type="button"
+                className="reschedule-booking-btn reschedule-booking-btn-secondary"
+                onClick={closeRescheduleModal}
+              >
+                Đóng
+              </button>
+
+              <button
+                type="button"
+                className="reschedule-booking-btn reschedule-booking-btn-primary"
+                onClick={handleConfirmRescheduleAppointment}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cancelModalData && (
+        <div className="cancel-booking-overlay" onClick={closeCancelModal}>
+          <div
+            className="cancel-booking-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="cancel-booking-header">
+              <div className="cancel-booking-title">
+                <AlertTriangle size={22} />
+                <h3>Hủy lịch hẹn</h3>
+              </div>
+
+              <button
+                type="button"
+                className="cancel-booking-close"
+                onClick={closeCancelModal}
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="cancel-booking-body">
+              <p className="cancel-booking-message">
+                Bạn có chắc chắn muốn hủy lịch hẹn{" "}
+                <strong>#{cancelModalData.id}</strong> vào lúc{" "}
+                <strong>{cancelModalData.time}</strong> -{" "}
+                <strong>{formatCancelPopupDate(cancelModalData.date)}</strong>{" "}
+                không?
+              </p>
+
+              <label className="cancel-booking-label">
+                Lý do hủy lịch <span>*</span>
+              </label>
+
+              <div className="cancel-booking-reason-list">
+                {cancelReasonOptions.map((reason) => (
+                  <label
+                    key={reason}
+                    className={`cancel-booking-reason-item ${
+                      selectedCancelReason === reason ? "active" : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="cancel-reason"
+                      checked={selectedCancelReason === reason}
+                      onChange={() => setSelectedCancelReason(reason)}
+                    />
+                    <span>{reason}</span>
+                  </label>
+                ))}
+              </div>
+
+              {selectedCancelReason === "Khác" && (
+                <textarea
+                  className="cancel-booking-textarea"
+                  placeholder="Nhập lý do hủy lịch..."
+                  value={otherCancelReason}
+                  onChange={(e) => setOtherCancelReason(e.target.value)}
+                />
+              )}
+            </div>
+
+            <div className="cancel-booking-footer">
+              <button
+                type="button"
+                className="cancel-booking-btn cancel-booking-btn-secondary"
+                onClick={closeCancelModal}
+              >
+                Đóng
+              </button>
+
+              <button
+                type="button"
+                className="cancel-booking-btn cancel-booking-btn-danger"
+                onClick={handleConfirmCancelAppointment}
+              >
+                Xác nhận hủy
+              </button>
             </div>
           </div>
         </div>

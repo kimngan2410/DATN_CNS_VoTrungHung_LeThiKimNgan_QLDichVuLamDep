@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { LogOut, Pencil } from "lucide-react"

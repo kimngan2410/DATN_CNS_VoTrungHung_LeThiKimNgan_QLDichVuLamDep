@@ -157,7 +157,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -187,8 +187,8 @@
   align-items: center;
   gap: 7px;
   color: #667085;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .history-time-range-row {
