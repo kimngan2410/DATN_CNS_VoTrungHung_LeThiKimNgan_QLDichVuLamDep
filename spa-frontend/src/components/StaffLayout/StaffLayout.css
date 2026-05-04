@@ -1,0 +1,17 @@
+.staff-layout {
+  min-height: 100vh;
+  display: flex;
+  background: var(--staff-page-bg);
+  align-items: flex-start;
+}
+
+.staff-layout-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 992px) {
+  .staff-layout {
+    flex-direction: column;
+  }
+}

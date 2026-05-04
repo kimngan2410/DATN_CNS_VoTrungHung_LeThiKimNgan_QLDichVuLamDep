@@ -84,7 +84,7 @@
 }
 
 /* =========================
-   List card
+   History list
 ========================= */
 
 .service-history-list {
@@ -147,6 +147,13 @@
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.history-service-subline {
+  margin: 7px 0 0;
+  color: #d4a62a;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .history-status {
@@ -220,13 +227,26 @@
   gap: 16px;
 }
 
-.history-card-bottom span {
+.history-card-bottom > span {
   color: #98a2b3;
   font-size: 18px;
   font-weight: 500;
 }
 
-.history-card-bottom strong {
+.history-card-total-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.history-card-total-wrap small {
+  color: #98a2b3;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.history-card-total-wrap strong {
   color: #f03d3d;
   font-size: 21px;
   font-weight: 900;
@@ -247,7 +267,7 @@
 }
 
 /* =========================
-   Review action inside card
+   Review action
 ========================= */
 
 .history-action-row {
@@ -262,13 +282,14 @@
 .history-reviewed-btn {
   min-width: 165px;
   height: 44px;
-  border: none;
   border-radius: 14px;
   font-size: 15px;
   font-weight: 600;
+  transition: 0.2s ease;
 }
 
 .history-review-btn {
+  border: none;
   background: #d4a62a;
   color: #ffffff;
   cursor: pointer;
@@ -290,7 +311,7 @@
 }
 
 /* =========================
-   Detail modal
+   Common overlay
 ========================= */
 
 .history-detail-overlay,
@@ -323,13 +344,6 @@
   z-index: 7000;
 }
 
-.history-detail-modal {
-  width: 650px;
-  max-width: 100%;
-  position: relative;
-  animation: history-detail-pop 0.2s ease;
-}
-
 @keyframes history-detail-pop {
   from {
     opacity: 0;
@@ -340,6 +354,17 @@
     opacity: 1;
     transform: scale(1) translateY(0);
   }
+}
+
+/* =========================
+   Detail modal
+========================= */
+
+.history-detail-modal {
+  width: 680px;
+  max-width: 100%;
+  position: relative;
+  animation: history-detail-pop 0.2s ease;
 }
 
 .history-detail-close {
@@ -360,16 +385,22 @@
   z-index: 2;
 }
 
+.history-detail-close:hover {
+  background: #f3f4f6;
+}
+
 .history-detail-card {
   background: #ffffff;
   border-radius: 22px;
   padding: 28px 26px 24px;
   box-shadow: 0 18px 50px rgba(16, 24, 40, 0.2);
+  max-height: 88vh;
+  overflow-y: auto;
 }
 
 .history-detail-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 22px;
@@ -382,6 +413,13 @@
   font-weight: 600;
 }
 
+.history-detail-invoice {
+  margin: 6px 0 0;
+  color: #667085;
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .history-detail-service {
   margin-bottom: 20px;
 }
@@ -392,6 +430,17 @@
   color: #8b95a7;
   font-size: 15px;
   font-weight: 700;
+}
+
+.history-additional-box {
+  padding: 16px;
+  border: 1px dashed rgba(212, 166, 42, 0.5);
+  border-radius: 18px;
+  background: #fffaf0;
+}
+
+.history-additional-box > span {
+  color: #b98200;
 }
 
 .history-detail-service-list {
@@ -442,9 +491,17 @@
 .history-detail-service-row p {
   margin: 0;
   color: #07142b;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 1.4;
+}
+
+.history-detail-service-row small {
+  display: block;
+  margin-top: 4px;
+  color: #98a2b3;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .history-detail-service-row strong {
@@ -452,6 +509,23 @@
   font-size: 18px;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.history-detail-service-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.history-detail-service-name-row em {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff0cf;
+  color: #b98200;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
 }
 
 .history-detail-info-grid {
@@ -466,13 +540,42 @@
   align-items: center;
   gap: 10px;
   color: #152238;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
 }
 
 .history-detail-info-item svg {
   color: #98a2b3;
   flex-shrink: 0;
+}
+
+.history-payment-info {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f9fafb;
+  border: 1px solid #edf0f4;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.history-payment-info div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.history-payment-info span {
+  color: #98a2b3;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.history-payment-info strong {
+  color: #07142b;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .history-detail-divider {
@@ -512,12 +615,18 @@
   line-height: 1.5;
 }
 
+.history-detail-action {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* =========================
-   Service review picker modal
+   Service review picker
 ========================= */
 
 .service-review-picker-modal {
-  width: 500px;
+  width: 540px;
   max-width: 100%;
   background: #ffffff;
   border-radius: 18px;
@@ -615,6 +724,9 @@
   flex-shrink: 0;
   background: #faf8f5;
   border: 1px solid #edf0f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .service-review-picker-thumb img {
@@ -623,17 +735,46 @@
   object-fit: cover;
 }
 
-.service-review-picker-left h4 {
+.service-review-picker-thumb span {
+  color: #d4a62a;
+  font-weight: 800;
+}
+
+.service-review-picker-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.service-review-picker-name-row h4 {
   margin: 0;
   color: #07142b;
   font-size: 15px;
   font-weight: 600;
 }
 
+.service-review-picker-name-row em {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #fff0cf;
+  color: #b98200;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+}
+
 .service-review-picker-left p {
   margin: 5px 0 0;
   color: #98a2b3;
   font-size: 12px;
+}
+
+.service-review-stars-mini {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 6px;
 }
 
 .service-review-picker-btn {
@@ -644,14 +785,22 @@
   background: #d4a62a;
   color: #ffffff;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+}
+
+.service-review-picker-btn:hover {
+  background: #bf9425;
 }
 
 .service-review-picker-btn.reviewed {
   background: #ffffff;
   color: #d4a62a;
   border: 1px solid #d4a62a;
+}
+
+.service-review-picker-btn.reviewed:hover {
+  background: #fbefd0;
 }
 
 /* =========================
@@ -745,149 +894,120 @@
 .review-modal-actions {
   padding: 18px 22px 22px;
   border-top: 1px solid #edf0f4;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  justify-content: flex-end;
   gap: 12px;
-}
-
-.view-review-btn,
-.review-btn {
-  height: 46px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.view-review-btn-close,
-.review-btn-cancel {
-  border: none;
-  background: #f2f4f7;
-  color: #344054;
-}
-
-.view-review-btn-edit,
-.review-btn-save {
-  border: none;
-  background: #d4a62a;
-  color: #ffffff;
 }
 
 /* =========================
-   Review form modal
+   Review modal
 ========================= */
 
 .review-modal-body {
-  padding: 26px 24px 24px;
+  padding: 24px;
 }
 
-.review-modal-service {
+.review-service-name {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
-.review-modal-service p {
-  margin: 0 0 6px;
-  color: #667085;
-  font-size: 15px;
-}
-
-.review-modal-service strong {
+.review-service-name span {
   display: block;
-  color: #07142b;
-  font-size: 16px;
-  font-weight: 600;
+  margin-bottom: 6px;
+  color: #667085;
+  font-size: 14px;
 }
 
-.review-rating-row {
+.review-service-name strong {
+  color: #07142b;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.review-star-picker {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 26px;
+  gap: 8px;
+  margin-bottom: 20px;
 }
 
 .review-star-btn {
   border: none;
   background: transparent;
-  color: #d0d5dd;
-  cursor: pointer;
   padding: 0;
-  display: flex;
+  cursor: pointer;
+  transition: 0.2s ease;
 }
 
-.review-star-btn:hover,
-.review-star-btn.active {
-  color: #d4a62a;
-}
-
-.review-form-group {
-  margin-top: 22px;
-}
-
-.review-form-group label {
-  display: block;
-  margin-bottom: 10px;
-  color: #344054;
-  font-size: 15px;
-  font-weight: 600;
+.review-star-btn:hover {
+  transform: translateY(-2px);
 }
 
 .review-textarea {
   width: 100%;
-  min-height: 112px;
-  border: 1px solid #d5dae1;
-  border-radius: 12px;
-  padding: 14px 16px;
+  height: 120px;
+  padding: 14px 15px;
+  border: 1px solid #e4e7ec;
+  border-radius: 14px;
+  outline: none;
+  resize: none;
   color: #344054;
   font-size: 15px;
   line-height: 1.5;
   font-family: inherit;
-  resize: none;
-  outline: none;
+}
+
+.review-textarea:focus {
+  border-color: #d4a62a;
+  box-shadow: 0 0 0 3px rgba(212, 166, 42, 0.16);
 }
 
 .review-upload-box {
-  width: 100%;
-  min-height: 104px;
-  border: 1.5px dashed #cfd5df;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #98a2b3;
+  margin-top: 14px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  row-gap: 8px;
+  gap: 12px;
+}
+
+.review-upload-btn {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #d4a62a;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #d4a62a;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.review-upload-box:hover {
-  border-color: #d4a62a;
-  color: #d4a62a;
-}
-
-.review-upload-box:disabled {
+.review-upload-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
 .review-upload-box span {
+  color: #98a2b3;
   font-size: 13px;
 }
 
 .review-image-preview-grid {
-  margin-top: 12px;
+  margin-top: 14px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
 .review-image-preview {
-  height: 82px;
+  position: relative;
+  height: 88px;
   border-radius: 12px;
   overflow: hidden;
-  position: relative;
   border: 1px solid #edf0f4;
 }
 
@@ -901,16 +1021,45 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border: none;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(0, 0, 0, 0.55);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+.review-modal-btn {
+  min-width: 105px;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.review-modal-btn.secondary {
+  border: 1px solid #d0d5dd;
+  background: #ffffff;
+  color: #344054;
+}
+
+.review-modal-btn.secondary:hover {
+  background: #f9fafb;
+}
+
+.review-modal-btn.primary {
+  border: none;
+  background: #d4a62a;
+  color: #ffffff;
+}
+
+.review-modal-btn.primary:hover {
+  background: #bf9425;
 }
 
 /* =========================
@@ -920,7 +1069,7 @@
 .logout-popup-overlay {
   position: fixed;
   inset: 0;
-  z-index: 5000;
+  z-index: 8000;
   background: rgba(15, 15, 15, 0.48);
   backdrop-filter: blur(5px);
   display: flex;
@@ -937,6 +1086,7 @@
   padding: 34px 30px 28px;
   text-align: center;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+  animation: history-detail-pop 0.2s ease;
 }
 
 .logout-popup-icon {
@@ -978,6 +1128,7 @@
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
+  transition: 0.2s ease;
 }
 
 .logout-popup-btn-cancel {
@@ -985,9 +1136,17 @@
   color: #344054;
 }
 
+.logout-popup-btn-cancel:hover {
+  background: #e6e9ef;
+}
+
 .logout-popup-btn-confirm {
   background: #d92d20;
   color: #ffffff;
+}
+
+.logout-popup-btn-confirm:hover {
+  background: #b42318;
 }
 
 /* =========================
@@ -1018,14 +1177,33 @@
     font-size: 17px;
   }
 
-  .history-action-row {
-    justify-content: flex-end;
-    flex-wrap: wrap;
+  .history-card-bottom {
+    align-items: flex-start;
   }
 
-  .logout-popup-actions,
-  .view-review-actions,
-  .review-modal-actions {
+  .history-card-bottom > span {
+    font-size: 16px;
+  }
+
+  .history-card-total-wrap strong {
+    font-size: 19px;
+  }
+
+  .history-detail-info-grid,
+  .history-payment-info {
+    grid-template-columns: 1fr;
+  }
+
+  .history-detail-service-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .history-detail-service-row strong {
+    padding-left: 72px;
+  }
+
+  .logout-popup-actions {
     grid-template-columns: 1fr;
   }
 }
@@ -1042,7 +1220,7 @@
   .history-status-tab {
     height: 36px;
     padding: 0 16px;
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .history-card {
@@ -1079,18 +1257,7 @@
   }
 
   .history-detail-top {
-    align-items: flex-start;
     flex-direction: column;
-  }
-
-  .history-detail-info-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-  }
-
-  .history-detail-service-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
   }
 
   .history-detail-total {
@@ -1099,21 +1266,26 @@
     gap: 8px;
   }
 
+  .history-detail-total strong {
+    font-size: 24px;
+  }
+
   .service-review-picker-item {
-    align-items: flex-start;
     flex-direction: column;
+    align-items: stretch;
   }
 
   .service-review-picker-btn {
     width: 100%;
   }
 
-  .review-rating-row {
-    gap: 8px;
+  .review-modal-actions,
+  .view-review-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
-  .review-star-btn svg {
-    width: 38px;
-    height: 38px;
+  .review-modal-btn {
+    width: 100%;
   }
 }

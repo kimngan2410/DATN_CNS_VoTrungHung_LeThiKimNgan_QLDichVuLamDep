@@ -35,13 +35,23 @@ function ServiceHistoryPage() {
   const [historyAppointments, setHistoryAppointments] = useState([
     {
       id: "LH20250104",
+      invoiceCode: "HD20250104",
+      date: "2025-04-20",
+      time: "10:30",
+      peopleCount: 1,
+      status: "completed",
+      paymentMethod: "Tiền mặt",
+      paymentStatus: "Đã thanh toán",
+      paidAt: "2025-04-20",
       services: [
         {
           idChiTietLH: "CTLH001",
           idDichVu: "DV001",
           name: "Cắt tóc",
           price: 120000,
+          quantity: 1,
           duration: 45,
+          type: "booked",
           image:
             "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=400&q=80",
           reviewed: true,
@@ -56,7 +66,9 @@ function ServiceHistoryPage() {
           idDichVu: "DV002",
           name: "Nhuộm tóc",
           price: 350000,
+          quantity: 1,
           duration: 120,
+          type: "booked",
           image:
             "https://images.unsplash.com/photo-1562322140-8baeececf3df?w=400&q=80",
           reviewed: true,
@@ -71,48 +83,59 @@ function ServiceHistoryPage() {
           idDichVu: "DV003",
           name: "Gội đầu dưỡng sinh",
           price: 150000,
+          quantity: 1,
           duration: 45,
+          type: "additional",
           image:
             "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80",
           reviewed: false,
           review: null,
         },
       ],
-      date: "2025-04-20",
-      time: "10:30",
-      peopleCount: 1,
-      status: "completed",
     },
     {
       id: "LH20250105",
+      invoiceCode: null,
+      date: "2025-04-18",
+      time: "15:00",
+      peopleCount: 1,
+      status: "cancelled",
+      cancelReason: "Thay đổi kế hoạch",
       services: [
         {
           idChiTietLH: "CTLH004",
           idDichVu: "DV004",
           name: "Massage body đá nóng",
           price: 650000,
+          quantity: 1,
           duration: 60,
+          type: "booked",
           image:
             "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&q=80",
           reviewed: false,
           review: null,
         },
       ],
-      date: "2025-04-18",
-      time: "15:00",
-      peopleCount: 1,
-      status: "cancelled",
-      cancelReason: "Thay đổi kế hoạch",
     },
     {
       id: "LH20250106",
+      invoiceCode: "HD20250106",
+      date: "2025-04-12",
+      time: "09:00",
+      peopleCount: 1,
+      status: "completed",
+      paymentMethod: "Chuyển khoản",
+      paymentStatus: "Đã thanh toán",
+      paidAt: "2025-04-12",
       services: [
         {
           idChiTietLH: "CTLH005",
           idDichVu: "DV005",
           name: "Chăm sóc da mặt chuyên sâu",
           price: 850000,
+          quantity: 1,
           duration: 90,
+          type: "booked",
           image:
             "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&q=80",
           reviewed: true,
@@ -124,20 +147,24 @@ function ServiceHistoryPage() {
           },
         },
       ],
-      date: "2025-04-12",
-      time: "09:00",
-      peopleCount: 1,
-      status: "completed",
     },
     {
       id: "LH20250107",
+      invoiceCode: null,
+      date: "2025-04-08",
+      time: "14:30",
+      peopleCount: 2,
+      status: "cancelled",
+      cancelReason: "Đặt nhầm thời gian",
       services: [
         {
           idChiTietLH: "CTLH006",
           idDichVu: "DV006",
           name: "Nail art",
           price: 150000,
+          quantity: 2,
           duration: 60,
+          type: "booked",
           image:
             "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&q=80",
           reviewed: false,
@@ -148,18 +175,15 @@ function ServiceHistoryPage() {
           idDichVu: "DV003",
           name: "Gội đầu dưỡng sinh",
           price: 150000,
+          quantity: 2,
           duration: 45,
+          type: "booked",
           image:
             "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80",
           reviewed: false,
           review: null,
         },
       ],
-      date: "2025-04-08",
-      time: "14:30",
-      peopleCount: 2,
-      status: "cancelled",
-      cancelReason: "Đặt nhầm thời gian",
     },
   ])
 
@@ -173,18 +197,9 @@ function ServiceHistoryPage() {
   const appointmentCount = 3
 
   const historyTabs = [
-    {
-      value: "all",
-      label: "Tất cả",
-    },
-    {
-      value: "completed",
-      label: "Đã hoàn thành",
-    },
-    {
-      value: "cancelled",
-      label: "Đã hủy",
-    },
+    { value: "all", label: "Tất cả" },
+    { value: "completed", label: "Đã hoàn thành" },
+    { value: "cancelled", label: "Đã hủy" },
   ]
 
   const statusMap = {
@@ -209,7 +224,7 @@ function ServiceHistoryPage() {
   }, [historyAppointments, activeStatus])
 
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN").format(price) + "đ"
+    return new Intl.NumberFormat("vi-VN").format(Number(price || 0)) + "đ"
   }
 
   const formatVietnameseDate = (dateString) => {
@@ -233,18 +248,49 @@ function ServiceHistoryPage() {
     return `${weekday}, ${day}/${month}/${year}`
   }
 
-  const getAppointmentTotalPrice = (appointment) => {
-    const serviceTotal = appointment.services.reduce((sum, service) => {
-      return sum + Number(service.price || 0)
-    }, 0)
+  const getServiceType = (service) => {
+    if (service.type) return service.type
+    if (service.isAdditional) return "additional"
+    return "booked"
+  }
 
-    return serviceTotal * Number(appointment.peopleCount || 1)
+  const getBookedServices = (appointment) => {
+    return appointment.services.filter(
+      (service) => getServiceType(service) === "booked"
+    )
+  }
+
+  const getAdditionalServices = (appointment) => {
+    return appointment.services.filter(
+      (service) => getServiceType(service) === "additional"
+    )
+  }
+
+  const getServiceLineTotal = (service) => {
+    const quantity = Number(service.quantity || 1)
+    return Number(service.price || 0) * quantity
+  }
+
+  const getAppointmentTotalPrice = (appointment) => {
+    return appointment.services.reduce((sum, service) => {
+      return sum + getServiceLineTotal(service)
+    }, 0)
   }
 
   const getAppointmentTotalDuration = (appointment) => {
     return appointment.services.reduce((sum, service) => {
       return sum + Number(service.duration || 0)
     }, 0)
+  }
+
+  const formatDurationText = (minutes) => {
+    const total = Number(minutes || 0)
+    const hours = Math.floor(total / 60)
+    const mins = total % 60
+
+    if (hours > 0 && mins > 0) return `${hours} giờ ${mins} phút`
+    if (hours > 0) return `${hours} giờ`
+    return `${mins} phút`
   }
 
   const getEndTime = (startTime, durationMinutes) => {
@@ -275,13 +321,29 @@ function ServiceHistoryPage() {
   }
 
   const getServiceNamesPreview = (appointment) => {
-    const serviceNames = appointment.services.map((service) => service.name)
+    const bookedServices = getBookedServices(appointment)
+    const additionalServices = getAdditionalServices(appointment)
 
-    if (serviceNames.length <= 2) {
-      return serviceNames.join(", ")
+    const bookedNames = bookedServices.map((service) => service.name)
+
+    let preview = ""
+
+    if (bookedNames.length === 0) {
+      preview = appointment.services
+        .slice(0, 2)
+        .map((service) => service.name)
+        .join(", ")
+    } else if (bookedNames.length <= 2) {
+      preview = bookedNames.join(", ")
+    } else {
+      preview = `${bookedNames.slice(0, 2).join(", ")}, ...`
     }
 
-    return `${serviceNames.slice(0, 2).join(", ")}, ...`
+    if (additionalServices.length > 0) {
+      return `${preview}, +${additionalServices.length} dịch vụ phát sinh`
+    }
+
+    return preview
   }
 
   const getReviewedCount = (appointment) => {
@@ -310,10 +372,7 @@ function ServiceHistoryPage() {
   }
 
   const openViewReviewModal = (appointment, service) => {
-    setViewReviewTarget({
-      appointment,
-      service,
-    })
+    setViewReviewTarget({ appointment, service })
   }
 
   const closeViewReviewModal = () => {
@@ -365,7 +424,9 @@ function ServiceHistoryPage() {
   }
 
   const updateServiceReviewInAppointment = (appointment, newReview) => {
-    if (!appointment || appointment.id !== reviewTarget.appointmentId) {
+    if (!appointment) return appointment
+
+    if (appointment.id !== reviewTarget.appointmentId) {
       return appointment
     }
 
@@ -427,6 +488,11 @@ function ServiceHistoryPage() {
     ))
   }
 
+  const getReviewImageSrc = (image) => {
+    if (typeof image === "string") return image
+    return image.url
+  }
+
   const handleLogout = () => {
     setShowLogoutPopup(true)
   }
@@ -483,6 +549,8 @@ function ServiceHistoryPage() {
               <div className="service-history-list">
                 {filteredHistory.map((appointment) => {
                   const statusInfo = statusMap[appointment.status]
+                  const additionalCount =
+                    getAdditionalServices(appointment).length
 
                   return (
                     <article
@@ -500,6 +568,13 @@ function ServiceHistoryPage() {
                           >
                             {getServiceNamesPreview(appointment)}
                           </h3>
+
+                          {additionalCount > 0 && (
+                            <p className="history-service-subline">
+                              Có {additionalCount} dịch vụ phát sinh sau khi
+                              thực hiện dịch vụ
+                            </p>
+                          )}
                         </div>
 
                         <span
@@ -527,9 +602,16 @@ function ServiceHistoryPage() {
                       <div className="history-card-bottom">
                         <span>{appointment.peopleCount} người</span>
 
-                        <strong>
-                          {formatPrice(getAppointmentTotalPrice(appointment))}
-                        </strong>
+                        <div className="history-card-total-wrap">
+                          <small>
+                            {appointment.status === "completed"
+                              ? "Tổng thanh toán"
+                              : "Tổng tiền"}
+                          </small>
+                          <strong>
+                            {formatPrice(getAppointmentTotalPrice(appointment))}
+                          </strong>
+                        </div>
                       </div>
 
                       {appointment.cancelReason && (
@@ -588,7 +670,15 @@ function ServiceHistoryPage() {
 
             <div className="history-detail-card">
               <div className="history-detail-top">
-                <p className="history-detail-code">{detailHistory.id}</p>
+                <div>
+                  <p className="history-detail-code">{detailHistory.id}</p>
+
+                  {detailHistory.invoiceCode && (
+                    <p className="history-detail-invoice">
+                      Hóa đơn: {detailHistory.invoiceCode}
+                    </p>
+                  )}
+                </div>
 
                 <span
                   className={`history-status ${
@@ -600,10 +690,10 @@ function ServiceHistoryPage() {
               </div>
 
               <div className="history-detail-service">
-                <span>Dịch vụ</span>
+                <span>Dịch vụ đã đặt</span>
 
                 <div className="history-detail-service-list">
-                  {detailHistory.services.map((service) => (
+                  {getBookedServices(detailHistory).map((service) => (
                     <div
                       className="history-detail-service-row"
                       key={service.idChiTietLH}
@@ -617,14 +707,61 @@ function ServiceHistoryPage() {
                           )}
                         </div>
 
-                        <p>{service.name}</p>
+                        <div>
+                          <p>{service.name}</p>
+                          <small>
+                            SL: {service.quantity || 1} • Đơn giá:{" "}
+                            {formatPrice(service.price)}
+                          </small>
+                        </div>
                       </div>
 
-                      <strong>{formatPrice(service.price)}</strong>
+                      <strong>{formatPrice(getServiceLineTotal(service))}</strong>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {getAdditionalServices(detailHistory).length > 0 && (
+                <div className="history-detail-service history-additional-box">
+                  <span>Dịch vụ phát sinh</span>
+
+                  <div className="history-detail-service-list">
+                    {getAdditionalServices(detailHistory).map((service) => (
+                      <div
+                        className="history-detail-service-row"
+                        key={service.idChiTietLH}
+                      >
+                        <div className="history-detail-service-left">
+                          <div className="history-detail-service-thumb">
+                            {service.image ? (
+                              <img src={service.image} alt={service.name} />
+                            ) : (
+                              <span>{service.name.charAt(0)}</span>
+                            )}
+                          </div>
+
+                          <div>
+                            <div className="history-detail-service-name-row">
+                              <p>{service.name}</p>
+                              <em>Phát sinh</em>
+                            </div>
+
+                            <small>
+                              SL: {service.quantity || 1} • Đơn giá:{" "}
+                              {formatPrice(service.price)}
+                            </small>
+                          </div>
+                        </div>
+
+                        <strong>
+                          {formatPrice(getServiceLineTotal(service))}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="history-detail-info-grid">
                 <div className="history-detail-info-item">
@@ -641,12 +778,37 @@ function ServiceHistoryPage() {
                   <Users size={19} />
                   <span>{detailHistory.peopleCount} người</span>
                 </div>
+
+                <div className="history-detail-info-item">
+                  <Clock3 size={19} />
+                  <span>
+                    {formatDurationText(getAppointmentTotalDuration(detailHistory))}
+                  </span>
+                </div>
               </div>
+
+              {detailHistory.status === "completed" && (
+                <div className="history-payment-info">
+                  <div>
+                    <span>Phương thức thanh toán</span>
+                    <strong>{detailHistory.paymentMethod || "Chưa cập nhật"}</strong>
+                  </div>
+
+                  <div>
+                    <span>Trạng thái thanh toán</span>
+                    <strong>{detailHistory.paymentStatus || "Đã thanh toán"}</strong>
+                  </div>
+                </div>
+              )}
 
               <div className="history-detail-divider"></div>
 
               <div className="history-detail-total">
-                <span>Tổng tiền</span>
+                <span>
+                  {detailHistory.status === "completed"
+                    ? "Tổng thanh toán"
+                    : "Tổng tiền"}
+                </span>
 
                 <strong>
                   {formatPrice(getAppointmentTotalPrice(detailHistory))}
@@ -656,6 +818,22 @@ function ServiceHistoryPage() {
               {detailHistory.cancelReason && (
                 <div className="history-detail-cancel-reason">
                   <strong>Lý do hủy:</strong> {detailHistory.cancelReason}
+                </div>
+              )}
+
+              {detailHistory.status === "completed" && (
+                <div className="history-detail-action">
+                  <button
+                    type="button"
+                    className={
+                      hasUnreviewedService(detailHistory)
+                        ? "history-review-btn"
+                        : "history-reviewed-btn"
+                    }
+                    onClick={() => openServiceReviewPicker(detailHistory)}
+                  >
+                    {getReviewButtonLabel(detailHistory)}
+                  </button>
                 </div>
               )}
             </div>
@@ -680,59 +858,76 @@ function ServiceHistoryPage() {
                 className="service-review-picker-close"
                 onClick={closeServiceReviewPicker}
               >
-                <X size={22} />
+                <X size={21} />
               </button>
             </div>
 
             <div className="service-review-picker-body">
               <p className="service-review-picker-desc">
-                Vui lòng chọn dịch vụ bạn muốn đánh giá trong lịch hẹn{" "}
-                <strong>{serviceReviewPicker.id}</strong>.
+                Lịch hẹn <strong>{serviceReviewPicker.id}</strong> có{" "}
+                <strong>{serviceReviewPicker.services.length}</strong> dịch vụ.
+                Bạn có thể đánh giá từng dịch vụ đã sử dụng.
               </p>
 
               <div className="service-review-picker-list">
-                {serviceReviewPicker.services.map((service) => (
-                  <div
-                    className="service-review-picker-item"
-                    key={service.idChiTietLH}
-                  >
-                    <div className="service-review-picker-left">
-                      <div className="service-review-picker-thumb">
-                        {service.image ? (
-                          <img src={service.image} alt={service.name} />
-                        ) : (
-                          <span>{service.name.charAt(0)}</span>
-                        )}
-                      </div>
+                {serviceReviewPicker.services.map((service) => {
+                  const isAdditional = getServiceType(service) === "additional"
 
-                      <div>
-                        <h4>{service.name}</h4>
-
-                        <p>
-                          {service.reviewed ? "Đã đánh giá" : "Chưa đánh giá"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      className={
-                        service.reviewed
-                          ? "service-review-picker-btn reviewed"
-                          : "service-review-picker-btn"
-                      }
-                      onClick={() => {
-                        if (service.reviewed) {
-                          openViewReviewModal(serviceReviewPicker, service)
-                        } else {
-                          openReviewModal(serviceReviewPicker, service)
-                        }
-                      }}
+                  return (
+                    <div
+                      className="service-review-picker-item"
+                      key={service.idChiTietLH}
                     >
-                      {service.reviewed ? "Xem đánh giá" : "Đánh giá"}
-                    </button>
-                  </div>
-                ))}
+                      <div className="service-review-picker-left">
+                        <div className="service-review-picker-thumb">
+                          {service.image ? (
+                            <img src={service.image} alt={service.name} />
+                          ) : (
+                            <span>{service.name.charAt(0)}</span>
+                          )}
+                        </div>
+
+                        <div>
+                          <div className="service-review-picker-name-row">
+                            <h4>{service.name}</h4>
+
+                            {isAdditional && <em>Phát sinh</em>}
+                          </div>
+
+                          <p>{formatPrice(getServiceLineTotal(service))}</p>
+
+                          {service.reviewed && (
+                            <div className="service-review-stars-mini">
+                              {renderStars(service.review?.rating || 0, 14)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {service.reviewed ? (
+                        <button
+                          type="button"
+                          className="service-review-picker-btn reviewed"
+                          onClick={() =>
+                            openViewReviewModal(serviceReviewPicker, service)
+                          }
+                        >
+                          Xem đánh giá
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="service-review-picker-btn"
+                          onClick={() =>
+                            openReviewModal(serviceReviewPicker, service)
+                          }
+                        >
+                          Đánh giá
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -746,25 +941,25 @@ function ServiceHistoryPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="view-review-header">
-              <h3>Xem đánh giá</h3>
+              <h3>Đánh giá của bạn</h3>
 
               <button
                 type="button"
                 className="view-review-close"
                 onClick={closeViewReviewModal}
               >
-                <X size={22} />
+                <X size={21} />
               </button>
             </div>
 
             <div className="view-review-body">
               <div className="view-review-service">
-                <p>Dịch vụ đã đánh giá</p>
+                <p>Dịch vụ</p>
                 <strong>{viewReviewTarget.service.name}</strong>
               </div>
 
               <div className="view-review-stars">
-                {renderStars(viewReviewTarget.service.review?.rating || 5, 28)}
+                {renderStars(viewReviewTarget.service.review?.rating || 0, 24)}
               </div>
 
               {viewReviewTarget.service.review?.content ? (
@@ -773,14 +968,18 @@ function ServiceHistoryPage() {
                 </p>
               ) : (
                 <p className="view-review-empty-content">
-                  Bạn chưa nhập nhận xét cho đánh giá này.
+                  Bạn chưa nhập nội dung nhận xét.
                 </p>
               )}
 
               {viewReviewTarget.service.review?.images?.length > 0 && (
                 <div className="view-review-image-grid">
-                  {viewReviewTarget.service.review.images.map((image) => (
-                    <img key={image.id} src={image.url} alt={image.name} />
+                  {viewReviewTarget.service.review.images.map((image, index) => (
+                    <img
+                      key={image.id || index}
+                      src={getReviewImageSrc(image)}
+                      alt={`review-${index + 1}`}
+                    />
                   ))}
                 </div>
               )}
@@ -789,24 +988,10 @@ function ServiceHistoryPage() {
             <div className="view-review-actions">
               <button
                 type="button"
-                className="view-review-btn view-review-btn-close"
+                className="review-modal-btn secondary"
                 onClick={closeViewReviewModal}
               >
                 Đóng
-              </button>
-
-              <button
-                type="button"
-                className="view-review-btn view-review-btn-edit"
-                onClick={() => {
-                  openReviewModal(
-                    viewReviewTarget.appointment,
-                    viewReviewTarget.service
-                  )
-                  closeViewReviewModal()
-                }}
-              >
-                Chỉnh sửa
               </button>
             </div>
           </div>
@@ -820,28 +1005,24 @@ function ServiceHistoryPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="review-modal-header">
-              <h3>
-                {reviewTarget.reviewed
-                  ? "Chỉnh sửa đánh giá"
-                  : "Đánh giá dịch vụ"}
-              </h3>
+              <h3>Đánh giá dịch vụ</h3>
 
               <button
                 type="button"
                 className="review-modal-close"
                 onClick={closeReviewModal}
               >
-                <X size={22} />
+                <X size={21} />
               </button>
             </div>
 
             <div className="review-modal-body">
-              <div className="review-modal-service">
-                <p>Bạn đánh giá thế nào về dịch vụ</p>
+              <div className="review-service-name">
+                <span>Dịch vụ</span>
                 <strong>{reviewTarget.serviceName}</strong>
               </div>
 
-              <div className="review-rating-row">
+              <div className="review-star-picker">
                 {Array.from({ length: 5 }).map((_, index) => {
                   const starValue = index + 1
 
@@ -849,36 +1030,31 @@ function ServiceHistoryPage() {
                     <button
                       key={starValue}
                       type="button"
-                      className={`review-star-btn ${
-                        starValue <= reviewRating ? "active" : ""
-                      }`}
+                      className="review-star-btn"
                       onClick={() => setReviewRating(starValue)}
                     >
                       <Star
-                        size={44}
-                        fill={
-                          starValue <= reviewRating ? "currentColor" : "none"
+                        size={34}
+                        className={
+                          starValue <= reviewRating
+                            ? "star-filled"
+                            : "star-empty"
                         }
+                        fill={starValue <= reviewRating ? "currentColor" : "none"}
                       />
                     </button>
                   )
                 })}
               </div>
 
-              <div className="review-form-group">
-                <label>Nhận xét của bạn (Không bắt buộc)</label>
+              <textarea
+                className="review-textarea"
+                placeholder="Nhập nhận xét của bạn về dịch vụ..."
+                value={reviewContent}
+                onChange={(event) => setReviewContent(event.target.value)}
+              />
 
-                <textarea
-                  className="review-textarea"
-                  placeholder="Chia sẻ trải nghiệm của bạn..."
-                  value={reviewContent}
-                  onChange={(event) => setReviewContent(event.target.value)}
-                />
-              </div>
-
-              <div className="review-form-group review-image-group">
-                <label>Hình ảnh minh họa (Tối đa 3 ảnh)</label>
-
+              <div className="review-upload-box">
                 <input
                   ref={reviewFileInputRef}
                   type="file"
@@ -890,45 +1066,47 @@ function ServiceHistoryPage() {
 
                 <button
                   type="button"
-                  className="review-upload-box"
+                  className="review-upload-btn"
                   onClick={() => reviewFileInputRef.current?.click()}
                   disabled={reviewImages.length >= 3}
                 >
-                  <Upload size={28} />
-                  <span>Nhấn để tải ảnh lên</span>
+                  <Upload size={18} />
+                  Tải ảnh lên
                 </button>
 
-                {reviewImages.length > 0 && (
-                  <div className="review-image-preview-grid">
-                    {reviewImages.map((image) => (
-                      <div className="review-image-preview" key={image.id}>
-                        <img src={image.url} alt={image.name} />
-
-                        <button
-                          type="button"
-                          onClick={() => removeReviewImage(image.id)}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <span>Tối đa 3 ảnh</span>
               </div>
+
+              {reviewImages.length > 0 && (
+                <div className="review-image-preview-grid">
+                  {reviewImages.map((image) => (
+                    <div className="review-image-preview" key={image.id}>
+                      <img src={getReviewImageSrc(image)} alt={image.name} />
+
+                      <button
+                        type="button"
+                        onClick={() => removeReviewImage(image.id)}
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="review-modal-actions">
               <button
                 type="button"
-                className="review-btn review-btn-cancel"
+                className="review-modal-btn secondary"
                 onClick={closeReviewModal}
               >
-                Đóng
+                Hủy
               </button>
 
               <button
                 type="button"
-                className="review-btn review-btn-save"
+                className="review-modal-btn primary"
                 onClick={handleSaveReview}
               >
                 Gửi đánh giá
