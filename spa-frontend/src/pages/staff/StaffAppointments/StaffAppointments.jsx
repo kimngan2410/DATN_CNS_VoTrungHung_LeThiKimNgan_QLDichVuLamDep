@@ -5,90 +5,214 @@ import {
   UserRound,
   Filter,
   Plus,
+  Minus,
+  Trash2,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  X,
+  User,
+  Phone,
+  CalendarDays,
+  Clock3,
+  ClipboardList,
 } from "lucide-react";
 import "./StaffAppointments.css";
 
 const TODAY = new Date("2026-05-04");
 
-const appointmentList = [
+const initialAppointmentList = [
   {
     id: "LH001",
     customer: "Nguyễn Thị Mai",
     phone: "0901234567",
-    services: [{ name: "Massage body" }, { name: "Gội đầu dưỡng sinh" }],
+    services: [
+      { id: "DV001", name: "Massage body", price: 500000, soLuong: 1, thoiLuongPhut: 60 },
+      { id: "DV002", name: "Gội đầu dưỡng sinh", price: 250000, soLuong: 1, thoiLuongPhut: 45 },
+    ],
     date: "2026-05-04",
     time: "09:00",
+    endTime: "10:45",
     status: "Đã hoàn thành",
+    note: "Khách đã thanh toán sau khi hoàn thành dịch vụ.",
   },
   {
     id: "LH002",
     customer: "Trần Văn Hùng",
     phone: "0912345678",
     services: [
-      { name: "Gội đầu dưỡng sinh" },
-      { name: "Chăm sóc da mặt" },
-      { name: "Massage cổ vai gáy" },
+      { id: "DV002", name: "Gội đầu dưỡng sinh", price: 250000, soLuong: 1, thoiLuongPhut: 45 },
+      { id: "DV003", name: "Chăm sóc da mặt", price: 400000, soLuong: 1, thoiLuongPhut: 60 },
+      { id: "DV004", name: "Massage cổ vai gáy", price: 200000, soLuong: 1, thoiLuongPhut: 30 },
     ],
     date: "2026-05-04",
     time: "10:30",
+    endTime: "12:45",
     status: "Đang thực hiện",
+    note: "Khách có thể phát sinh thêm dịch vụ trong quá trình làm.",
   },
   {
     id: "LH003",
     customer: "Lê Thị Hoa",
     phone: "0923456789",
-    services: [{ name: "Chăm sóc da mặt" }],
+    services: [
+      { id: "DV003", name: "Chăm sóc da mặt", price: 400000, soLuong: 1, thoiLuongPhut: 60 },
+    ],
     date: "2026-05-04",
     time: "14:00",
+    endTime: "15:00",
     status: "Đã check-in",
+    note: "Khách đã đến spa, đang chờ bắt đầu dịch vụ.",
   },
   {
     id: "LH004",
     customer: "Phạm Minh Tuấn",
     phone: "0934567890",
-    services: [{ name: "Massage body" }],
+    services: [
+      { id: "DV001", name: "Massage body", price: 500000, soLuong: 1, thoiLuongPhut: 60 },
+    ],
     date: "2026-05-04",
     time: "15:30",
+    endTime: "16:30",
     status: "Đã xác nhận",
+    note: "Khách yêu cầu phòng yên tĩnh.",
   },
   {
     id: "LH005",
     customer: "Hoàng Thu Trang",
     phone: "0945678901",
-    services: [{ name: "Nail art" }, { name: "Sơn gel" }],
+    services: [
+      { id: "DV005", name: "Nail art", price: 300000, soLuong: 1, thoiLuongPhut: 45 },
+      { id: "DV006", name: "Sơn gel", price: 180000, soLuong: 2, thoiLuongPhut: 30 },
+    ],
     date: "2026-05-04",
     time: "16:00",
+    endTime: "17:45",
     status: "Chờ xác nhận",
+    note: "Khách yêu cầu thợ làm móng tên Linh.",
   },
   {
     id: "LH006",
     customer: "Nguyễn Thị Mai",
     phone: "0901234567",
-    services: [{ name: "Tắm trắng" }],
+    services: [
+      { id: "DV007", name: "Tắm trắng", price: 700000, soLuong: 1, thoiLuongPhut: 90 },
+    ],
     date: "2026-05-05",
     time: "10:00",
+    endTime: "11:30",
     status: "Đã xác nhận",
+    note: "Khách đặt lịch cho ngày tiếp theo.",
   },
   {
     id: "LH007",
     customer: "Lê Thị Hoa",
     phone: "0923456789",
-    services: [{ name: "Waxing" }],
+    services: [
+      { id: "DV008", name: "Waxing", price: 300000, soLuong: 1, thoiLuongPhut: 45 },
+    ],
     date: "2026-05-03",
     time: "11:00",
+    endTime: "11:45",
     status: "Đã huỷ",
+    note: "Khách báo bận và huỷ lịch.",
+    lyDoHuy: "Khách báo bận nên yêu cầu huỷ lịch.",
+    statusReason: "Khách báo bận nên yêu cầu huỷ lịch.",
   },
   {
     id: "LH008",
     customer: "Đặng Minh Anh",
     phone: "0967891234",
-    services: [{ name: "Gội đầu dưỡng sinh" }],
+    services: [
+      { id: "DV002", name: "Gội đầu dưỡng sinh", price: 250000, soLuong: 1, thoiLuongPhut: 45 },
+    ],
     date: "2026-05-04",
     time: "17:00",
+    endTime: "17:45",
     status: "Không đến",
+    note: "Khách không đến và không phản hồi.",
+    statusReason: "Khách không đến và không phản hồi.",
   },
+];
+
+const customerOptions = [
+  { id: "KH001", name: "Nguyễn Thị Mai", phone: "0901234567" },
+  { id: "KH002", name: "Trần Văn Hùng", phone: "0912345678" },
+  { id: "KH003", name: "Lê Thị Hoa", phone: "0923456789" },
+  { id: "KH004", name: "Phạm Minh Tuấn", phone: "0934567890" },
+  { id: "KH005", name: "Hoàng Thu Trang", phone: "0945678901" },
+];
+
+const serviceOptions = [
+  {
+    id: "DV001",
+    name: "Massage body",
+    category: "Massage",
+    price: 500000,
+    thoiLuongPhut: 60,
+  },
+  {
+    id: "DV002",
+    name: "Gội đầu dưỡng sinh",
+    category: "Gội đầu",
+    price: 250000,
+    thoiLuongPhut: 45,
+  },
+  {
+    id: "DV003",
+    name: "Chăm sóc da mặt",
+    category: "Chăm sóc da",
+    price: 400000,
+    thoiLuongPhut: 60,
+  },
+  {
+    id: "DV004",
+    name: "Massage cổ vai gáy",
+    category: "Massage",
+    price: 200000,
+    thoiLuongPhut: 30,
+  },
+  {
+    id: "DV005",
+    name: "Nail art",
+    category: "Nail",
+    price: 300000,
+    thoiLuongPhut: 45,
+  },
+  {
+    id: "DV006",
+    name: "Sơn gel",
+    category: "Nail",
+    price: 180000,
+    thoiLuongPhut: 30,
+  },
+  {
+    id: "DV007",
+    name: "Tắm trắng",
+    category: "Tắm trắng",
+    price: 700000,
+    thoiLuongPhut: 90,
+  },
+  {
+    id: "DV008",
+    name: "Waxing",
+    category: "Waxing",
+    price: 300000,
+    thoiLuongPhut: 45,
+  },
+];
+
+const serviceCategoryOptions = [
+  "Tất cả",
+  ...new Set(serviceOptions.map((service) => service.category)),
+];
+
+const extraServiceOptions = [
+  { id: "DV004", name: "Massage cổ vai gáy", price: 200000, soLuong: 1, thoiLuongPhut: 30 },
+  { id: "DV009", name: "Xông hơi thư giãn", price: 180000, soLuong: 1, thoiLuongPhut: 30 },
+  { id: "DV006", name: "Sơn gel", price: 180000, soLuong: 1, thoiLuongPhut: 30 },
+  { id: "DV002", name: "Gội đầu dưỡng sinh", price: 250000, soLuong: 1, thoiLuongPhut: 45 },
+  { id: "DV005", name: "Nail art", price: 300000, soLuong: 1, thoiLuongPhut: 45 },
 ];
 
 const statusOptions = [
@@ -102,11 +226,42 @@ const statusOptions = [
   "Không đến",
 ];
 
+const blockedStatuses = [
+  "Chờ xác nhận",
+  "Đã xác nhận",
+  "Đã check-in",
+  "Đang thực hiện",
+];
+
+const monthNames = [
+  "Tháng Một",
+  "Tháng Hai",
+  "Tháng Ba",
+  "Tháng Tư",
+  "Tháng Năm",
+  "Tháng Sáu",
+  "Tháng Bảy",
+  "Tháng Tám",
+  "Tháng Chín",
+  "Tháng Mười",
+  "Tháng Mười Một",
+  "Tháng Mười Hai",
+];
+
+const weekdayLabels = [
+  "Thứ 2",
+  "Thứ 3",
+  "Thứ 4",
+  "Thứ 5",
+  "Thứ 6",
+  "Thứ 7",
+  "CN",
+];
+
 const formatDateToValue = (date) => {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
-
   return `${year}-${month}-${day}`;
 };
 
@@ -126,10 +281,138 @@ const formatDisplayDate = (date) => {
   }`;
 };
 
+const formatMonthTitle = (date) => {
+  return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+};
+
 const addDays = (date, days) => {
   const newDate = new Date(date);
   newDate.setDate(newDate.getDate() + days);
   return newDate;
+};
+
+const addMonths = (date, months) => {
+  const newDate = new Date(date);
+  newDate.setMonth(newDate.getMonth() + months);
+  return newDate;
+};
+
+const isSameDate = (dateA, dateB) => {
+  return (
+    dateA.getFullYear() === dateB.getFullYear() &&
+    dateA.getMonth() === dateB.getMonth() &&
+    dateA.getDate() === dateB.getDate()
+  );
+};
+
+const formatMoney = (value) => {
+  return `${value.toLocaleString("vi-VN")}đ`;
+};
+
+const getServiceQuantity = (service) => {
+  return Number(service.soLuong || 1);
+};
+
+const getServiceDuration = (service) => {
+  return Number(service.thoiLuongPhut || service.duration || 60);
+};
+
+const getServiceSubtotal = (service) => {
+  return service.price * getServiceQuantity(service);
+};
+
+const getTotalPrice = (services) => {
+  return services.reduce((total, service) => {
+    return total + getServiceSubtotal(service);
+  }, 0);
+};
+
+const getTotalDuration = (services) => {
+  return services.reduce((total, service) => {
+    return total + getServiceDuration(service) * getServiceQuantity(service);
+  }, 0);
+};
+
+const toMinutes = (time) => {
+  const [hour, minute] = time.split(":").map(Number);
+  return hour * 60 + minute;
+};
+
+const formatTimeFromMinutes = (minutes) => {
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+};
+
+const getAppointmentEndTime = (appointment) => {
+  if (appointment.endTime) return appointment.endTime;
+
+  const duration = getTotalDuration(appointment.services || []);
+  return formatTimeFromMinutes(toMinutes(appointment.time) + duration);
+};
+
+const isTimeSlotAvailable = ({
+  selectedDate,
+  startTime,
+  totalDuration,
+  appointments,
+}) => {
+  const newStart = toMinutes(startTime);
+  const newEnd = newStart + totalDuration;
+
+  return !appointments.some((appointment) => {
+    const isSameAppointmentDate = appointment.date === selectedDate;
+    const isBlocked = blockedStatuses.includes(appointment.status);
+
+    if (!isSameAppointmentDate || !isBlocked) return false;
+
+    const oldStart = toMinutes(appointment.time);
+    const oldEnd = toMinutes(getAppointmentEndTime(appointment));
+
+    return newStart < oldEnd && newEnd > oldStart;
+  });
+};
+
+const generateAvailableSlots = ({
+  selectedDate,
+  services,
+  appointments,
+  openTime = "08:00",
+  closeTime = "20:00",
+}) => {
+  const totalDuration = getTotalDuration(services);
+
+  if (totalDuration <= 0) return [];
+
+  const openMinutes = toMinutes(openTime);
+  const closeMinutes = toMinutes(closeTime);
+
+  const slots = [];
+
+  for (
+    let current = openMinutes;
+    current + totalDuration <= closeMinutes;
+    current += 30
+  ) {
+    const startTime = formatTimeFromMinutes(current);
+    const endTime = formatTimeFromMinutes(current + totalDuration);
+
+    const available = isTimeSlotAvailable({
+      selectedDate,
+      startTime,
+      totalDuration,
+      appointments,
+    });
+
+    slots.push({
+      startTime,
+      endTime,
+      available,
+    });
+  }
+
+  return slots;
 };
 
 const getStatusClass = (status) => {
@@ -166,14 +449,45 @@ const getServiceNamesText = (services) => {
 };
 
 function StaffAppointments() {
+  const [appointments, setAppointments] = useState(initialAppointmentList);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tất cả");
   const [selectedDate, setSelectedDate] = useState(TODAY);
 
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(
+    new Date(TODAY.getFullYear(), TODAY.getMonth(), 1)
+  );
+
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [invoiceAppointment, setInvoiceAppointment] = useState(null);
+
+  const [paymentMethod, setPaymentMethod] = useState("Tiền mặt");
+  const [selectedExtraServiceId, setSelectedExtraServiceId] = useState("");
+  const [extraServices, setExtraServices] = useState([]);
+
+  const [reasonModal, setReasonModal] = useState(null);
+  const [reasonText, setReasonText] = useState("");
+
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createSearchCustomer, setCreateSearchCustomer] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [isQuickCustomerMode, setIsQuickCustomerMode] = useState(false);
+  const [quickCustomer, setQuickCustomer] = useState({
+    name: "",
+    phone: "",
+  });
+  const [createServices, setCreateServices] = useState([]);
+  const [createDate, setCreateDate] = useState(formatDateToValue(TODAY));
+  const [createTimeSlot, setCreateTimeSlot] = useState(null);
+  const [createNote, setCreateNote] = useState("");
+  const [createServiceSearch, setCreateServiceSearch] = useState("");
+  const [createServiceCategory, setCreateServiceCategory] = useState("Tất cả");
+
   const selectedDateValue = formatDateToValue(selectedDate);
 
   const filteredAppointments = useMemo(() => {
-    return appointmentList.filter((appointment) => {
+    return appointments.filter((appointment) => {
       const keyword = searchTerm.trim().toLowerCase();
 
       const matchesKeyword =
@@ -192,26 +506,549 @@ function StaffAppointments() {
 
       return matchesKeyword && matchesStatus && matchesDate;
     });
-  }, [searchTerm, statusFilter, selectedDateValue]);
+  }, [appointments, searchTerm, statusFilter, selectedDateValue]);
+
+  const filteredCustomers = customerOptions.filter((customer) => {
+    const keyword = createSearchCustomer.trim().toLowerCase();
+
+    if (!keyword) return true;
+
+    return (
+      customer.name.toLowerCase().includes(keyword) ||
+      customer.phone.includes(keyword)
+    );
+  });
+
+  const filteredServiceOptions = serviceOptions.filter((service) => {
+    const keyword = createServiceSearch.trim().toLowerCase();
+
+    const matchesSearch =
+      keyword === "" ||
+      service.name.toLowerCase().includes(keyword) ||
+      service.category.toLowerCase().includes(keyword);
+
+    const matchesCategory =
+      createServiceCategory === "Tất cả" ||
+      service.category === createServiceCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+  const createAvailableSlots = generateAvailableSlots({
+    selectedDate: createDate,
+    services: createServices,
+    appointments,
+  });
 
   const handleGoToday = () => {
     setSelectedDate(TODAY);
+    setCalendarMonth(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
+    setIsCalendarOpen(false);
   };
 
   const handlePrevDate = () => {
-    setSelectedDate((prev) => addDays(prev, -1));
+    setSelectedDate((prev) => {
+      const newDate = addDays(prev, -1);
+      setCalendarMonth(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
+      return newDate;
+    });
+
+    setIsCalendarOpen(false);
   };
 
   const handleNextDate = () => {
-    setSelectedDate((prev) => addDays(prev, 1));
+    setSelectedDate((prev) => {
+      const newDate = addDays(prev, 1);
+      setCalendarMonth(new Date(newDate.getFullYear(), newDate.getMonth(), 1));
+      return newDate;
+    });
+
+    setIsCalendarOpen(false);
+  };
+
+  const handleToggleCalendar = () => {
+    setCalendarMonth(
+      new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
+    );
+    setIsCalendarOpen((prev) => !prev);
+  };
+
+  const handleSelectCalendarDate = (date) => {
+    setSelectedDate(date);
+    setCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    setIsCalendarOpen(false);
+  };
+
+  const handlePrevCalendarMonth = () => {
+    setCalendarMonth((prev) => addMonths(prev, -1));
+  };
+
+  const handleNextCalendarMonth = () => {
+    setCalendarMonth((prev) => addMonths(prev, 1));
+  };
+
+  const resetCreateForm = () => {
+    setCreateSearchCustomer("");
+    setSelectedCustomer(null);
+    setIsQuickCustomerMode(false);
+    setQuickCustomer({
+      name: "",
+      phone: "",
+    });
+    setCreateServices([]);
+    setCreateDate(formatDateToValue(TODAY));
+    setCreateTimeSlot(null);
+    setCreateNote("");
+    setCreateServiceSearch("");
+    setCreateServiceCategory("Tất cả");
   };
 
   const handleCreateAppointment = () => {
-    alert("Đi tới giao diện Tạo lịch hẹn");
+    resetCreateForm();
+    setIsCreateModalOpen(true);
   };
 
-  const handleViewDetail = (appointment) => {
-    alert(`Đi tới chi tiết lịch hẹn: ${appointment.id}`);
+  const handleCloseCreateModal = () => {
+    setIsCreateModalOpen(false);
+    resetCreateForm();
+  };
+
+  const handleSelectCustomer = (customer) => {
+    setSelectedCustomer(customer);
+    setIsQuickCustomerMode(false);
+  };
+
+  const handleAddServiceToCreate = (service) => {
+    setCreateServices((prev) => {
+      const existed = prev.some((item) => item.id === service.id);
+
+      if (existed) {
+        return prev.map((item) =>
+          item.id === service.id
+            ? { ...item, soLuong: getServiceQuantity(item) + 1 }
+            : item
+        );
+      }
+
+      return [...prev, { ...service, soLuong: 1 }];
+    });
+
+    setCreateTimeSlot(null);
+  };
+
+  const handleIncreaseCreateService = (serviceId) => {
+    setCreateServices((prev) =>
+      prev.map((service) =>
+        service.id === serviceId
+          ? { ...service, soLuong: getServiceQuantity(service) + 1 }
+          : service
+      )
+    );
+
+    setCreateTimeSlot(null);
+  };
+
+  const handleDecreaseCreateService = (serviceId) => {
+    setCreateServices((prev) =>
+      prev.map((service) =>
+        service.id === serviceId
+          ? {
+              ...service,
+              soLuong: Math.max(1, getServiceQuantity(service) - 1),
+            }
+          : service
+      )
+    );
+
+    setCreateTimeSlot(null);
+  };
+
+  const handleRemoveCreateService = (serviceId) => {
+    setCreateServices((prev) =>
+      prev.filter((service) => service.id !== serviceId)
+    );
+
+    setCreateTimeSlot(null);
+  };
+
+  const handleConfirmCreateAppointment = () => {
+    const customer = isQuickCustomerMode ? quickCustomer : selectedCustomer;
+
+    if (!customer || !customer.name.trim() || !customer.phone.trim()) {
+      alert("Vui lòng chọn khách hàng hoặc nhập thông tin khách hàng mới.");
+      return;
+    }
+
+    if (createServices.length === 0) {
+      alert("Vui lòng chọn ít nhất một dịch vụ.");
+      return;
+    }
+
+    if (!createTimeSlot) {
+      alert("Vui lòng chọn khung giờ còn trống.");
+      return;
+    }
+
+    const newAppointment = {
+      id: `LH${String(appointments.length + 1).padStart(3, "0")}`,
+      customer: customer.name,
+      phone: customer.phone,
+      services: createServices,
+      date: createDate,
+      time: createTimeSlot.startTime,
+      endTime: createTimeSlot.endTime,
+      status: "Đã xác nhận",
+      note: createNote || "Lịch hẹn được tạo tại quầy.",
+    };
+
+    setAppointments((prev) => [...prev, newAppointment]);
+    setSelectedDate(new Date(`${createDate}T00:00:00`));
+    setCalendarMonth(new Date(`${createDate}T00:00:00`));
+    setIsCreateModalOpen(false);
+    resetCreateForm();
+
+    alert("Tạo lịch hẹn thành công. Trạng thái lịch hẹn là Đã xác nhận.");
+  };
+
+  const handleOpenDetail = (appointment) => {
+    setSelectedAppointment(appointment);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedAppointment(null);
+  };
+
+  const handleOpenReasonModal = (nextStatus) => {
+    if (!selectedAppointment) return;
+
+    setReasonModal({
+      appointmentId: selectedAppointment.id,
+      nextStatus,
+      title:
+        nextStatus === "Đã huỷ"
+          ? "Nhập lý do huỷ lịch"
+          : "Nhập lý do khách không đến",
+      label:
+        nextStatus === "Đã huỷ"
+          ? "Nhập lý do huỷ lịch *"
+          : "Nhập lý do không đến *",
+      placeholder:
+        nextStatus === "Đã huỷ"
+          ? "Khách không đến, khách bận..."
+          : "Khách không phản hồi, khách không đến spa...",
+    });
+
+    setReasonText("");
+  };
+
+  const handleCloseReasonModal = () => {
+    setReasonModal(null);
+    setReasonText("");
+  };
+
+  const handleConfirmReason = () => {
+    if (!reasonModal) return;
+
+    if (!reasonText.trim()) {
+      alert("Vui lòng nhập lý do.");
+      return;
+    }
+
+    handleUpdateStatus(reasonModal.nextStatus, reasonText.trim());
+    setReasonModal(null);
+    setReasonText("");
+  };
+
+  const handleUpdateStatus = (nextStatus, reason = "") => {
+    if (!selectedAppointment) return;
+
+    const currentStatus = selectedAppointment.status;
+
+    const allowedTransitions = {
+      "Chờ xác nhận": ["Đã xác nhận", "Đã huỷ"],
+      "Đã xác nhận": ["Đã check-in", "Không đến", "Đã huỷ"],
+      "Đã check-in": ["Đang thực hiện"],
+      "Đang thực hiện": [],
+      "Đã hoàn thành": [],
+      "Đã huỷ": [],
+      "Không đến": [],
+    };
+
+    const isAllowed = allowedTransitions[currentStatus]?.includes(nextStatus);
+
+    if (!isAllowed) {
+      alert("Không thể cập nhật trạng thái này theo quy trình hiện tại.");
+      return;
+    }
+
+    const updatedAppointment = {
+      ...selectedAppointment,
+      status: nextStatus,
+    };
+
+    if (nextStatus === "Đã huỷ") {
+      updatedAppointment.lyDoHuy = reason;
+      updatedAppointment.statusReason = reason;
+    }
+
+    if (nextStatus === "Không đến") {
+      updatedAppointment.statusReason = reason;
+    }
+
+    setAppointments((prev) =>
+      prev.map((item) =>
+        item.id === selectedAppointment.id ? updatedAppointment : item
+      )
+    );
+
+    setSelectedAppointment(updatedAppointment);
+    alert("Cập nhật trạng thái lịch hẹn thành công.");
+  };
+
+  const handleOpenInvoice = () => {
+    if (!selectedAppointment) return;
+
+    if (selectedAppointment.status !== "Đang thực hiện") {
+      alert("Chỉ lịch hẹn đang thực hiện mới được lập hoá đơn.");
+      return;
+    }
+
+    setInvoiceAppointment(selectedAppointment);
+    setSelectedAppointment(null);
+    setPaymentMethod("Tiền mặt");
+    setSelectedExtraServiceId("");
+    setExtraServices([]);
+  };
+
+  const handleCloseInvoice = () => {
+    setInvoiceAppointment(null);
+    setPaymentMethod("Tiền mặt");
+    setSelectedExtraServiceId("");
+    setExtraServices([]);
+  };
+
+  const handleAddExtraService = () => {
+    if (!selectedExtraServiceId) {
+      alert("Vui lòng chọn dịch vụ phát sinh.");
+      return;
+    }
+
+    const selectedService = extraServiceOptions.find(
+      (service) => service.id === selectedExtraServiceId
+    );
+
+    if (!selectedService) return;
+
+    setExtraServices((prev) => {
+      const existed = prev.some((service) => service.id === selectedService.id);
+
+      if (existed) {
+        return prev.map((service) =>
+          service.id === selectedService.id
+            ? { ...service, soLuong: getServiceQuantity(service) + 1 }
+            : service
+        );
+      }
+
+      return [...prev, { ...selectedService, soLuong: 1 }];
+    });
+
+    setSelectedExtraServiceId("");
+  };
+
+  const handleRemoveExtraService = (serviceId) => {
+    setExtraServices((prev) =>
+      prev.filter((service) => service.id !== serviceId)
+    );
+  };
+
+  const handleConfirmPayment = () => {
+    if (!invoiceAppointment) return;
+
+    if (!paymentMethod) {
+      alert("Vui lòng chọn phương thức thanh toán.");
+      return;
+    }
+
+    const updatedAppointment = {
+      ...invoiceAppointment,
+      status: "Đã hoàn thành",
+    };
+
+    setAppointments((prev) =>
+      prev.map((item) =>
+        item.id === invoiceAppointment.id ? updatedAppointment : item
+      )
+    );
+
+    setInvoiceAppointment(null);
+    setPaymentMethod("Tiền mặt");
+    setSelectedExtraServiceId("");
+    setExtraServices([]);
+
+    alert("Thanh toán thành công. Lịch hẹn đã được cập nhật thành Đã hoàn thành.");
+  };
+
+  const renderCalendarMonth = (monthDate) => {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+
+    const firstDay = new Date(year, month, 1);
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    const leadingBlankCount = (firstDay.getDay() + 6) % 7;
+
+    const calendarCells = [
+      ...Array.from({ length: leadingBlankCount }, () => null),
+      ...Array.from({ length: totalDays }, (_, index) => {
+        return new Date(year, month, index + 1);
+      }),
+    ];
+
+    return (
+      <div className="staff-calendar-month">
+        <h3>{formatMonthTitle(monthDate)}</h3>
+
+        <div className="staff-calendar-weekdays">
+          {weekdayLabels.map((day) => (
+            <span key={day}>{day}</span>
+          ))}
+        </div>
+
+        <div className="staff-calendar-days">
+          {calendarCells.map((date, index) => {
+            if (!date) {
+              return (
+                <div
+                  key={`empty-${index}`}
+                  className="staff-calendar-empty"
+                ></div>
+              );
+            }
+
+            const isSelected = isSameDate(date, selectedDate);
+            const isToday = isSameDate(date, TODAY);
+
+            return (
+              <button
+                type="button"
+                key={formatDateToValue(date)}
+                className={[
+                  "staff-calendar-day",
+                  isSelected ? "selected" : "",
+                  isToday ? "today" : "",
+                ].join(" ")}
+                onClick={() => handleSelectCalendarDate(date)}
+              >
+                {date.getDate()}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderModalActions = () => {
+    if (!selectedAppointment) return null;
+
+    switch (selectedAppointment.status) {
+      case "Chờ xác nhận":
+        return (
+          <>
+            <button
+              type="button"
+              className="appointment-modal-action-btn primary"
+              onClick={() => handleUpdateStatus("Đã xác nhận")}
+            >
+              Xác nhận lịch
+            </button>
+
+            <button
+              type="button"
+              className="appointment-modal-action-btn danger"
+              onClick={() => handleOpenReasonModal("Đã huỷ")}
+            >
+              Huỷ lịch
+            </button>
+          </>
+        );
+
+      case "Đã xác nhận":
+        return (
+          <>
+            <button
+              type="button"
+              className="appointment-modal-action-btn primary"
+              onClick={() => handleUpdateStatus("Đã check-in")}
+            >
+              Check-in
+            </button>
+
+            <button
+              type="button"
+              className="appointment-modal-action-btn warning"
+              onClick={() => handleOpenReasonModal("Không đến")}
+            >
+              Không đến
+            </button>
+
+            <button
+              type="button"
+              className="appointment-modal-action-btn danger"
+              onClick={() => handleOpenReasonModal("Đã huỷ")}
+            >
+              Huỷ lịch
+            </button>
+          </>
+        );
+
+      case "Đã check-in":
+        return (
+          <button
+            type="button"
+            className="appointment-modal-action-btn primary"
+            onClick={() => handleUpdateStatus("Đang thực hiện")}
+          >
+            Bắt đầu dịch vụ
+          </button>
+        );
+
+      case "Đang thực hiện":
+        return (
+          <button
+            type="button"
+            className="appointment-modal-action-btn primary"
+            onClick={handleOpenInvoice}
+          >
+            Lập hoá đơn
+          </button>
+        );
+
+      case "Đã hoàn thành":
+      case "Đã huỷ":
+      case "Không đến":
+        return (
+          <button
+            type="button"
+            className="appointment-modal-action-btn neutral"
+            onClick={handleCloseDetail}
+          >
+            Đóng
+          </button>
+        );
+
+      default:
+        return (
+          <button
+            type="button"
+            className="appointment-modal-action-btn neutral"
+            onClick={handleCloseDetail}
+          >
+            Đóng
+          </button>
+        );
+    }
   };
 
   return (
@@ -255,7 +1092,7 @@ function StaffAppointments() {
                   type="text"
                   placeholder="Tìm theo tên, SĐT, mã lịch hẹn..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(event) => setSearchTerm(event.target.value)}
                 />
               </div>
 
@@ -263,7 +1100,7 @@ function StaffAppointments() {
                 <Filter size={18} />
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={(event) => setStatusFilter(event.target.value)}
                 >
                   {statusOptions.map((status) => (
                     <option key={status} value={status}>
@@ -291,9 +1128,13 @@ function StaffAppointments() {
                     <ChevronLeft size={18} />
                   </button>
 
-                  <div className="staff-appointments-date-display">
+                  <button
+                    type="button"
+                    className="staff-appointments-date-display"
+                    onClick={handleToggleCalendar}
+                  >
                     {formatDisplayDate(selectedDate)}
-                  </div>
+                  </button>
 
                   <button
                     type="button"
@@ -303,6 +1144,25 @@ function StaffAppointments() {
                     <ChevronRight size={18} />
                   </button>
                 </div>
+
+                {isCalendarOpen && (
+                  <div className="staff-calendar-popover">
+                    <div className="staff-calendar-popover-nav">
+                      <button type="button" onClick={handlePrevCalendarMonth}>
+                        <ChevronLeft size={18} />
+                      </button>
+
+                      <button type="button" onClick={handleNextCalendarMonth}>
+                        <ChevronRight size={18} />
+                      </button>
+                    </div>
+
+                    <div className="staff-calendar-months">
+                      {renderCalendarMonth(calendarMonth)}
+                      {renderCalendarMonth(addMonths(calendarMonth, 1))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -326,13 +1186,14 @@ function StaffAppointments() {
                   <th>Ngày hẹn</th>
                   <th>Giờ hẹn</th>
                   <th>Trạng thái</th>
+                  <th>Thao tác</th>
                 </tr>
               </thead>
 
               <tbody>
                 {filteredAppointments.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="staff-appointments-empty">
+                    <td colSpan="7" className="staff-appointments-empty">
                       Hiện chưa có lịch hẹn nào
                     </td>
                   </tr>
@@ -341,7 +1202,7 @@ function StaffAppointments() {
                     <tr
                       key={appointment.id}
                       className="staff-appointments-row"
-                      onClick={() => handleViewDetail(appointment)}
+                      onClick={() => handleOpenDetail(appointment)}
                       title="Nhấn để xem chi tiết lịch hẹn"
                     >
                       <td className="staff-appointments-id">
@@ -377,6 +1238,20 @@ function StaffAppointments() {
                           {appointment.status}
                         </span>
                       </td>
+
+                      <td>
+                        <button
+                          type="button"
+                          className="staff-appointments-view-btn"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleOpenDetail(appointment);
+                          }}
+                          title="Xem chi tiết"
+                        >
+                          <Eye size={16} />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -385,6 +1260,681 @@ function StaffAppointments() {
           </div>
         </div>
       </section>
+
+      {selectedAppointment && (
+        <div className="appointment-modal-overlay" onClick={handleCloseDetail}>
+          <div
+            className="appointment-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="appointment-modal-header">
+              <h2>Chi tiết lịch hẹn {selectedAppointment.id}</h2>
+
+              <button
+                type="button"
+                className="appointment-modal-close"
+                onClick={handleCloseDetail}
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="appointment-modal-body">
+              <div className="appointment-modal-status-row">
+                <span>Trạng thái hiện tại:</span>
+
+                <span
+                  className={`staff-appointments-status ${getStatusClass(
+                    selectedAppointment.status
+                  )}`}
+                >
+                  {selectedAppointment.status}
+                </span>
+              </div>
+
+              <div className="appointment-modal-info-box">
+                <div className="appointment-modal-info-item">
+                  <User size={19} />
+                  <span>{selectedAppointment.customer}</span>
+                </div>
+
+                <div className="appointment-modal-info-item">
+                  <Phone size={19} />
+                  <span>{selectedAppointment.phone}</span>
+                </div>
+
+                <div className="appointment-modal-info-item">
+                  <CalendarDays size={19} />
+                  <span>{selectedAppointment.date}</span>
+                </div>
+
+                <div className="appointment-modal-info-item">
+                  <Clock3 size={19} />
+                  <span>
+                    {selectedAppointment.time} -{" "}
+                    {getAppointmentEndTime(selectedAppointment)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="appointment-modal-section">
+                <h3>Dịch vụ đã đặt</h3>
+
+                <div className="appointment-modal-service-list">
+                  {selectedAppointment.services.map((service, index) => (
+                    <div className="appointment-modal-service-item" key={index}>
+                      <div>
+                        <span>{service.name}</span>
+                        <p>
+                          SL: {getServiceQuantity(service)} ×{" "}
+                          {formatMoney(service.price)}
+                        </p>
+                      </div>
+
+                      <strong>{formatMoney(getServiceSubtotal(service))}</strong>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="appointment-modal-total">
+                  <span>Tổng cộng</span>
+                  <strong>
+                    {formatMoney(getTotalPrice(selectedAppointment.services))}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="appointment-modal-section">
+                <h3 className="appointment-modal-note-title">
+                  <ClipboardList size={17} />
+                  <span>Ghi chú</span>
+                </h3>
+
+                <div className="appointment-modal-note">
+                  {selectedAppointment.note || "Không có ghi chú"}
+                </div>
+              </div>
+
+              {selectedAppointment.statusReason && (
+                <div className="appointment-modal-section">
+                  <h3>
+                    {selectedAppointment.status === "Đã huỷ"
+                      ? "Lý do huỷ lịch"
+                      : "Lý do không đến"}
+                  </h3>
+
+                  <div className="appointment-modal-reason">
+                    {selectedAppointment.statusReason}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="appointment-modal-footer">
+              {renderModalActions()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {invoiceAppointment && (
+        <div className="appointment-modal-overlay" onClick={handleCloseInvoice}>
+          <div
+            className="appointment-modal invoice-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="appointment-modal-header">
+              <h2>Lập hoá đơn {invoiceAppointment.id}</h2>
+
+              <button
+                type="button"
+                className="appointment-modal-close"
+                onClick={handleCloseInvoice}
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="appointment-modal-body">
+              <div className="appointment-modal-info-box">
+                <div className="appointment-modal-info-item">
+                  <User size={19} />
+                  <span>{invoiceAppointment.customer}</span>
+                </div>
+
+                <div className="appointment-modal-info-item">
+                  <Phone size={19} />
+                  <span>{invoiceAppointment.phone}</span>
+                </div>
+
+                <div className="appointment-modal-info-item">
+                  <CalendarDays size={19} />
+                  <span>
+                    {invoiceAppointment.date} - {invoiceAppointment.time}
+                  </span>
+                </div>
+              </div>
+
+              <div className="appointment-modal-section">
+                <h3>Dịch vụ trong hoá đơn</h3>
+
+                <div className="invoice-service-table">
+                  <div className="invoice-service-row invoice-service-head">
+                    <span>Dịch vụ</span>
+                    <span>SL</span>
+                    <span>Đơn giá</span>
+                    <span>Thành tiền</span>
+                    <span></span>
+                  </div>
+
+                  {invoiceAppointment.services.map((service, index) => (
+                    <div className="invoice-service-row" key={`main-${index}`}>
+                      <span>{service.name}</span>
+                      <span>{getServiceQuantity(service)}</span>
+                      <span>{formatMoney(service.price)}</span>
+                      <strong>{formatMoney(getServiceSubtotal(service))}</strong>
+                      <span></span>
+                    </div>
+                  ))}
+
+                  {extraServices.map((service) => (
+                    <div className="invoice-service-row" key={service.id}>
+                      <span>{service.name}</span>
+                      <span>{getServiceQuantity(service)}</span>
+                      <span>{formatMoney(service.price)}</span>
+                      <strong>{formatMoney(getServiceSubtotal(service))}</strong>
+
+                      <button
+                        type="button"
+                        className="invoice-remove-service-btn"
+                        onClick={() => handleRemoveExtraService(service.id)}
+                      >
+                        Xoá
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="appointment-modal-section">
+                <h3>Thêm dịch vụ phát sinh</h3>
+
+                <div className="invoice-extra-service-box">
+                  <select
+                    value={selectedExtraServiceId}
+                    onChange={(event) =>
+                      setSelectedExtraServiceId(event.target.value)
+                    }
+                  >
+                    <option value="">Chọn dịch vụ phát sinh</option>
+
+                    {extraServiceOptions.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name} - {formatMoney(service.price)}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button type="button" onClick={handleAddExtraService}>
+                    Thêm dịch vụ
+                  </button>
+                </div>
+              </div>
+
+              <div className="appointment-modal-section">
+                <h3>Phương thức thanh toán</h3>
+
+                <div className="invoice-payment-methods">
+                  {["Tiền mặt", "Chuyển khoản", "Thẻ ngân hàng"].map(
+                    (method) => (
+                      <button
+                        type="button"
+                        key={method}
+                        className={
+                          paymentMethod === method
+                            ? "invoice-payment-btn active"
+                            : "invoice-payment-btn"
+                        }
+                        onClick={() => setPaymentMethod(method)}
+                      >
+                        {method}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="invoice-total-box">
+                <span>Tổng tiền thanh toán</span>
+
+                <strong>
+                  {formatMoney(
+                    getTotalPrice(invoiceAppointment.services) +
+                      getTotalPrice(extraServices)
+                  )}
+                </strong>
+              </div>
+            </div>
+
+            <div className="appointment-modal-footer">
+              <button
+                type="button"
+                className="appointment-modal-action-btn neutral"
+                onClick={handleCloseInvoice}
+              >
+                Huỷ
+              </button>
+
+              <button
+                type="button"
+                className="appointment-modal-action-btn primary"
+                onClick={handleConfirmPayment}
+              >
+                Xác nhận thanh toán
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reasonModal && (
+        <div className="reason-modal-overlay" onClick={handleCloseReasonModal}>
+          <div
+            className="reason-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="reason-modal-header">
+              <h2>{reasonModal.title}</h2>
+
+              <button type="button" onClick={handleCloseReasonModal}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="reason-modal-body">
+              <label>{reasonModal.label}</label>
+
+              <textarea
+                value={reasonText}
+                onChange={(event) => setReasonText(event.target.value)}
+                placeholder={reasonModal.placeholder}
+                rows={4}
+              ></textarea>
+            </div>
+
+            <div className="reason-modal-footer">
+              <button
+                type="button"
+                className="reason-cancel-btn"
+                onClick={handleCloseReasonModal}
+              >
+                Đóng
+              </button>
+
+              <button
+                type="button"
+                className="reason-confirm-btn"
+                onClick={handleConfirmReason}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCreateModalOpen && (
+        <div
+          className="create-appointment-overlay"
+          onClick={handleCloseCreateModal}
+        >
+          <div
+            className="create-appointment-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="create-appointment-header">
+              <div>
+                <h2>Tạo lịch hẹn tại quầy</h2>
+                <p>Chọn khách hàng, dịch vụ và khung giờ còn trống</p>
+              </div>
+
+              <button type="button" onClick={handleCloseCreateModal}>
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="create-appointment-body">
+              <div className="create-appointment-grid">
+                <div className="create-appointment-left">
+                  <div className="create-section">
+                    <div className="create-section-title">
+                      <h3>1. Khách hàng</h3>
+
+                      <button
+                        type="button"
+                        className="quick-customer-btn"
+                        onClick={() => {
+                          setIsQuickCustomerMode(true);
+                          setSelectedCustomer(null);
+                        }}
+                      >
+                        Thêm khách nhanh
+                      </button>
+                    </div>
+
+                    {!isQuickCustomerMode && (
+                      <>
+                        <div className="create-search-customer">
+                          <Search size={17} />
+                          <input
+                            type="text"
+                            placeholder="Tìm theo tên hoặc số điện thoại..."
+                            value={createSearchCustomer}
+                            onChange={(event) =>
+                              setCreateSearchCustomer(event.target.value)
+                            }
+                          />
+                        </div>
+
+                        <div className="create-customer-list">
+                          {filteredCustomers.length === 0 ? (
+                            <div className="create-empty-customer">
+                              Không tìm thấy khách hàng.
+                              <button
+                                type="button"
+                                onClick={() => setIsQuickCustomerMode(true)}
+                              >
+                                Thêm khách mới
+                              </button>
+                            </div>
+                          ) : (
+                            filteredCustomers.map((customer) => (
+                              <button
+                                type="button"
+                                key={customer.id}
+                                className={
+                                  selectedCustomer?.id === customer.id
+                                    ? "create-customer-card active"
+                                    : "create-customer-card"
+                                }
+                                onClick={() => handleSelectCustomer(customer)}
+                              >
+                                <span>{customer.name}</span>
+                                <small>{customer.phone}</small>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {isQuickCustomerMode && (
+                      <div className="quick-customer-form">
+                        <div>
+                          <label>Tên khách hàng</label>
+                          <input
+                            type="text"
+                            placeholder="Nhập tên khách hàng"
+                            value={quickCustomer.name}
+                            onChange={(event) =>
+                              setQuickCustomer((prev) => ({
+                                ...prev,
+                                name: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div>
+                          <label>Số điện thoại</label>
+                          <input
+                            type="text"
+                            placeholder="Nhập số điện thoại"
+                            value={quickCustomer.phone}
+                            onChange={(event) =>
+                              setQuickCustomer((prev) => ({
+                                ...prev,
+                                phone: event.target.value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          className="back-select-customer"
+                          onClick={() => setIsQuickCustomerMode(false)}
+                        >
+                          Quay lại chọn khách có sẵn
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="create-section">
+                    <h3>2. Chọn dịch vụ</h3>
+
+                    <div className="create-service-tools">
+                      <div className="create-service-search">
+                        <Search size={16} />
+                        <input
+                          type="text"
+                          placeholder="Tìm dịch vụ theo tên..."
+                          value={createServiceSearch}
+                          onChange={(event) => setCreateServiceSearch(event.target.value)}
+                        />
+                      </div>
+
+                      <div className="create-service-category-tabs">
+                        {serviceCategoryOptions.map((category) => (
+                          <button
+                            type="button"
+                            key={category}
+                            className={
+                              createServiceCategory === category
+                                ? "create-category-tab active"
+                                : "create-category-tab"
+                            }
+                            onClick={() => setCreateServiceCategory(category)}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="create-service-list">
+                      {filteredServiceOptions.length === 0 ? (
+                        <div className="create-empty-service">
+                          Không tìm thấy dịch vụ phù hợp.
+                        </div>
+                      ) : (
+                        filteredServiceOptions.map((service) => {
+                          const selected = createServices.find(
+                            (item) => item.id === service.id
+                          );
+
+                          return (
+                            <div className="create-service-card" key={service.id}>
+                              <div>
+                                <strong>{service.name}</strong>
+
+                                <p>
+                                  <span>{service.category}</span>
+                                  {" · "}
+                                  {service.thoiLuongPhut} phút · {formatMoney(service.price)}
+                                </p>
+                              </div>
+
+                              {selected ? (
+                                <div className="create-service-qty">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDecreaseCreateService(service.id)}
+                                  >
+                                    <Minus size={14} />
+                                  </button>
+
+                                  <span>{getServiceQuantity(selected)}</span>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleIncreaseCreateService(service.id)}
+                                  >
+                                    <Plus size={14} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="add-create-service-btn"
+                                  onClick={() => handleAddServiceToCreate(service)}
+                                >
+                                  Thêm
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="create-appointment-right">
+                  <div className="create-section">
+                    <h3>3. Dịch vụ đã chọn</h3>
+
+                    {createServices.length === 0 ? (
+                      <p className="create-empty-text">
+                        Chưa chọn dịch vụ nào.
+                      </p>
+                    ) : (
+                      <div className="create-selected-services">
+                        {createServices.map((service) => (
+                          <div
+                            className="create-selected-service"
+                            key={service.id}
+                          >
+                            <div>
+                              <strong>{service.name}</strong>
+                              <p>
+                                SL: {getServiceQuantity(service)} ×{" "}
+                                {formatMoney(service.price)}
+                              </p>
+                            </div>
+
+                            <div className="create-selected-service-right">
+                              <strong>
+                                {formatMoney(getServiceSubtotal(service))}
+                              </strong>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveCreateService(service.id)
+                                }
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+
+                        <div className="create-summary-box">
+                          <div>
+                            <span>Tổng thời lượng</span>
+                            <strong>{getTotalDuration(createServices)} phút</strong>
+                          </div>
+
+                          <div>
+                            <span>Tạm tính</span>
+                            <strong>{formatMoney(getTotalPrice(createServices))}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="create-section">
+                    <h3>4. Chọn ngày hẹn</h3>
+
+                    <input
+                      type="date"
+                      className="create-date-input"
+                      value={createDate}
+                      onChange={(event) => {
+                        setCreateDate(event.target.value);
+                        setCreateTimeSlot(null);
+                      }}
+                    />
+                  </div>
+
+                  <div className="create-section">
+                    <h3>5. Khung giờ khả dụng</h3>
+
+                    {createServices.length === 0 ? (
+                      <p className="create-empty-text">
+                        Vui lòng chọn dịch vụ để hệ thống tính thời lượng.
+                      </p>
+                    ) : (
+                      <div className="create-slot-grid">
+                        {createAvailableSlots.map((slot) => (
+                          <button
+                            type="button"
+                            key={`${slot.startTime}-${slot.endTime}`}
+                            className={[
+                              "create-time-slot",
+                              slot.available ? "available" : "disabled",
+                              createTimeSlot?.startTime === slot.startTime
+                                ? "active"
+                                : "",
+                            ].join(" ")}
+                            disabled={!slot.available}
+                            onClick={() => setCreateTimeSlot(slot)}
+                          >
+                            <strong>{slot.startTime}</strong>
+                            <span>{slot.endTime}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="create-section">
+                    <h3>6. Ghi chú</h3>
+
+                    <textarea
+                      className="create-note-input"
+                      placeholder="Nhập ghi chú cho lịch hẹn nếu có..."
+                      value={createNote}
+                      onChange={(event) => setCreateNote(event.target.value)}
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="create-appointment-footer">
+              <button
+                type="button"
+                className="create-cancel-btn"
+                onClick={handleCloseCreateModal}
+              >
+                Huỷ
+              </button>
+
+              <button
+                type="button"
+                className="create-confirm-btn"
+                onClick={handleConfirmCreateAppointment}
+              >
+                Xác nhận tạo lịch hẹn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

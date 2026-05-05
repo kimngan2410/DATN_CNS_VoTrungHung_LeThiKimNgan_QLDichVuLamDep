@@ -15,6 +15,8 @@ import ServiceHistoryPage from "./pages/customer/ServiceHistoryPage/ServiceHisto
 import StaffLayout from "./components/StaffLayout/StaffLayout"
 import StaffOverview from "./pages/staff/StaffOverview/StaffOverview"
 import StaffAppointments from "./pages/staff/StaffAppointments/StaffAppointments"
+import StaffTransactions from "./pages/staff/StaffTransactions/StaffTransactions"
+import StaffConversations from "./pages/staff/StaffConversations/StaffConversations"
 
 function App() {
   return (
@@ -36,6 +38,8 @@ function App() {
         <Route index element={<Navigate to="/staff/tong-quan" replace />} />
         <Route path="tong-quan" element={<StaffOverview />} />
         <Route path="lich-hen" element={<StaffAppointments />} />
+        <Route path="giao-dich" element={<StaffTransactions />} />
+        <Route path="hoi-thoai" element={<StaffConversations />} />
       </Route>
 
       {/* NOT FOUND */}
