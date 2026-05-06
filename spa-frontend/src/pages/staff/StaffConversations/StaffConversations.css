@@ -5,118 +5,6 @@
   color: #4d4a4b;
 }
 
-/* TOPBAR */
-
-.staff-conversations-topbar {
-  height: 76px;
-  padding: 0 28px 0 38px;
-  border-bottom: 1px solid #ececec;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.staff-conversations-topbar h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-  color: #111827;
-}
-
-.staff-conversations-topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.staff-conversations-global-search {
-  width: 300px;
-  height: 42px;
-  border: 1px solid #e4e4e7;
-  border-radius: 12px;
-  background: #f9f9fb;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  color: #9aa1ad;
-}
-
-.staff-conversations-global-search input {
-  width: 100%;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 14px;
-  color: #4d4a4b;
-}
-
-.staff-conversations-global-search input::placeholder {
-  color: #9aa1ad;
-}
-
-.staff-conversations-bell-btn {
-  width: 42px;
-  height: 42px;
-  border: 1px solid #e4e4e7;
-  border-radius: 12px;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #4d4a4b;
-  position: relative;
-  cursor: pointer;
-}
-
-.staff-conversations-bell-btn span {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #ef4444;
-}
-
-.staff-conversations-user-divider {
-  width: 1px;
-  height: 28px;
-  background: #e4e4e7;
-}
-
-.staff-conversations-user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.staff-conversations-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: #f8f3e8;
-  border: 1px solid rgba(215, 169, 63, 0.35);
-  color: #8d6915;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.staff-conversations-user-info strong {
-  display: block;
-  font-size: 15px;
-  color: #111827;
-  font-weight: 700;
-}
-
-.staff-conversations-user-info p {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 2px 0 0;
-}
-
 /* CONTENT */
 
 .staff-conversations-content {
@@ -185,8 +73,8 @@
   border-radius: 999px;
   background: #eceef2;
   color: #4d4a4b;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
@@ -249,7 +137,7 @@
 
 .conversation-name-row strong {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
   color: #111827;
   white-space: nowrap;
   overflow: hidden;
@@ -344,7 +232,7 @@
 .conversation-customer-info h2 {
   margin: 0 0 4px;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 600;
   color: #111827;
 }
 
@@ -364,7 +252,7 @@
   padding: 0 13px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -602,7 +490,7 @@
 }
 
 .conversation-item.unread .conversation-name-row strong {
-  font-weight: 900;
+  font-weight: 600;
   color: #111827;
 }
 
@@ -612,7 +500,7 @@
 }
 
 .conversation-item.unread p {
-  font-weight: 800;
+  font-weight: 600;
   color: #111827;
 }
 
@@ -640,10 +528,147 @@
   background: #ef4444;
   color: #ffffff;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 30px;
   flex-shrink: 0;
+}
+/* =========================================================
+   FINAL SYNC WITH STAFF PAGE HEADER + APPOINTMENTS STYLE
+   Dán cuối file để đồng bộ nền content/card theo màn Lịch hẹn.
+========================================================= */
+
+.staff-conversations-page {
+  background: var(--staff-page-bg);
+}
+
+.staff-conversations-topbar {
+  height: 74px;
+  background: var(--staff-topbar-bg);
+  border-bottom: 1px solid var(--staff-border);
+  padding: 0 30px;
+}
+
+.staff-conversations-topbar h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--staff-text);
+}
+
+.staff-conversations-topbar-actions {
+  gap: 12px;
+}
+
+.staff-conversations-global-search {
+  width: 300px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid var(--staff-border);
+  color: var(--staff-muted);
+  padding: 0 14px;
+}
+
+.staff-conversations-global-search input {
+  font-size: 14px;
+  color: var(--staff-text);
+}
+
+.staff-conversations-global-search input::placeholder {
+  color: #9d937f;
+}
+
+.staff-conversations-bell-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--staff-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--staff-text);
+}
+
+.staff-conversations-bell-btn span {
+  width: 6px;
+  height: 6px;
+  top: 9px;
+  right: 9px;
+}
+
+.staff-conversations-user-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--staff-border);
+}
+
+.staff-conversations-user-info {
+  gap: 10px;
+}
+
+.staff-conversations-avatar {
+  width: 42px;
+  height: 42px;
+  background: #ffffff;
+  border: 1px solid rgba(215, 169, 63, 0.28);
+  color: #6d5312;
+}
+
+.staff-conversations-user-info strong {
+  font-size: 14px;
+  color: var(--staff-text);
+  font-weight: 600;
+}
+
+.staff-conversations-user-info p {
+  margin: 1px 0 0;
+  color: var(--staff-muted);
+  font-size: 12px;
+}
+
+.staff-conversations-content {
+  padding: 28px 30px;
+  background: var(--staff-page-bg);
+}
+
+.staff-conversations-card {
+  height: calc(100vh - 130px);
+  min-height: 610px;
+  background: #ffffff;
+  border: 1px solid var(--staff-border);
+  border-radius: 16px;
+  box-shadow: 0 1px 6px rgba(77, 74, 75, 0.05);
+}
+
+.conversation-list-panel {
+  border-right: 1px solid var(--staff-border);
+}
+
+.conversation-search-box {
+  border: 1px solid var(--staff-border);
+  border-radius: 10px;
+}
+
+.conversation-filter-tabs {
+  border-bottom: 1px solid var(--staff-border);
+}
+
+.conversation-item {
+  border-bottom: 1px solid #f0ece6;
+}
+
+.conversation-item.active {
+  background: #faf8f4;
+}
+
+.conversation-item.active::before {
+  background: var(--staff-gold);
+}
+
+.conversation-detail-header {
+  border-bottom: 1px solid var(--staff-border);
+}
+
+.conversation-reply-box {
+  border-top: 1px solid var(--staff-border);
 }

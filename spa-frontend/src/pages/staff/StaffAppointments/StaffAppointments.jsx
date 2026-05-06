@@ -18,6 +18,8 @@ import {
   ClipboardList,
 } from "lucide-react";
 import "./StaffAppointments.css";
+import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
+
 
 const TODAY = new Date("2026-05-04");
 
@@ -1053,34 +1055,7 @@ function StaffAppointments() {
 
   return (
     <div className="staff-appointments-page">
-      <header className="staff-appointments-topbar">
-        <h1>Quản lý lịch hẹn</h1>
-
-        <div className="staff-appointments-topbar-actions">
-          <div className="staff-appointments-global-search">
-            <Search size={18} />
-            <input type="text" placeholder="Tìm kiếm nhanh..." />
-          </div>
-
-          <button type="button" className="staff-appointments-bell-btn">
-            <Bell size={18} />
-            <span></span>
-          </button>
-
-          <div className="staff-appointments-user-divider"></div>
-
-          <div className="staff-appointments-user-info">
-            <div className="staff-appointments-avatar">
-              <UserRound size={18} />
-            </div>
-
-            <div>
-              <strong>Lễ tân 01</strong>
-              <p>Ca sáng</p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StaffPageHeader title="Quản lý lịch hẹn" />
 
       <section className="staff-appointments-content">
         <div className="staff-appointments-card">

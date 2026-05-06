@@ -8,6 +8,8 @@ import {
   MessageCircle,
 } from "lucide-react";
 import "./StaffConversations.css";
+import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
+
 
 const initialConversations = [
   {
@@ -233,34 +235,7 @@ function StaffConversations() {
 
   return (
     <div className="staff-conversations-page">
-      <header className="staff-conversations-topbar">
-        <h1>Quản lý hội thoại</h1>
-
-        <div className="staff-conversations-topbar-actions">
-          <div className="staff-conversations-global-search">
-            <Search size={18} />
-            <input type="text" placeholder="Tìm kiếm nhanh..." />
-          </div>
-
-          <button type="button" className="staff-conversations-bell-btn">
-            <Bell size={18} />
-            <span></span>
-          </button>
-
-          <div className="staff-conversations-user-divider"></div>
-
-          <div className="staff-conversations-user-info">
-            <div className="staff-conversations-avatar">
-              <UserRound size={18} />
-            </div>
-
-            <div>
-              <strong>Lễ tân 01</strong>
-              <p>Ca sáng</p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StaffPageHeader title="Hội thoại" />
 
       <section className="staff-conversations-content">
         <div className="staff-conversations-card">

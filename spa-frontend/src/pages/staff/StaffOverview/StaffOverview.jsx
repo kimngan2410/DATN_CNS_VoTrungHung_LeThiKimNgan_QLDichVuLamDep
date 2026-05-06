@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Bell,
@@ -25,6 +26,7 @@ import {
 } from "recharts";
 
 import "./StaffOverview.css";
+import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
 
 const revenueData = [
   { day: "T2", revenue: 3000000 },
@@ -277,36 +279,12 @@ const getStatusClass = (status) => {
 };
 
 function StaffOverview() {
+
+  const navigate = useNavigate();
+
   return (
     <div className="staff-overview">
-      <header className="staff-topbar">
-        <h1>Tổng quan</h1>
-
-        <div className="staff-topbar-actions">
-          <div className="staff-search-box">
-            <Search size={20} />
-            <input type="text" placeholder="Tìm kiếm nhanh..." />
-          </div>
-
-          <button type="button" className="staff-notification-btn">
-            <Bell size={22} />
-            <span></span>
-          </button>
-
-          <div className="staff-user-divider"></div>
-
-          <div className="staff-user-info">
-            <div className="staff-avatar">
-              <UserRound size={22} />
-            </div>
-
-            <div>
-              <strong>Lễ tân 01</strong>
-              <p>Ca sáng</p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StaffPageHeader title="Tổng quan" />
 
       <section className="staff-dashboard-content">
         <div className="staff-stat-grid">
@@ -550,7 +528,12 @@ function StaffOverview() {
         <div className="staff-dashboard-card staff-appointment-card">
           <div className="staff-card-header">
             <h3>Lịch hẹn gần đây</h3>
-            <button type="button">Xem tất cả</button>
+            <button
+              type="button"
+              onClick={() => navigate("/staff/lich-hen")}
+            >
+              Xem tất cả
+            </button>
           </div>
 
           <div className="staff-table-wrapper">

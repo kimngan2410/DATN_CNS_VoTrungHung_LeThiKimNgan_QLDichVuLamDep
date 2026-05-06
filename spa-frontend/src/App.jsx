@@ -17,6 +17,8 @@ import StaffOverview from "./pages/staff/StaffOverview/StaffOverview"
 import StaffAppointments from "./pages/staff/StaffAppointments/StaffAppointments"
 import StaffTransactions from "./pages/staff/StaffTransactions/StaffTransactions"
 import StaffConversations from "./pages/staff/StaffConversations/StaffConversations"
+import StaffCustomersList from "./pages/staff/StaffCustomersList/StaffCustomersList"
+import StaffSettings from "./pages/staff/StaffSettings/StaffSettings"
 
 function App() {
   return (
@@ -40,6 +42,8 @@ function App() {
         <Route path="lich-hen" element={<StaffAppointments />} />
         <Route path="giao-dich" element={<StaffTransactions />} />
         <Route path="hoi-thoai" element={<StaffConversations />} />
+        <Route path="khach-hang" element={<StaffCustomersList />} />
+        <Route path="cai-dat" element={<StaffSettings />} />
       </Route>
 
       {/* NOT FOUND */}

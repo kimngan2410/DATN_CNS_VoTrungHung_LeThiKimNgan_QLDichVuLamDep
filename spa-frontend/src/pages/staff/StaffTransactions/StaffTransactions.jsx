@@ -19,6 +19,8 @@ import {
   Landmark,
 } from "lucide-react";
 import "./StaffTransactions.css";
+import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
+
 
 const TODAY = new Date("2026-05-04T00:00:00");
 
@@ -712,34 +714,7 @@ function StaffTransactions() {
 
   return (
     <div className="staff-transactions-page">
-      <header className="staff-transactions-topbar">
-        <h1>Giao dịch &amp; Hoá đơn</h1>
-
-        <div className="staff-transactions-topbar-actions">
-          <div className="staff-transactions-global-search">
-            <Search size={18} />
-            <input type="text" placeholder="Tìm kiếm nhanh..." />
-          </div>
-
-          <button type="button" className="staff-transactions-bell-btn">
-            <Bell size={18} />
-            <span></span>
-          </button>
-
-          <div className="staff-transactions-user-divider"></div>
-
-          <div className="staff-transactions-user-info">
-            <div className="staff-transactions-avatar">
-              <UserRound size={18} />
-            </div>
-
-            <div>
-              <strong>Lễ tân 01</strong>
-              <p>Ca sáng</p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <StaffPageHeader title="Giao dịch & Hoá đơn" />
 
       <section className="staff-transactions-content">
         <div className="staff-transactions-card">

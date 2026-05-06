@@ -380,6 +380,8 @@ function ServiceHistoryPage() {
   }
 
   const openReviewModal = (appointment, service) => {
+    setServiceReviewPicker(null)
+
     setReviewTarget({
       appointmentId: appointment.id,
       idChiTietLH: service.idChiTietLH,
@@ -467,10 +469,6 @@ function ServiceHistoryPage() {
     )
 
     setDetailHistory((prev) =>
-      updateServiceReviewInAppointment(prev, newReview)
-    )
-
-    setServiceReviewPicker((prev) =>
       updateServiceReviewInAppointment(prev, newReview)
     )
 
@@ -716,7 +714,9 @@ function ServiceHistoryPage() {
                         </div>
                       </div>
 
-                      <strong>{formatPrice(getServiceLineTotal(service))}</strong>
+                      <strong>
+                        {formatPrice(getServiceLineTotal(service))}
+                      </strong>
                     </div>
                   ))}
                 </div>
@@ -782,7 +782,9 @@ function ServiceHistoryPage() {
                 <div className="history-detail-info-item">
                   <Clock3 size={19} />
                   <span>
-                    {formatDurationText(getAppointmentTotalDuration(detailHistory))}
+                    {formatDurationText(
+                      getAppointmentTotalDuration(detailHistory)
+                    )}
                   </span>
                 </div>
               </div>
@@ -791,12 +793,16 @@ function ServiceHistoryPage() {
                 <div className="history-payment-info">
                   <div>
                     <span>Phương thức thanh toán</span>
-                    <strong>{detailHistory.paymentMethod || "Chưa cập nhật"}</strong>
+                    <strong>
+                      {detailHistory.paymentMethod || "Chưa cập nhật"}
+                    </strong>
                   </div>
 
                   <div>
                     <span>Trạng thái thanh toán</span>
-                    <strong>{detailHistory.paymentStatus || "Đã thanh toán"}</strong>
+                    <strong>
+                      {detailHistory.paymentStatus || "Đã thanh toán"}
+                    </strong>
                   </div>
                 </div>
               )}
@@ -890,7 +896,6 @@ function ServiceHistoryPage() {
                         <div>
                           <div className="service-review-picker-name-row">
                             <h4>{service.name}</h4>
-
                             {isAdditional && <em>Phát sinh</em>}
                           </div>
 
@@ -974,13 +979,15 @@ function ServiceHistoryPage() {
 
               {viewReviewTarget.service.review?.images?.length > 0 && (
                 <div className="view-review-image-grid">
-                  {viewReviewTarget.service.review.images.map((image, index) => (
-                    <img
-                      key={image.id || index}
-                      src={getReviewImageSrc(image)}
-                      alt={`review-${index + 1}`}
-                    />
-                  ))}
+                  {viewReviewTarget.service.review.images.map(
+                    (image, index) => (
+                      <img
+                        key={image.id || index}
+                        src={getReviewImageSrc(image)}
+                        alt={`review-${index + 1}`}
+                      />
+                    )
+                  )}
                 </div>
               )}
             </div>
@@ -1012,13 +1019,13 @@ function ServiceHistoryPage() {
                 className="review-modal-close"
                 onClick={closeReviewModal}
               >
-                <X size={21} />
+                <X size={23} />
               </button>
             </div>
 
             <div className="review-modal-body">
-              <div className="review-service-name">
-                <span>Dịch vụ</span>
+              <div className="review-modal-intro">
+                <p>Bạn đánh giá thế nào về dịch vụ</p>
                 <strong>{reviewTarget.serviceName}</strong>
               </div>
 
@@ -1034,27 +1041,39 @@ function ServiceHistoryPage() {
                       onClick={() => setReviewRating(starValue)}
                     >
                       <Star
-                        size={34}
+                        size={38}
                         className={
                           starValue <= reviewRating
                             ? "star-filled"
                             : "star-empty"
                         }
-                        fill={starValue <= reviewRating ? "currentColor" : "none"}
+                        fill={
+                          starValue <= reviewRating ? "currentColor" : "none"
+                        }
                       />
                     </button>
                   )
                 })}
               </div>
 
-              <textarea
-                className="review-textarea"
-                placeholder="Nhập nhận xét của bạn về dịch vụ..."
-                value={reviewContent}
-                onChange={(event) => setReviewContent(event.target.value)}
-              />
+              <div className="review-field-block">
+                <label className="review-field-label">
+                  Nhận xét của bạn (Không bắt buộc)
+                </label>
 
-              <div className="review-upload-box">
+                <textarea
+                  className="review-textarea"
+                  placeholder="Chia sẻ trải nghiệm của bạn..."
+                  value={reviewContent}
+                  onChange={(event) => setReviewContent(event.target.value)}
+                />
+              </div>
+
+              <div className="review-field-block">
+                <label className="review-field-label">
+                  Hình ảnh minh họa (Tối đa 3 ảnh)
+                </label>
+
                 <input
                   ref={reviewFileInputRef}
                   type="file"
@@ -1066,33 +1085,31 @@ function ServiceHistoryPage() {
 
                 <button
                   type="button"
-                  className="review-upload-btn"
+                  className="review-upload-dropzone"
                   onClick={() => reviewFileInputRef.current?.click()}
                   disabled={reviewImages.length >= 3}
                 >
-                  <Upload size={18} />
-                  Tải ảnh lên
+                  <Upload size={26} />
+                  <span>Nhấn để tải ảnh lên</span>
                 </button>
 
-                <span>Tối đa 3 ảnh</span>
+                {reviewImages.length > 0 && (
+                  <div className="review-image-preview-grid">
+                    {reviewImages.map((image) => (
+                      <div className="review-image-preview" key={image.id}>
+                        <img src={getReviewImageSrc(image)} alt={image.name} />
+
+                        <button
+                          type="button"
+                          onClick={() => removeReviewImage(image.id)}
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {reviewImages.length > 0 && (
-                <div className="review-image-preview-grid">
-                  {reviewImages.map((image) => (
-                    <div className="review-image-preview" key={image.id}>
-                      <img src={getReviewImageSrc(image)} alt={image.name} />
-
-                      <button
-                        type="button"
-                        onClick={() => removeReviewImage(image.id)}
-                      >
-                        <X size={15} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div className="review-modal-actions">
@@ -1101,7 +1118,7 @@ function ServiceHistoryPage() {
                 className="review-modal-btn secondary"
                 onClick={closeReviewModal}
               >
-                Hủy
+                Đóng
               </button>
 
               <button
