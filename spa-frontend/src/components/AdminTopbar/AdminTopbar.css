@@ -1,0 +1,91 @@
+.admin-topbar {
+  height: 68px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  position: sticky;
+  top: 0;
+  z-index: 15;
+}
+
+.admin-topbar-title h1 {
+  margin: 0;
+  font-size: 25px;
+  color: var(--admin-text);
+  font-weight: 600;
+  letter-spacing: -0.35px;
+}
+
+.admin-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-search-box {
+  width: 270px;
+  height: 38px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 15px;
+  color: var(--admin-muted);
+}
+
+.admin-search-box input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: var(--admin-text);
+}
+
+.admin-search-box input::placeholder {
+  color: var(--admin-muted);
+}
+
+.admin-bell-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--admin-border);
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--admin-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.admin-bell-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--admin-primary);
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+@media (max-width: 820px) {
+  .admin-topbar {
+    padding: 0 18px;
+  }
+
+  .admin-topbar-title h1 {
+    font-size: 22px;
+  }
+
+  .admin-search-box {
+    display: none;
+  }
+}

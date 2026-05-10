@@ -16,7 +16,6 @@
   --staff-sidebar-text: #f4efe6;
   --staff-sidebar-text-strong: #ffffff;
 
-  /* đổi sang trắng */
   --staff-page-bg: #ffffff;
   --staff-topbar-bg: #ffffff;
   --staff-card-bg: #ffffff;
@@ -25,6 +24,22 @@
 
   --staff-text: #4d4a4b;
   --staff-muted: #8a7f72;
+
+  /* ADMIN THEME - ĐỒNG BỘ VỚI STAFF */
+  --admin-primary: #d7a93f;
+  --admin-primary-dark: #b88924;
+  --admin-primary-light: #fbf6e8;
+  --admin-primary-soft: #f4ead0;
+
+  --admin-bg: #f8f8f8;
+  --admin-card: #ffffff;
+  --admin-text: #4d4a4b;
+  --admin-muted: #8a7f72;
+  --admin-subtle: #a9a09a;
+  --admin-border: #ebe7e1;
+
+  --admin-shadow: 0 18px 45px rgba(77, 74, 75, 0.07);
+  --admin-dark: #4d4a4b;
 }
 
 * {
@@ -66,7 +81,8 @@ img {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 

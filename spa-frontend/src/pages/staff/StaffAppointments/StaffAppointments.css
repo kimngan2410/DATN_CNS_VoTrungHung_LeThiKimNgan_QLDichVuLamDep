@@ -619,11 +619,11 @@
 .appointment-modal-action-btn {
   min-width: 110px;
   height: 40px;
-  padding: 0 16px;
+  padding: 0 30px;
   border: none;
   border-radius: 10px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -648,7 +648,7 @@
 }
 
 .appointment-modal-action-btn.neutral {
-  background: #f3f4f6;
+  background: #e4e5e7;
   color: var(--staff-text);
 }
 
@@ -721,7 +721,7 @@
   padding: 0 14px;
   background: var(--staff-dark);
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 

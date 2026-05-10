@@ -1,0 +1,15 @@
+.admin-layout {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  font-family: var(--sans, "Poppins", sans-serif);
+}
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  background: var(--admin-bg);
+}

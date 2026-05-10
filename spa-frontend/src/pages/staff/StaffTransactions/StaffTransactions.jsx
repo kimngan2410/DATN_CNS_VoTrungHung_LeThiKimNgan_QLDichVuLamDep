@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from "react";
 import {
   Search,
-  Bell,
-  UserRound,
   Filter,
   Download,
   Eye,
@@ -17,12 +15,15 @@ import {
   ChevronRight,
   Banknote,
   Landmark,
+  Ban,
+  AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 import "./StaffTransactions.css";
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
 
-
 const TODAY = new Date("2026-05-04T00:00:00");
+const CANCEL_CONFIRM_CODE = "HUYHD";
 
 const transactionList = [
   {
@@ -58,7 +59,7 @@ const transactionList = [
     maLichHen: "LH002",
     customer: "Lê Thị Hoa",
     phone: "0923456789",
-    paymentTime: "2026-05-03 15:30",
+    paymentTime: "2026-05-04 15:30",
     paymentMethod: "Tiền mặt",
     status: "Đã thanh toán",
     spaName: "Serinity Spa",
@@ -99,7 +100,7 @@ const transactionList = [
     maLichHen: "LH010",
     customer: "Trần Văn Hùng",
     phone: "0912345678",
-    paymentTime: "2026-05-02 11:10",
+    paymentTime: "2026-05-04 11:10",
     paymentMethod: "Thẻ ngân hàng",
     status: "Đã thanh toán",
     spaName: "Serinity Spa",
@@ -114,7 +115,7 @@ const transactionList = [
       },
     ],
     extraServices: [],
-    note: "",
+    note: "Khách thanh toán bằng thẻ ngân hàng.",
   },
   {
     idHoaDon: "HD004",
@@ -166,6 +167,37 @@ const transactionList = [
     extraServices: [],
     note: "Khách thanh toán bằng thẻ ngân hàng.",
   },
+  {
+    idHoaDon: "HD006",
+    maLichHen: "LH002",
+    customer: "Lê Thị Hoa",
+    phone: "0923456789",
+    paymentTime: "2026-05-04 15:50",
+    paymentMethod: "Tiền mặt",
+    status: "Đã huỷ",
+    spaName: "Serinity Spa",
+    spaAddress: "123 Nguyễn Văn Linh, Hải Châu, Đà Nẵng",
+    spaPhone: "0909 999 888",
+    bookedServices: [
+      {
+        idDichVu: "DV003",
+        tenDichVu: "Chăm sóc da mặt",
+        soLuong: 1,
+        donGia: 400000,
+      },
+      {
+        idDichVu: "DV004",
+        tenDichVu: "Massage cổ vai gáy",
+        soLuong: 1,
+        donGia: 200000,
+      },
+    ],
+    extraServices: [],
+    note: "Hoá đơn bị huỷ do lập sai thông tin dịch vụ, lễ tân cần lập lại hoá đơn mới.",
+    cancelReason: "Lập sai thông tin dịch vụ, cần lập lại hoá đơn mới.",
+    cancelledBy: "Lễ tân",
+    cancelledAt: "2026-05-04 15:55",
+  },
 ];
 
 const paymentMethodOptions = [
@@ -174,6 +206,8 @@ const paymentMethodOptions = [
   "Chuyển khoản",
   "Thẻ ngân hàng",
 ];
+
+const statusOptions = ["Tất cả", "Đã thanh toán", "Đã huỷ"];
 
 const monthNames = [
   "Tháng Một",
@@ -190,23 +224,11 @@ const monthNames = [
   "Tháng Mười Hai",
 ];
 
-const weekdayLabels = [
-  "Thứ 2",
-  "Thứ 3",
-  "Thứ 4",
-  "Thứ 5",
-  "Thứ 6",
-  "Thứ 7",
-  "CN",
-];
+const weekdayLabels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
 
-const formatMoney = (value) => {
-  return `${value.toLocaleString("vi-VN")} đ`;
-};
+const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
-const getItemTotal = (item) => {
-  return item.soLuong * item.donGia;
-};
+const getItemTotal = (item) => item.soLuong * item.donGia;
 
 const getTransactionTotal = (transaction) => {
   const bookedTotal = transaction.bookedServices.reduce(
@@ -231,24 +253,12 @@ const formatDateToValue = (date) => {
 };
 
 const formatDisplayDate = (date) => {
-  const weekdays = [
-    "Chủ nhật",
-    "Thứ 2",
-    "Thứ 3",
-    "Thứ 4",
-    "Thứ 5",
-    "Thứ 6",
-    "Thứ 7",
-  ];
+  const weekdays = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 
-  return `${weekdays[date.getDay()]} ${date.getDate()} thg ${
-    date.getMonth() + 1
-  }`;
+  return `${weekdays[date.getDay()]} ${date.getDate()} thg ${date.getMonth() + 1}`;
 };
 
-const formatMonthTitle = (date) => {
-  return `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-};
+const formatMonthTitle = (date) => `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
 
 const addDays = (date, days) => {
   const newDate = new Date(date);
@@ -270,15 +280,34 @@ const isSameDate = (dateA, dateB) => {
   );
 };
 
-const getTransactionDate = (transaction) => {
-  return transaction.paymentTime.split(" ")[0];
+const getTransactionDate = (transaction) => transaction.paymentTime.split(" ")[0];
+
+const getStatusClass = (status) => {
+  return status === "Đã huỷ" ? "cancelled" : "paid";
+};
+
+const getCurrentDateTimeText = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  const hour = `${date.getHours()}`.padStart(2, "0");
+  const minute = `${date.getMinutes()}`.padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hour}:${minute}`;
 };
 
 function StaffTransactions() {
+  const [transactions, setTransactions] = useState(transactionList);
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("Tất cả");
+  const [statusFilter, setStatusFilter] = useState("Tất cả");
   const [selectedDate, setSelectedDate] = useState(TODAY);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelConfirmCode, setCancelConfirmCode] = useState("");
 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(
@@ -288,7 +317,7 @@ function StaffTransactions() {
   const selectedDateValue = formatDateToValue(selectedDate);
 
   const filteredTransactions = useMemo(() => {
-    return transactionList.filter((transaction) => {
+    return transactions.filter((transaction) => {
       const keyword = searchTerm.trim().toLowerCase();
       const transactionDate = getTransactionDate(transaction);
 
@@ -303,11 +332,14 @@ function StaffTransactions() {
         paymentMethodFilter === "Tất cả" ||
         transaction.paymentMethod === paymentMethodFilter;
 
+      const matchesStatus =
+        statusFilter === "Tất cả" || transaction.status === statusFilter;
+
       const matchesDate = transactionDate === selectedDateValue;
 
-      return matchesKeyword && matchesPaymentMethod && matchesDate;
+      return matchesKeyword && matchesPaymentMethod && matchesStatus && matchesDate;
     });
-  }, [searchTerm, paymentMethodFilter, selectedDateValue]);
+  }, [transactions, searchTerm, paymentMethodFilter, statusFilter, selectedDateValue]);
 
   const summary = useMemo(() => {
     return filteredTransactions.reduce(
@@ -315,6 +347,14 @@ function StaffTransactions() {
         const total = getTransactionTotal(transaction);
 
         result.totalTransactions += 1;
+
+        if (transaction.status === "Đã huỷ") {
+          result.cancelledTransactions += 1;
+          result.cancelledValue += total;
+          return result;
+        }
+
+        result.paidTransactions += 1;
         result.totalRevenue += total;
 
         if (transaction.paymentMethod === "Tiền mặt") {
@@ -333,6 +373,9 @@ function StaffTransactions() {
       },
       {
         totalTransactions: 0,
+        paidTransactions: 0,
+        cancelledTransactions: 0,
+        cancelledValue: 0,
         totalRevenue: 0,
         cashTotal: 0,
         transferTotal: 0,
@@ -396,6 +439,72 @@ function StaffTransactions() {
     setSelectedTransaction(null);
   };
 
+  const handleOpenCancelInvoice = (transaction) => {
+    if (transaction.status === "Đã huỷ") {
+      alert("Hoá đơn này đã được huỷ trước đó.");
+      return;
+    }
+
+    setCancelTarget(transaction);
+    setCancelReason("");
+    setCancelConfirmCode("");
+  };
+
+  const handleCloseCancelInvoice = () => {
+    setCancelTarget(null);
+    setCancelReason("");
+    setCancelConfirmCode("");
+  };
+
+  const handleConfirmCancelInvoice = () => {
+    if (!cancelTarget) return;
+
+    const reason = cancelReason.trim();
+    const confirmCode = cancelConfirmCode.trim();
+
+    if (!reason) {
+      alert("Vui lòng nhập lý do huỷ hoá đơn.");
+      return;
+    }
+
+    if (!confirmCode) {
+      alert("Vui lòng nhập mã xác nhận huỷ hoá đơn.");
+      return;
+    }
+
+    if (confirmCode !== CANCEL_CONFIRM_CODE) {
+      alert("Mã xác nhận không đúng. Vui lòng kiểm tra lại.");
+      return;
+    }
+
+    const updatedTransaction = {
+      ...cancelTarget,
+      status: "Đã huỷ",
+      cancelReason: reason,
+      cancelledAt: getCurrentDateTimeText(),
+      cancelledBy: "Lễ tân",
+      note: `Hoá đơn bị huỷ. Lý do: ${reason}`,
+    };
+
+    setTransactions((prev) =>
+      prev.map((transaction) =>
+        transaction.idHoaDon === cancelTarget.idHoaDon
+          ? updatedTransaction
+          : transaction
+      )
+    );
+
+    if (selectedTransaction?.idHoaDon === cancelTarget.idHoaDon) {
+      setSelectedTransaction(updatedTransaction);
+    }
+
+    setCancelTarget(null);
+    setCancelReason("");
+    setCancelConfirmCode("");
+
+    alert("Huỷ hoá đơn thành công. Hoá đơn vẫn được lưu lại và không tính vào doanh thu.");
+  };
+
   const handleExportFile = () => {
     if (filteredTransactions.length === 0) {
       alert("Không có dữ liệu để xuất file.");
@@ -407,10 +516,13 @@ function StaffTransactions() {
       "Mã lịch hẹn",
       "Khách hàng",
       "Số điện thoại",
-      "Ngày thanh toán",
+      "Ngày thanh toán/tạo",
       "Phương thức thanh toán",
-      "Tổng tiền",
+      "Giá trị hóa đơn",
       "Trạng thái",
+      "Lý do huỷ",
+      "Người huỷ",
+      "Thời gian huỷ",
     ];
 
     const rows = filteredTransactions.map((item) => [
@@ -422,11 +534,17 @@ function StaffTransactions() {
       item.paymentMethod,
       getTransactionTotal(item),
       item.status,
+      item.cancelReason || "",
+      item.cancelledBy || "",
+      item.cancelledAt || "",
     ]);
 
     const csvContent = [
       headers.join(","),
       ...rows.map((row) => row.map((value) => `"${value}"`).join(",")),
+      "",
+      `"Doanh thu thực tính","${summary.totalRevenue}"`,
+      `"Giá trị hóa đơn đã huỷ","${summary.cancelledValue}"`,
     ].join("\n");
 
     const blob = new Blob(["\uFEFF" + csvContent], {
@@ -437,7 +555,7 @@ function StaffTransactions() {
     const url = URL.createObjectURL(blob);
 
     link.setAttribute("href", url);
-    link.setAttribute("download", "danh-sach-giao-dich-da-thanh-toan.csv");
+    link.setAttribute("download", "danh-sach-giao-dich-hoa-don.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -445,7 +563,7 @@ function StaffTransactions() {
 
   const handlePrintInvoice = (transaction) => {
     if (!transaction || transaction.status !== "Đã thanh toán") {
-      alert("Không thể in hóa đơn.");
+      alert("Không thể in hóa đơn đã huỷ.");
       return;
     }
 
@@ -487,7 +605,6 @@ function StaffTransactions() {
       <html>
         <head>
           <title>Hóa đơn ${transaction.idHoaDon}</title>
-
           <style>
             body {
               font-family: Arial, sans-serif;
@@ -610,7 +727,6 @@ function StaffTransactions() {
                     <th>Thành tiền</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   ${bookedRows}
                 </tbody>
@@ -620,7 +736,6 @@ function StaffTransactions() {
                 transaction.extraServices.length > 0
                   ? `
                     <div class="group-title">Dịch vụ phát sinh</div>
-
                     <table>
                       <thead>
                         <tr>
@@ -630,7 +745,6 @@ function StaffTransactions() {
                           <th>Thành tiền</th>
                         </tr>
                       </thead>
-
                       <tbody>
                         ${extraRows}
                       </tbody>
@@ -661,49 +775,46 @@ function StaffTransactions() {
     const totalDays = new Date(year, month + 1, 0).getDate();
     const leadingBlankCount = (firstDay.getDay() + 6) % 7;
 
-    const calendarCells = [
-      ...Array.from({ length: leadingBlankCount }, () => null),
-      ...Array.from({ length: totalDays }, (_, index) => {
-        return new Date(year, month, index + 1);
-      }),
-    ];
+    const blanks = Array.from({ length: leadingBlankCount });
+    const days = Array.from({ length: totalDays }, (_, index) => index + 1);
 
     return (
-      <div className="staff-transactions-calendar-month">
+      <div className="staff-transactions-calendar-month" key={`${year}-${month}`}>
         <h3>{formatMonthTitle(monthDate)}</h3>
 
         <div className="staff-transactions-calendar-weekdays">
-          {weekdayLabels.map((day) => (
-            <span key={day}>{day}</span>
+          {weekdayLabels.map((label) => (
+            <span key={label}>{label}</span>
           ))}
         </div>
 
         <div className="staff-transactions-calendar-days">
-          {calendarCells.map((date, index) => {
-            if (!date) {
-              return (
-                <div
-                  key={`empty-${index}`}
-                  className="staff-transactions-calendar-empty"
-                ></div>
-              );
-            }
+          {blanks.map((_, index) => (
+            <span
+              className="staff-transactions-calendar-empty"
+              key={`empty-${index}`}
+            />
+          ))}
 
-            const isSelected = isSameDate(date, selectedDate);
+          {days.map((day) => {
+            const date = new Date(year, month, day);
             const isToday = isSameDate(date, TODAY);
+            const isSelected = isSameDate(date, selectedDate);
 
             return (
               <button
                 type="button"
-                key={formatDateToValue(date)}
+                key={day}
                 className={[
                   "staff-transactions-calendar-day",
-                  isSelected ? "selected" : "",
                   isToday ? "today" : "",
-                ].join(" ")}
+                  isSelected ? "selected" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 onClick={() => handleSelectCalendarDate(date)}
               >
-                {date.getDate()}
+                {day}
               </button>
             );
           })}
@@ -714,7 +825,7 @@ function StaffTransactions() {
 
   return (
     <div className="staff-transactions-page">
-      <StaffPageHeader title="Giao dịch & Hoá đơn" />
+      <StaffPageHeader title="Lịch sử giao dịch" />
 
       <section className="staff-transactions-content">
         <div className="staff-transactions-card">
@@ -731,7 +842,6 @@ function StaffTransactions() {
 
             <div className="staff-transactions-method-select">
               <Filter size={18} />
-
               <select
                 value={paymentMethodFilter}
                 onChange={(event) => setPaymentMethodFilter(event.target.value)}
@@ -739,6 +849,20 @@ function StaffTransactions() {
                 {paymentMethodOptions.map((method) => (
                   <option key={method} value={method}>
                     {method}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="staff-transactions-method-select">
+              <Receipt size={18} />
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
                   </option>
                 ))}
               </select>
@@ -818,6 +942,7 @@ function StaffTransactions() {
               <div>
                 <p>Tổng giao dịch</p>
                 <strong>{summary.totalTransactions}</strong>
+                <small>{summary.cancelledTransactions} hoá đơn huỷ</small>
               </div>
             </div>
 
@@ -827,8 +952,9 @@ function StaffTransactions() {
               </div>
 
               <div>
-                <p>Tổng tiền</p>
+                <p>Doanh thu thực tính</p>
                 <strong>{formatMoney(summary.totalRevenue)}</strong>
+                <small>Không tính hoá đơn huỷ</small>
               </div>
             </div>
 
@@ -875,7 +1001,7 @@ function StaffTransactions() {
                   <th>Khách hàng</th>
                   <th>Thời gian</th>
                   <th>Phương thức</th>
-                  <th>Tổng tiền</th>
+                  <th>Giá trị HĐ</th>
                   <th>Trạng thái</th>
                   <th>Thao tác</th>
                 </tr>
@@ -914,7 +1040,11 @@ function StaffTransactions() {
                       </td>
 
                       <td>
-                        <span className="staff-transactions-status paid">
+                        <span
+                          className={`staff-transactions-status ${getStatusClass(
+                            transaction.status
+                          )}`}
+                        >
                           {transaction.status}
                         </span>
                       </td>
@@ -934,10 +1064,22 @@ function StaffTransactions() {
                             type="button"
                             className="staff-transactions-icon-btn"
                             title="In hóa đơn"
+                            disabled={transaction.status !== "Đã thanh toán"}
                             onClick={() => handlePrintInvoice(transaction)}
                           >
                             <Printer size={17} />
                           </button>
+
+                          {transaction.status === "Đã thanh toán" && (
+                            <button
+                              type="button"
+                              className="staff-transactions-icon-btn danger"
+                              title="Huỷ hoá đơn"
+                              onClick={() => handleOpenCancelInvoice(transaction)}
+                            >
+                              <Ban size={17} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1007,7 +1149,7 @@ function StaffTransactions() {
                     <CalendarDays size={18} />
 
                     <div>
-                      <span>Ngày thanh toán</span>
+                      <span>Thời gian</span>
                       <strong>{selectedTransaction.paymentTime}</strong>
                     </div>
                   </div>
@@ -1024,12 +1166,29 @@ function StaffTransactions() {
                   </div>
 
                   <div className="staff-transaction-summary-item">
-                    <span className="staff-transaction-paid-badge">
+                    <span
+                      className={`staff-transaction-paid-badge ${getStatusClass(
+                        selectedTransaction.status
+                      )}`}
+                    >
                       {selectedTransaction.status}
                     </span>
                   </div>
                 </div>
               </div>
+
+              {selectedTransaction.status === "Đã huỷ" && (
+                <div className="staff-transaction-cancel-warning">
+                  <AlertTriangle size={18} />
+                  <div>
+                    <strong>Hoá đơn đã bị huỷ</strong>
+                    <p>
+                      Hoá đơn này được lưu lại để đối chiếu, nhưng không được
+                      tính vào doanh thu thực tế.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="staff-transaction-section">
                 <h3>Dịch vụ đã đặt</h3>
@@ -1084,7 +1243,11 @@ function StaffTransactions() {
               )}
 
               <div className="staff-transaction-total-box">
-                <span>Tổng thanh toán</span>
+                <span>
+                  {selectedTransaction.status === "Đã huỷ"
+                    ? "Giá trị hoá đơn"
+                    : "Tổng thanh toán"}
+                </span>
                 <strong>
                   {formatMoney(getTransactionTotal(selectedTransaction))}
                 </strong>
@@ -1094,6 +1257,22 @@ function StaffTransactions() {
                 <div className="staff-transaction-note-box">
                   <h4>Ghi chú</h4>
                   <p>{selectedTransaction.note}</p>
+                </div>
+              )}
+
+              {selectedTransaction.cancelReason && (
+                <div className="staff-transaction-note-box cancel">
+                  <h4>Thông tin huỷ hoá đơn</h4>
+                  <p>
+                    <strong>Lý do:</strong> {selectedTransaction.cancelReason}
+                  </p>
+                  <p>
+                    <strong>Người huỷ:</strong> {selectedTransaction.cancelledBy}
+                  </p>
+                  <p>
+                    <strong>Thời gian huỷ:</strong>{" "}
+                    {selectedTransaction.cancelledAt}
+                  </p>
                 </div>
               )}
             </div>
@@ -1107,13 +1286,123 @@ function StaffTransactions() {
                 Đóng
               </button>
 
+              {selectedTransaction.status === "Đã thanh toán" && (
+                <>
+                  <button
+                    type="button"
+                    className="staff-transaction-danger-btn"
+                    onClick={() => handleOpenCancelInvoice(selectedTransaction)}
+                  >
+                    <Ban size={17} />
+                    <span>Huỷ hoá đơn</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="staff-transaction-primary-btn"
+                    onClick={() => handlePrintInvoice(selectedTransaction)}
+                  >
+                    <Printer size={17} />
+                    <span>In hóa đơn</span>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cancelTarget && (
+        <div
+          className="staff-transaction-cancel-overlay"
+          onClick={handleCloseCancelInvoice}
+        >
+          <div
+            className="staff-transaction-cancel-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="staff-transaction-cancel-header">
+              <div>
+                <h2>Huỷ hoá đơn {cancelTarget.idHoaDon}</h2>
+                <p>
+                  Hoá đơn sẽ không bị xoá khỏi hệ thống, chỉ chuyển sang trạng
+                  thái “Đã huỷ”.
+                </p>
+              </div>
+
+              <button type="button" onClick={handleCloseCancelInvoice}>
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="staff-transaction-cancel-body">
+              <div className="staff-transaction-cancel-info">
+                <div>
+                  <span>Khách hàng</span>
+                  <strong>{cancelTarget.customer}</strong>
+                </div>
+
+                <div>
+                  <span>Mã lịch hẹn</span>
+                  <strong>{cancelTarget.maLichHen}</strong>
+                </div>
+
+                <div>
+                  <span>Giá trị hoá đơn</span>
+                  <strong>{formatMoney(getTransactionTotal(cancelTarget))}</strong>
+                </div>
+              </div>
+
+              <label className="staff-transaction-cancel-label">
+                Lý do huỷ hoá đơn
+              </label>
+
+              <textarea
+                value={cancelReason}
+                onChange={(event) => setCancelReason(event.target.value)}
+                placeholder="Ví dụ: Lập sai thông tin dịch vụ, chọn sai phương thức thanh toán, cần lập lại hoá đơn mới..."
+              />
+
+              <label className="staff-transaction-cancel-label">
+                Mã xác nhận huỷ hoá đơn
+              </label>
+
+              <div className="staff-transaction-confirm-code-box">
+                <ShieldCheck size={18} />
+                <input
+                  type="text"
+                  value={cancelConfirmCode}
+                  onChange={(event) => setCancelConfirmCode(event.target.value)}
+                  placeholder="Nhập mã xác nhận"
+                />
+              </div>
+
+              <div className="staff-transaction-code-note">
+                Mã xác nhận demo: <strong>{CANCEL_CONFIRM_CODE}</strong>
+              </div>
+
+              <div className="staff-transaction-cancel-hint">
+                Sau khi huỷ, hoá đơn vẫn được lưu lại để đối chiếu nhưng không
+                tính vào doanh thu. Nếu cần thanh toán lại, lễ tân lập hoá đơn
+                mới cho lịch hẹn.
+              </div>
+            </div>
+
+            <div className="staff-transaction-cancel-footer">
               <button
                 type="button"
-                className="staff-transaction-primary-btn"
-                onClick={() => handlePrintInvoice(selectedTransaction)}
+                className="staff-transaction-secondary-btn"
+                onClick={handleCloseCancelInvoice}
               >
-                <Printer size={17} />
-                <span>In hóa đơn</span>
+                Đóng
+              </button>
+
+              <button
+                type="button"
+                className="staff-transaction-danger-btn"
+                onClick={handleConfirmCancelInvoice}
+              >
+                Xác nhận huỷ
               </button>
             </div>
           </div>

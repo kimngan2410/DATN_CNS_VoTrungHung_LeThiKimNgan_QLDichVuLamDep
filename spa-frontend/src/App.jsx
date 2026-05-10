@@ -20,6 +20,19 @@ import StaffConversations from "./pages/staff/StaffConversations/StaffConversati
 import StaffCustomersList from "./pages/staff/StaffCustomersList/StaffCustomersList"
 import StaffSettings from "./pages/staff/StaffSettings/StaffSettings"
 
+/* ADMIN */
+import AdminLayout from "./components/AdminLayout/AdminLayout"
+import AdminOverview from "./pages/admin/AdminOverview/AdminOverview"
+import AdminCustomersList from "./pages/admin/AdminCustomersList/AdminCustomersList"
+import AdminServiceCategories from "./pages/admin/AdminServiceCategories/AdminServiceCategories"
+import AdminServices from "./pages/admin/AdminServices/AdminServices"
+import AdminEmployeeList from "./pages/admin/AdminEmployeeList/AdminEmployeeList"
+import AdminReviews from "./pages/admin/AdminReviews/AdminReviews"
+import AdminAccounts from "./pages/admin/AdminAccounts/AdminAccounts"
+import RevenueReport from "./pages/admin/reports/RevenueReport/RevenueReport"
+import InvoiceReport from "./pages/admin/reports/InvoiceReport/InvoiceReport"
+import ServiceUsageReport from "./pages/admin/reports/ServiceUsageReport/ServiceUsageReport";
+
 function App() {
   return (
     <Routes>
@@ -44,6 +57,21 @@ function App() {
         <Route path="hoi-thoai" element={<StaffConversations />} />
         <Route path="khach-hang" element={<StaffCustomersList />} />
         <Route path="cai-dat" element={<StaffSettings />} />
+      </Route>
+
+      {/* ADMIN ROUTES */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<Navigate to="/admin/tong-quan" replace />} />
+        <Route path="tong-quan" element={<AdminOverview />} />
+        <Route path="khach-hang" element={<AdminCustomersList />} />
+        <Route path="danh-muc-dich-vu" element={<AdminServiceCategories />} />
+        <Route path="dich-vu" element={<AdminServices />} />
+        <Route path="nhan-vien" element={<AdminEmployeeList />} />
+        <Route path="danh-gia-dich-vu" element={<AdminReviews />} />
+        <Route path="tai-khoan" element={<AdminAccounts />} />
+        <Route path="bao-cao/doanh-thu" element={<RevenueReport />} />
+        <Route path="bao-cao/hoa-don" element={<InvoiceReport />} />
+        <Route path="bao-cao/tinh-hinh-su-dung-dich-vu" element={<ServiceUsageReport />} />
       </Route>
 
       {/* NOT FOUND */}
