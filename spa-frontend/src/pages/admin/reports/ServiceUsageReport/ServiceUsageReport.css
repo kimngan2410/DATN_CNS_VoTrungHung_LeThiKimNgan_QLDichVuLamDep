@@ -57,7 +57,7 @@
   background: transparent;
   color: var(--admin-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .service-usage-search input {
@@ -81,7 +81,7 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -118,8 +118,8 @@
 .service-usage-summary-card p {
   margin: 0 0 8px;
   color: var(--admin-muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .service-usage-summary-card h2 {
@@ -135,7 +135,8 @@
   margin-top: 7px;
   color: var(--admin-muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
+  font-style: italic;
 }
 
 .service-usage-chart-card {
@@ -160,7 +161,7 @@
   margin: 0;
   color: var(--admin-text);
   font-size: 19px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .service-usage-card-header p,
@@ -174,7 +175,7 @@
 .service-usage-card-header strong {
   color: var(--admin-primary-dark);
   font-size: 21px;
-  font-weight: 900;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -257,7 +258,7 @@
   padding: 0 16px;
   color: var(--admin-muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   text-transform: uppercase;
   text-align: left;
   border-bottom: 1px solid var(--admin-border);
@@ -279,7 +280,7 @@
 .service-usage-table tfoot td {
   height: 56px;
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .service-usage-table td p {
@@ -295,6 +296,11 @@
   font-weight: 900 !important;
 }
 
+.service-usage-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
 .service-usage-status {
   height: 26px;
   padding: 0 10px;
@@ -302,7 +308,7 @@
   display: inline-flex;
   align-items: center;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -322,7 +328,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 @media (max-width: 1200px) {

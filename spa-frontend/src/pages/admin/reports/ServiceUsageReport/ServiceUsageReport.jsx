@@ -597,7 +597,7 @@ function ServiceUsageReport() {
                     </td>
 
                     <td>
-                      <strong>{service.serviceName}</strong>
+                      <strong className="service-usage-name">{service.serviceName}</strong>
                       <p>
                         {service.lastUsedAt
                           ? `Cập nhật gần nhất: ${service.lastUsedAt}`

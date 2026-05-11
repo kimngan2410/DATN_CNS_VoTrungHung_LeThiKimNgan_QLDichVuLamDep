@@ -79,7 +79,7 @@
   justify-content: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
@@ -143,7 +143,7 @@
 .admin-review-form-group label {
   color: var(--admin-dark, #4d4a4b);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-review-filter-group select {
@@ -240,7 +240,7 @@
   padding: 0 18px;
   color: #6b7280;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   text-align: left;
@@ -297,7 +297,7 @@
   margin: 0;
   color: #111827;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
@@ -331,7 +331,7 @@
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-review-status.replied {
@@ -436,7 +436,7 @@
   margin: 0;
   color: var(--admin-dark, #4d4a4b);
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-review-modal-header p {
@@ -500,14 +500,14 @@
   margin: 0;
   color: #020617;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-review-detail-hero p {
   margin: 4px 0 0;
   color: var(--admin-muted, #8a7f72);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .admin-review-detail-hero .admin-review-status {
@@ -539,15 +539,15 @@
 .admin-review-detail-item span {
   display: block;
   color: var(--admin-muted, #8a7f72);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   margin-bottom: 4px;
 }
 
 .admin-review-detail-item strong {
   color: var(--admin-dark, #4d4a4b);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-review-content-box,
@@ -565,7 +565,7 @@
   margin: 0;
   color: var(--admin-dark, #4d4a4b);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-review-content-box p,
@@ -586,7 +586,7 @@
 .admin-review-section-title span {
   color: var(--admin-primary-dark, #b88713);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-review-images-grid {
@@ -652,7 +652,7 @@
   margin: 0;
   color: var(--admin-dark, #4d4a4b);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-review-reply-summary p {
@@ -673,7 +673,7 @@
   margin: 0 0 8px;
   color: var(--admin-dark, #4d4a4b);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-review-customer-comment p {

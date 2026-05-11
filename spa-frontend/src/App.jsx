@@ -32,6 +32,7 @@ import AdminAccounts from "./pages/admin/AdminAccounts/AdminAccounts"
 import RevenueReport from "./pages/admin/reports/RevenueReport/RevenueReport"
 import InvoiceReport from "./pages/admin/reports/InvoiceReport/InvoiceReport"
 import ServiceUsageReport from "./pages/admin/reports/ServiceUsageReport/ServiceUsageReport";
+import AppointmentReport from "./pages/admin/reports/AppointmentReport/AppointmentReport";
 
 function App() {
   return (
@@ -72,6 +73,7 @@ function App() {
         <Route path="bao-cao/doanh-thu" element={<RevenueReport />} />
         <Route path="bao-cao/hoa-don" element={<InvoiceReport />} />
         <Route path="bao-cao/tinh-hinh-su-dung-dich-vu" element={<ServiceUsageReport />} />
+        <Route path="bao-cao/lich-hen" element={<AppointmentReport />} />
       </Route>
 
       {/* NOT FOUND */}

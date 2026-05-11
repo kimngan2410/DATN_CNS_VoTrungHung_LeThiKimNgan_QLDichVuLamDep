@@ -21,7 +21,6 @@ const invoiceRows = [
     invoiceCode: "HD001",
     appointmentCode: "LH001",
     customer: "Nguyễn Thị Hoa",
-    staff: "Trần Thị Bích",
     paymentMethod: "Chuyển khoản",
     totalAmount: 750000,
     paidAt: "2026-05-01T09:30:00",
@@ -48,7 +47,6 @@ const invoiceRows = [
     invoiceCode: "HD002",
     appointmentCode: "LH002",
     customer: "Trần Văn Nam",
-    staff: "Trần Thị Bích",
     paymentMethod: "Tiền mặt",
     totalAmount: 500000,
     paidAt: "2026-05-01T10:15:00",
@@ -69,7 +67,6 @@ const invoiceRows = [
     invoiceCode: "HD003",
     appointmentCode: "LH003",
     customer: "Lê Mai Anh",
-    staff: "Nguyễn Thu Hà",
     paymentMethod: "Thẻ ngân hàng",
     totalAmount: 850000,
     paidAt: "2026-05-02T14:20:00",
@@ -90,7 +87,6 @@ const invoiceRows = [
     invoiceCode: "HD004",
     appointmentCode: "LH004",
     customer: "Phạm Thu Thủy",
-    staff: "Phạm Minh Đạt",
     paymentMethod: "Chuyển khoản",
     totalAmount: 1200000,
     paidAt: "2026-05-03T11:00:00",
@@ -117,7 +113,6 @@ const invoiceRows = [
     invoiceCode: "HD005",
     appointmentCode: "LH005",
     customer: "Hoàng Minh Tuấn",
-    staff: "Trần Thị Bích",
     paymentMethod: "Tiền mặt",
     totalAmount: 650000,
     paidAt: "2026-05-04T15:30:00",
@@ -138,7 +133,6 @@ const invoiceRows = [
     invoiceCode: "HD006",
     appointmentCode: "LH006",
     customer: "Đỗ Khánh Linh",
-    staff: "Nguyễn Thu Hà",
     paymentMethod: "Chuyển khoản",
     totalAmount: 350000,
     paidAt: "2026-05-05T16:10:00",
@@ -159,7 +153,6 @@ const invoiceRows = [
     invoiceCode: "HD007",
     appointmentCode: "LH007",
     customer: "Võ Ngọc Anh",
-    staff: "Phạm Minh Đạt",
     paymentMethod: "Chuyển khoản",
     totalAmount: 950000,
     paidAt: "2026-05-06T13:45:00",
@@ -180,7 +173,6 @@ const invoiceRows = [
     invoiceCode: "HD008",
     appointmentCode: "LH008",
     customer: "Bùi Thanh Hà",
-    staff: "Trần Thị Bích",
     paymentMethod: "Tiền mặt",
     totalAmount: 1200000,
     paidAt: "2026-05-06T17:10:00",
@@ -201,7 +193,6 @@ const invoiceRows = [
     invoiceCode: "HD009",
     appointmentCode: "LH009",
     customer: "Mai Phương",
-    staff: "Nguyễn Thu Hà",
     paymentMethod: "Thẻ ngân hàng",
     totalAmount: 680000,
     paidAt: "2026-05-07T09:40:00",
@@ -268,6 +259,8 @@ function InvoiceReport() {
     const keywordText = keyword.trim().toLowerCase()
     const from = new Date(fromDate)
     const to = new Date(toDate)
+
+    from.setHours(0, 0, 0, 0)
     to.setHours(23, 59, 59, 999)
 
     return invoiceRows.filter((invoice) => {
@@ -276,10 +269,10 @@ function InvoiceReport() {
       const matchDate = paidDate >= from && paidDate <= to
 
       const matchKeyword =
+        keywordText === "" ||
         invoice.invoiceCode.toLowerCase().includes(keywordText) ||
         invoice.appointmentCode.toLowerCase().includes(keywordText) ||
-        invoice.customer.toLowerCase().includes(keywordText) ||
-        invoice.staff.toLowerCase().includes(keywordText)
+        invoice.customer.toLowerCase().includes(keywordText)
 
       const matchPayment =
         paymentFilter === "Tất cả" || invoice.paymentMethod === paymentFilter
@@ -352,7 +345,6 @@ function InvoiceReport() {
         "Mã hoá đơn",
         "Mã lịch hẹn",
         "Khách hàng",
-        "Nhân viên",
         "Phương thức thanh toán",
         "Giá trị hoá đơn",
         "Thời gian tạo/thanh toán",
@@ -363,7 +355,6 @@ function InvoiceReport() {
         invoice.invoiceCode,
         invoice.appointmentCode,
         invoice.customer,
-        invoice.staff,
         invoice.paymentMethod,
         invoice.totalAmount,
         formatDateTime(invoice.paidAt),
@@ -548,12 +539,11 @@ function InvoiceReport() {
                 <th>Mã hoá đơn</th>
                 <th>Mã lịch hẹn</th>
                 <th>Khách hàng</th>
-                <th>Nhân viên</th>
                 <th>PTTT</th>
                 <th>Giá trị hoá đơn</th>
                 <th>Thời gian</th>
                 <th>Trạng thái</th>
-                <th></th>
+                <th>Thao tác</th>
               </tr>
             </thead>
 
@@ -562,17 +552,23 @@ function InvoiceReport() {
                 filteredInvoices.map((invoice, index) => (
                   <tr key={invoice.id}>
                     <td>{index + 1}</td>
+
                     <td className="invoice-report-code">
                       {invoice.invoiceCode}
                     </td>
+
                     <td>{invoice.appointmentCode}</td>
+
                     <td>{invoice.customer}</td>
-                    <td>{invoice.staff}</td>
+
                     <td>{invoice.paymentMethod}</td>
+
                     <td className="invoice-report-money">
                       {formatMoney(invoice.totalAmount)}
                     </td>
+
                     <td>{formatDateTime(invoice.paidAt)}</td>
+
                     <td>
                       <span
                         className={
@@ -584,6 +580,7 @@ function InvoiceReport() {
                         {invoice.status}
                       </span>
                     </td>
+
                     <td>
                       <button
                         type="button"
@@ -597,7 +594,7 @@ function InvoiceReport() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="10">
+                  <td colSpan="9">
                     <div className="invoice-report-empty">
                       Chưa có hoá đơn phù hợp
                     </div>
@@ -608,7 +605,7 @@ function InvoiceReport() {
 
             <tfoot>
               <tr>
-                <td colSpan="6">Tổng cộng</td>
+                <td colSpan="5">Tổng cộng</td>
                 <td>{formatMoney(summary.totalRevenue)}</td>
                 <td colSpan="3">
                   {summary.paidCount} thanh toán · {summary.cancelledCount} huỷ

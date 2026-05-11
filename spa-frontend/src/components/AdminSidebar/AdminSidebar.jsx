@@ -78,11 +78,6 @@ const reportItems = [
     icon: CalendarCheck,
     path: "/admin/bao-cao/lich-hen",
   },
-  {
-    label: "Phương thức thanh toán",
-    icon: CreditCard,
-    path: "/admin/bao-cao/phuong-thuc-thanh-toan",
-  },
 ]
 
 function AdminSidebar() {

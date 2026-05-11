@@ -51,7 +51,7 @@
   background: transparent;
   color: var(--admin-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .revenue-report-date-separator {
@@ -70,7 +70,7 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -96,8 +96,8 @@
 .revenue-report-summary-card p {
   margin: 0 0 10px;
   color: var(--admin-muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .revenue-report-summary-card h2 {
@@ -114,7 +114,8 @@
   gap: 6px;
   color: var(--admin-muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
+  font-style: italic;
 }
 
 .revenue-report-summary-card span.up {
@@ -146,7 +147,7 @@
   margin: 0;
   color: var(--admin-text);
   font-size: 19px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .revenue-report-card-header p,
@@ -210,7 +211,7 @@
   margin-bottom: 4px;
   color: var(--admin-muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .revenue-report-insight-item strong {
@@ -249,7 +250,7 @@
   padding: 0 16px;
   color: var(--admin-muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   text-transform: uppercase;
   text-align: left;
   border-bottom: 1px solid var(--admin-border);
@@ -270,8 +271,8 @@
 
 .revenue-report-table tfoot td {
   height: 56px;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .revenue-report-money {
@@ -404,7 +405,7 @@
   margin-bottom: 6px;
   color: var(--admin-muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .revenue-report-modal-summary strong {
@@ -421,7 +422,7 @@
   margin: 0;
   color: var(--admin-text);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .revenue-report-detail-title span {
@@ -451,7 +452,7 @@
   gap: 8px;
   color: var(--admin-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .revenue-report-category-head svg {
@@ -486,7 +487,7 @@
   margin: 7px 0 0;
   color: var(--admin-muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 @media (max-width: 1200px) {

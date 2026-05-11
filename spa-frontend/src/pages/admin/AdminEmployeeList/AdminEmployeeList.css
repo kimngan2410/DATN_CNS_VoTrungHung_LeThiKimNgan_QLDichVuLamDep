@@ -85,7 +85,7 @@
   justify-content: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
@@ -159,8 +159,8 @@
 .admin-employee-filter-group label,
 .admin-employee-form-group label {
   color: var(--admin-dark, #4d4a4b);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .admin-employee-filter-group select {
@@ -257,7 +257,7 @@
   padding: 0 18px;
   color: #6b7280;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   text-align: left;
@@ -342,7 +342,7 @@
   margin: 0;
   color: #111827;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
@@ -369,7 +369,7 @@
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-employee-status.active {
@@ -476,7 +476,7 @@
   margin: 0;
   color: var(--admin-dark, #4d4a4b);
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-employee-modal-header p {
@@ -571,7 +571,7 @@
   background: var(--admin-dark, #4d4a4b);
   color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -635,14 +635,14 @@
   margin: 0;
   color: #020617;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-employee-profile-box p {
   margin: 4px 0 0;
   color: var(--admin-muted, #8a7f72);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .admin-employee-profile-box .admin-employee-status {
@@ -674,15 +674,15 @@
 .admin-employee-detail-item span {
   display: block;
   color: var(--admin-muted, #8a7f72);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   margin-bottom: 4px;
 }
 
 .admin-employee-detail-item strong {
   color: var(--admin-dark, #4d4a4b);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-employee-modal-actions {
@@ -717,7 +717,7 @@
   margin: 0;
   color: var(--admin-dark, #4d4a4b);
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-employee-delete-modal p {
