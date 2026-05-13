@@ -30,7 +30,7 @@
   gap: 9px;
   color: var(--admin-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .admin-overview-period svg {
@@ -47,7 +47,7 @@
   padding: 0 12px;
   outline: none;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .admin-overview-export-btn {
@@ -61,7 +61,7 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -137,7 +137,7 @@
   align-items: center;
   gap: 7px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-overview-hero-cards {
@@ -161,8 +161,8 @@
 .admin-overview-hero-cards p {
   margin: 0 0 7px;
   color: var(--admin-muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .admin-overview-hero-cards strong {
@@ -225,7 +225,7 @@
   margin: 0 0 5px;
   color: var(--admin-muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .admin-overview-summary-card h3 {
@@ -272,7 +272,7 @@
   margin: 0;
   color: var(--admin-text);
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 600;
   letter-spacing: -0.25px;
 }
 
@@ -361,7 +361,7 @@
   gap: 12px;
   color: #334155;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .admin-overview-service-row div {
@@ -381,7 +381,7 @@
 .admin-overview-service-row strong {
   color: var(--admin-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 /* =========================
@@ -406,8 +406,8 @@
 .admin-overview-invoice-summary span {
   display: block;
   color: var(--admin-muted);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   margin-bottom: 6px;
 }
 
@@ -476,7 +476,7 @@
 .admin-overview-payment-top span {
   color: var(--admin-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .admin-overview-payment-top strong {
@@ -514,51 +514,52 @@
 ========================= */
 
 .admin-overview-activity-card {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 
 .admin-overview-activity-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 .admin-overview-activity-item {
-  min-height: 72px;
-  padding: 13px;
+  min-height: 70px;
+  padding: 12px;
   border: 1px solid var(--admin-border);
   border-radius: 13px;
   background: #ffffff;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 11px;
 }
 
 .admin-overview-activity-icon {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: var(--admin-primary-light);
   color: var(--admin-primary-dark);
   display: flex;
   align-items: center;
   justify-content: center;
+  grid-row: span 2;
 }
 
 .admin-overview-activity-item h4 {
   margin: 0;
   color: var(--admin-text);
-  font-size: 14px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1.35;
 }
 
 .admin-overview-activity-item p {
   margin: 3px 0 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.35;
   white-space: nowrap;
@@ -567,12 +568,12 @@
 }
 
 .admin-overview-activity-item > span {
+  grid-column: 2;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
-  align-self: start;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 /* =========================
@@ -620,7 +621,7 @@
   }
 
   .admin-overview-activity-list {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 }
 

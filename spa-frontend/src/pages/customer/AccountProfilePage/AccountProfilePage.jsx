@@ -1,128 +1,198 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-import { useEffect, useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
-import { LogOut, Pencil } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { LogOut, PencilLine, Save, X } from "lucide-react"
 
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
-import FloatingChat from "../../../components/FloatingChat/FloatingChat"
 import AccountSidebar from "../../../components/AccountSidebar/AccountSidebar"
+// import FloatingChat from "../../../components/FloatingChat/FloatingChat"
 
 import "./AccountProfilePage.css"
 
+const initialProfile = {
+  avatar:
+    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80",
+  fullName: "Nguyễn Thị Mai",
+  email: "admin@gmail.com",
+  phone: "0901234567",
+  birthDate: "1995-08-15",
+  gender: "Nữ",
+}
+
 function AccountProfilePage() {
   const navigate = useNavigate()
-  const location = useLocation()
+  const objectUrlRef = useRef("")
 
-  const [activeMenu, setActiveMenu] = useState("profile")
+  const [profile, setProfile] = useState(initialProfile)
+  const [formData, setFormData] = useState(initialProfile)
+
   const [isEditing, setIsEditing] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [message, setMessage] = useState({
+    type: "",
+    text: "",
+  })
+
   const [showLogoutPopup, setShowLogoutPopup] = useState(false)
 
-  const [profileData, setProfileData] = useState({
-    avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80",
-    fullName: "Nguyễn Thị Mai",
-    email: "admin@gmail.com",
-    phone: "0901234567",
-    birthDate: "1995-08-15",
-    gender: "Nữ",
-  })
-
-  const [tempProfile, setTempProfile] = useState(profileData)
-
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  })
-
-  const appointmentCount = 3
-
   useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    const tab = params.get("tab")
-
-    if (tab === "password") {
-      setActiveMenu("password")
-    } else {
-      setActiveMenu("profile")
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+      }
     }
-  }, [location.search])
+  }, [])
 
-  const handleEditClick = () => {
-    setTempProfile(profileData)
+  const validateForm = () => {
+    const newErrors = {}
+
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Vui lòng nhập họ và tên."
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = "Họ và tên phải có ít nhất 2 ký tự."
+    }
+
+    const phoneRegex = /^(0|\+84)\d{9,10}$/
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Vui lòng nhập số điện thoại."
+    } else if (!phoneRegex.test(formData.phone.trim())) {
+      newErrors.phone = "Số điện thoại không hợp lệ."
+    }
+
+    if (!formData.birthDate) {
+      newErrors.birthDate = "Vui lòng chọn ngày sinh."
+    } else {
+      const selectedDate = new Date(formData.birthDate)
+      const today = new Date()
+
+      if (selectedDate > today) {
+        newErrors.birthDate = "Ngày sinh không được lớn hơn ngày hiện tại."
+      }
+    }
+
+    if (!formData.gender) {
+      newErrors.gender = "Vui lòng chọn giới tính."
+    }
+
+    setErrors(newErrors)
+
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleStartEdit = () => {
+    setFormData(profile)
+    setErrors({})
+    setMessage({
+      type: "",
+      text: "",
+    })
     setIsEditing(true)
   }
 
   const handleCancelEdit = () => {
-    setTempProfile(profileData)
+    setFormData(profile)
+    setErrors({})
+    setMessage({
+      type: "",
+      text: "",
+    })
     setIsEditing(false)
   }
 
-  const handleSaveProfile = () => {
-    setProfileData(tempProfile)
-    setIsEditing(false)
-    alert("Cập nhật thông tin cá nhân thành công!")
-  }
+  const handleInputChange = (event) => {
+    const { name, value } = event.target
 
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target
-
-    setTempProfile((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value,
     }))
-  }
 
-  const handleAvatarChange = (file) => {
-    const imageUrl = URL.createObjectURL(file)
-
-    setTempProfile((prev) => ({
-      ...prev,
-      avatar: imageUrl,
-    }))
-
-    if (!isEditing) {
-      setProfileData((prev) => ({
+    if (errors[name]) {
+      setErrors((prev) => ({
         ...prev,
-        avatar: imageUrl,
+        [name]: "",
       }))
     }
   }
 
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target
+  const handleAvatarChange = (file) => {
+    if (!file) return
 
-    setPasswordData((prev) => ({
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
+    const maxSize = 2 * 1024 * 1024
+
+    if (!allowedTypes.includes(file.type)) {
+      setMessage({
+        type: "error",
+        text: "Ảnh đại diện không hợp lệ. Chỉ chấp nhận JPG, PNG hoặc WEBP.",
+      })
+      return
+    }
+
+    if (file.size > maxSize) {
+      setMessage({
+        type: "error",
+        text: "Ảnh đại diện vượt quá dung lượng cho phép. Tối đa 2MB.",
+      })
+      return
+    }
+
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+    }
+
+    const previewUrl = URL.createObjectURL(file)
+    objectUrlRef.current = previewUrl
+
+    setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      avatar: previewUrl,
+      avatarFile: file,
     }))
+
+    setIsEditing(true)
+
+    setMessage({
+      type: "success",
+      text: "Đã chọn ảnh đại diện mới. Nhấn “Lưu” để cập nhật.",
+    })
   }
 
-  const handleSubmitPassword = (e) => {
-    e.preventDefault()
+  const handleSubmit = (event) => {
+    event.preventDefault()
 
-    if (
-      !passwordData.currentPassword ||
-      !passwordData.newPassword ||
-      !passwordData.confirmPassword
-    ) {
-      alert("Vui lòng nhập đầy đủ thông tin mật khẩu.")
+    if (!validateForm()) {
+      setMessage({
+        type: "error",
+        text: "Vui lòng kiểm tra lại thông tin đã nhập.",
+      })
       return
     }
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert("Mật khẩu mới và xác nhận mật khẩu không khớp.")
-      return
-    }
+    setProfile(formData)
+    setIsEditing(false)
 
-    alert("Đổi mật khẩu thành công!")
-
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
+    setMessage({
+      type: "success",
+      text: "Cập nhật thông tin cá nhân thành công.",
     })
+
+    /*
+      Khi nối backend, bạn thay phần setProfile phía trên bằng API:
+
+      const payload = new FormData()
+      payload.append("fullName", formData.fullName)
+      payload.append("phone", formData.phone)
+      payload.append("birthDate", formData.birthDate)
+      payload.append("gender", formData.gender)
+
+      if (formData.avatarFile) {
+        payload.append("avatar", formData.avatarFile)
+      }
+
+      await updateProfileApi(payload)
+    */
   }
 
   const handleLogout = () => {
@@ -140,185 +210,183 @@ function AccountProfilePage() {
     setShowLogoutPopup(false)
   }
 
+  const sidebarProfile = isEditing ? formData : profile
+
   return (
-    <div className="account-page">
+    <div className="account-profile-page">
       <Header />
 
-      <main className="account-main">
-        <div className="account-container">
+      <main className="account-profile-main">
+        <div className="account-profile-container">
           <AccountSidebar
-            activeMenu={activeMenu === "password" ? "password" : "profile"}
-            profileData={isEditing ? tempProfile : profileData}
-            appointmentCount={appointmentCount}
+            activeMenu="profile"
+            profileData={sidebarProfile}
+            appointmentCount={3}
             onAvatarChange={handleAvatarChange}
             onLogout={handleLogout}
           />
 
-          <section className="account-content">
-            {activeMenu === "profile" && (
-              <div className="account-content-card">
-                <div className="account-content-header">
-                  <h2>Thông tin cá nhân</h2>
+          <section className="account-profile-content">
+            <div className="account-profile-card">
+              <div className="account-profile-card__top">
+                <div>
+                  <h1 className="account-profile-card__title">
+                    Thông tin cá nhân
+                  </h1>
 
-                  {!isEditing && (
-                    <button
-                      type="button"
-                      className="account-edit-btn"
-                      onClick={handleEditClick}
-                    >
-                      <Pencil size={18} />
-                      Chỉnh sửa
-                    </button>
+                  {isEditing && (
+                    <p className="account-profile-card__note">
+                      Bạn có thể cập nhật họ tên, số điện thoại, ngày sinh,
+                      giới tính và ảnh đại diện.
+                    </p>
                   )}
                 </div>
 
-                <div className="account-divider"></div>
+                {!isEditing && (
+                  <button
+                    type="button"
+                    className="account-profile-card__edit-btn"
+                    onClick={handleStartEdit}
+                  >
+                    <PencilLine size={18} />
+                    <span>Chỉnh sửa</span>
+                  </button>
+                )}
+              </div>
 
-                <div className="account-form-grid">
-                  <div className="account-form-group">
-                    <label>Họ và tên</label>
+              <div className="account-profile-card__divider"></div>
+
+              {message.text && (
+                <div
+                  className={`account-profile-card__message ${
+                    message.type === "success"
+                      ? "success"
+                      : message.type === "error"
+                      ? "error"
+                      : ""
+                  }`}
+                >
+                  {message.text}
+                </div>
+              )}
+
+              <form className="account-profile-form" onSubmit={handleSubmit}>
+                <div className="account-profile-form__grid">
+                  <div className="account-profile-form__group">
+                    <label htmlFor="fullName">Họ và tên</label>
+
                     <input
-                      type="text"
+                      id="fullName"
                       name="fullName"
-                      value={
-                        isEditing ? tempProfile.fullName : profileData.fullName
-                      }
-                      onChange={handleProfileChange}
-                      disabled={!isEditing}
-                    />
-                  </div>
-
-                  <div className="account-form-group">
-                    <label>Email (Không thể thay đổi)</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={profileData.email}
-                      disabled
-                    />
-                  </div>
-
-                  <div className="account-form-group">
-                    <label>Số điện thoại</label>
-                    <input
                       type="text"
-                      name="phone"
-                      value={isEditing ? tempProfile.phone : profileData.phone}
-                      onChange={handleProfileChange}
+                      value={formData.fullName}
+                      onChange={handleInputChange}
                       disabled={!isEditing}
+                      placeholder="Nhập họ và tên"
                     />
+
+                    {errors.fullName && (
+                      <span className="form-error">{errors.fullName}</span>
+                    )}
                   </div>
 
-                  <div className="account-form-group">
-                    <label>Ngày sinh</label>
+                  <div className="account-profile-form__group">
+                    <label htmlFor="email">Email (Không thể thay đổi)</label>
+
                     <input
-                      type="date"
-                      name="birthDate"
-                      value={
-                        isEditing
-                          ? tempProfile.birthDate
-                          : profileData.birthDate
-                      }
-                      onChange={handleProfileChange}
-                      disabled={!isEditing}
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      readOnly
+                      className="readonly-input"
                     />
                   </div>
 
-                  <div className="account-form-group account-form-group-full">
-                    <label>Giới tính</label>
+                  <div className="account-profile-form__group">
+                    <label htmlFor="phone">Số điện thoại</label>
+
+                    <input
+                      id="phone"
+                      name="phone"
+                      type="text"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                      placeholder="Nhập số điện thoại"
+                    />
+
+                    {errors.phone && (
+                      <span className="form-error">{errors.phone}</span>
+                    )}
+                  </div>
+
+                  <div className="account-profile-form__group">
+                    <label htmlFor="birthDate">Ngày sinh</label>
+
+                    <input
+                      id="birthDate"
+                      name="birthDate"
+                      type="date"
+                      value={formData.birthDate}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                    />
+
+                    {errors.birthDate && (
+                      <span className="form-error">{errors.birthDate}</span>
+                    )}
+                  </div>
+
+                  <div className="account-profile-form__group account-profile-form__group--half">
+                    <label htmlFor="gender">Giới tính</label>
+
                     <select
+                      id="gender"
                       name="gender"
-                      value={
-                        isEditing ? tempProfile.gender : profileData.gender
-                      }
-                      onChange={handleProfileChange}
+                      value={formData.gender}
+                      onChange={handleInputChange}
                       disabled={!isEditing}
                     >
-                      <option value="Nữ">Nữ</option>
+                      <option value="">-- Chọn giới tính --</option>
                       <option value="Nam">Nam</option>
+                      <option value="Nữ">Nữ</option>
                       <option value="Khác">Khác</option>
                     </select>
+
+                    {errors.gender && (
+                      <span className="form-error">{errors.gender}</span>
+                    )}
                   </div>
                 </div>
 
                 {isEditing && (
-                  <div className="account-action-row">
+                  <div className="account-profile-form__actions">
                     <button
                       type="button"
-                      className="account-btn secondary"
+                      className="btn-cancel"
                       onClick={handleCancelEdit}
                     >
-                      Hủy
+                      <X size={18} />
+                      <span>Hủy</span>
                     </button>
 
-                    <button
-                      type="button"
-                      className="account-btn primary"
-                      onClick={handleSaveProfile}
-                    >
-                      Lưu
+                    <button type="submit" className="btn-save">
+                      <Save size={18} />
+                      <span>Lưu</span>
                     </button>
                   </div>
                 )}
-              </div>
-            )}
-
-            {activeMenu === "password" && (
-              <div className="account-content-card">
-                <div className="account-content-header">
-                  <h2>Đổi mật khẩu</h2>
-                </div>
-
-                <div className="account-divider"></div>
-
-                <form
-                  className="account-form-grid"
-                  onSubmit={handleSubmitPassword}
-                >
-                  <div className="account-form-group account-form-group-full">
-                    <label>Mật khẩu hiện tại</label>
-                    <input
-                      type="password"
-                      name="currentPassword"
-                      placeholder="Nhập mật khẩu hiện tại"
-                      value={passwordData.currentPassword}
-                      onChange={handlePasswordChange}
-                    />
-                  </div>
-
-                  <div className="account-form-group">
-                    <label>Mật khẩu mới</label>
-                    <input
-                      type="password"
-                      name="newPassword"
-                      placeholder="Nhập mật khẩu mới"
-                      value={passwordData.newPassword}
-                      onChange={handlePasswordChange}
-                    />
-                  </div>
-
-                  <div className="account-form-group">
-                    <label>Xác nhận mật khẩu mới</label>
-                    <input
-                      type="password"
-                      name="confirmPassword"
-                      placeholder="Nhập lại mật khẩu mới"
-                      value={passwordData.confirmPassword}
-                      onChange={handlePasswordChange}
-                    />
-                  </div>
-
-                  <div className="account-action-row">
-                    <button type="submit" className="account-btn primary">
-                      Cập nhật
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
+              </form>
+            </div>
           </section>
         </div>
       </main>
+
+      <Footer />
+
+      {/* Nếu bạn có FloatingChat giống trang lịch hẹn thì mở dòng này */}
+      {/* <FloatingChat /> */}
 
       {showLogoutPopup && (
         <div className="logout-popup-overlay">
@@ -351,9 +419,6 @@ function AccountProfilePage() {
           </div>
         </div>
       )}
-
-      <Footer />
-      <FloatingChat />
     </div>
   )
 }

@@ -56,7 +56,7 @@
   background: transparent;
   color: var(--admin-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .appointment-report-search input {
@@ -80,7 +80,7 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -118,8 +118,8 @@
 .appointment-report-summary-card p {
   margin: 0 0 8px;
   color: var(--admin-muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .appointment-report-summary-card h2 {
@@ -135,7 +135,8 @@
   margin-top: 7px;
   color: var(--admin-muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
+  font-style: italic;
 }
 
 .appointment-report-table-card {
@@ -155,7 +156,7 @@
   margin: 0;
   color: var(--admin-text);
   font-size: 19px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .appointment-report-table-header p {
@@ -168,7 +169,7 @@
 .appointment-report-table-total {
   color: var(--admin-muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .appointment-report-table-total strong {
@@ -196,7 +197,7 @@
   padding: 0 16px;
   color: var(--admin-muted);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   text-transform: uppercase;
   text-align: left;
   border-bottom: 1px solid var(--admin-border);
@@ -219,7 +220,7 @@
 .appointment-report-table tfoot td {
   height: 56px;
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .appointment-report-table td p {
@@ -231,7 +232,11 @@
 
 .appointment-report-code {
   color: var(--admin-primary-dark) !important;
-  font-weight: 900 !important;
+  font-weight: 600 !important;
+}
+
+.appointment-report-name {
+  font-weight: 600;
 }
 
 .appointment-report-service-list {
@@ -248,7 +253,8 @@
   background: var(--admin-primary-light);
   color: var(--admin-primary-dark);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
+  margin-bottom: 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -261,7 +267,7 @@
   display: inline-flex;
   align-items: center;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -310,7 +316,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .appointment-report-modal-overlay {
@@ -347,14 +353,14 @@
   margin: 0;
   color: var(--admin-text);
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .appointment-report-modal-header p {
   margin: 5px 0 0;
   color: var(--admin-muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .appointment-report-modal-header button {
@@ -389,14 +395,14 @@
   display: block;
   margin-bottom: 6px;
   color: var(--admin-muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .appointment-report-modal-grid strong {
   color: var(--admin-text);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .appointment-report-modal-grid p {
@@ -415,7 +421,7 @@
   margin: 0 0 10px;
   color: var(--admin-text);
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .appointment-report-modal-service-list {
@@ -430,7 +436,7 @@
   background: var(--admin-primary-light);
   color: var(--admin-primary-dark);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .appointment-report-cancel-reason {
@@ -449,7 +455,7 @@
   margin: 0;
   color: #991b1b;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.5;
 }
 

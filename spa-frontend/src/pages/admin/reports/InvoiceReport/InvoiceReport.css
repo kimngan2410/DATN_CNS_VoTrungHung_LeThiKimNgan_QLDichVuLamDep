@@ -5,6 +5,10 @@
   color: var(--admin-text);
 }
 
+/* =========================
+   COMMON CARD
+========================= */
+
 .invoice-report-filter-card,
 .invoice-report-summary-card,
 .invoice-report-table-card {
@@ -14,43 +18,55 @@
   box-shadow: var(--admin-shadow);
 }
 
+/* =========================
+   FILTER TOOLBAR
+========================= */
+
 .invoice-report-filter-card {
-  min-height: 58px;
   margin-bottom: 18px;
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
+  padding: 20px 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
 }
 
-.invoice-report-filter-left,
+.invoice-report-filter-left {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 150px 12px 150px minmax(230px, 1fr) 160px 135px;
+  align-items: center;
+  gap: 8px;
+}
+
 .invoice-report-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .invoice-report-filter-item,
 .invoice-report-search {
-  height: 38px;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 10px;
   border: 1px solid var(--admin-border);
-  border-radius: 10px;
+  border-radius: 11px;
   background: #ffffff;
+  color: var(--admin-primary-dark);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 11px;
-  color: var(--admin-primary-dark);
-}
-
-.invoice-report-search {
-  min-width: 310px;
 }
 
 .invoice-report-filter-item input,
 .invoice-report-filter-item select,
 .invoice-report-search input {
+  width: 100%;
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -59,29 +75,39 @@
   font-weight: 600;
 }
 
-.invoice-report-search input {
-  width: 100%;
-}
-
 .invoice-report-date-separator {
   color: var(--admin-muted);
   font-weight: 800;
+  text-align: center;
 }
 
-.invoice-report-export-btn,
-.invoice-report-reset-btn {
-  height: 38px;
-  padding: 0 15px;
+.invoice-report-reset-btn,
+.invoice-report-export-btn {
+  height: 40px;
+  padding: 0 13px;
   border: 1px solid var(--admin-border);
-  border-radius: 10px;
+  border-radius: 11px;
   background: #ffffff;
   color: var(--admin-text);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+}
+
+.invoice-report-reset-btn {
+  min-width: 104px;
+}
+
+.invoice-report-export-btn {
+  min-width: 132px;
+  background: #fffdf8;
+  color: var(--admin-primary-dark);
+  border-color: rgba(215, 169, 63, 0.35);
 }
 
 .invoice-report-export-btn:hover,
@@ -90,6 +116,10 @@
   background: var(--admin-primary-light);
   color: var(--admin-primary-dark);
 }
+
+/* =========================
+   SUMMARY
+========================= */
 
 .invoice-report-summary-grid {
   display: grid;
@@ -137,6 +167,10 @@
   font-weight: 500;
   font-style: italic;
 }
+
+/* =========================
+   TABLE
+========================= */
 
 .invoice-report-table-card {
   overflow: hidden;
@@ -270,16 +304,20 @@
   font-weight: 700;
 }
 
+/* =========================
+   MODAL
+========================= */
+
 .invoice-report-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 100;
+  padding: 24px;
   background: rgba(31, 28, 29, 0.38);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
 }
 
 .invoice-report-modal {
@@ -380,10 +418,10 @@
 }
 
 .invoice-report-detail-title {
+  margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
 }
 
 .invoice-report-detail-title h4 {
@@ -455,9 +493,23 @@
   font-weight: 900;
 }
 
+/* =========================
+   RESPONSIVE
+========================= */
+
 @media (max-width: 1450px) {
   .invoice-report-summary-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1320px) {
+  .invoice-report-filter-card {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-report-actions {
+    justify-content: flex-end;
   }
 }
 
@@ -467,39 +519,53 @@
   }
 }
 
-@media (max-width: 820px) {
-  .invoice-report-page {
-    padding: 20px 16px 30px;
-  }
-
-  .invoice-report-filter-card,
-  .invoice-report-filter-left,
-  .invoice-report-actions,
-  .invoice-report-table-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .invoice-report-filter-item,
-  .invoice-report-search,
-  .invoice-report-export-btn,
-  .invoice-report-reset-btn {
-    width: 100%;
-    min-width: 0;
+@media (max-width: 1050px) {
+  .invoice-report-filter-left {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .invoice-report-date-separator {
     display: none;
   }
 
+  .invoice-report-search {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 820px) {
+  .invoice-report-page {
+    padding: 20px 16px 30px;
+  }
+
+  .invoice-report-filter-card {
+    padding: 14px;
+  }
+
+  .invoice-report-filter-left,
   .invoice-report-summary-grid,
   .invoice-report-modal-summary,
   .invoice-report-total-box {
     grid-template-columns: 1fr;
   }
 
-  .invoice-report-service-item {
-    align-items: flex-start;
+  .invoice-report-actions {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .invoice-report-reset-btn,
+  .invoice-report-export-btn {
+    width: 100%;
+  }
+
+  .invoice-report-table-header,
+  .invoice-report-service-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .invoice-report-table-total {
+    width: 100%;
   }
 }

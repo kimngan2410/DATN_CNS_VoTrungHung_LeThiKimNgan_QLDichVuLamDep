@@ -25,13 +25,16 @@ function AccountSidebar({
     fileInputRef.current?.click()
   }
 
-  const handleAvatarInputChange = (e) => {
-    const file = e.target.files?.[0]
+  const handleAvatarInputChange = (event) => {
+    const file = event.target.files?.[0]
+
     if (!file) return
 
     if (onAvatarChange) {
       onAvatarChange(file)
     }
+
+    event.target.value = ""
   }
 
   return (
@@ -40,7 +43,7 @@ function AccountSidebar({
         <div className="account-avatar-wrap">
           <img
             src={profileData.avatar}
-            alt="avatar"
+            alt={profileData.fullName}
             className="account-avatar"
           />
 
@@ -48,8 +51,9 @@ function AccountSidebar({
             type="button"
             className="account-avatar-btn"
             onClick={handleChooseAvatar}
+            title="Đổi ảnh đại diện"
           >
-            <Camera size={16} />
+            <Camera size={17} />
           </button>
 
           <input
@@ -112,7 +116,7 @@ function AccountSidebar({
           className={`account-menu-item ${
             activeMenu === "password" ? "active" : ""
           }`}
-          onClick={() => navigate("/tai-khoan?tab=password")}
+          onClick={() => navigate("/doi-mat-khau")}
         >
           <div className="account-menu-left">
             <KeyRound size={20} />

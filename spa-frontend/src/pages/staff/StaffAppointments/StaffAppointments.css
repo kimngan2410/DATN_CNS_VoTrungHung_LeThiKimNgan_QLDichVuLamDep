@@ -9,6 +9,109 @@
   padding: 28px 30px;
 }
 
+/* =========================
+   STATUS SUMMARY CARDS
+========================= */
+
+.staff-appointments-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.staff-appointments-summary-card {
+  min-height: 92px;
+  padding: 16px;
+  border: 1px solid var(--staff-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 1px 6px rgba(77, 74, 75, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.staff-appointments-summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(77, 74, 75, 0.08);
+}
+
+.staff-appointments-summary-card.active {
+  border-color: rgba(215, 169, 63, 0.55);
+  background: #fffdf8;
+  box-shadow: 0 0 0 4px rgba(215, 169, 63, 0.12);
+}
+
+.staff-appointments-summary-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.staff-appointments-summary-card span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--staff-muted);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.staff-appointments-summary-card strong {
+  color: var(--staff-text);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.staff-appointments-summary-card.all .staff-appointments-summary-icon {
+  background: #f5f0e6;
+  color: #8d6915;
+}
+
+.staff-appointments-summary-card.pending .staff-appointments-summary-icon {
+  background: #fbf4df;
+  color: #a17814;
+}
+
+.staff-appointments-summary-card.confirmed .staff-appointments-summary-icon {
+  background: #dfeafe;
+  color: #2a62d5;
+}
+
+.staff-appointments-summary-card.checked .staff-appointments-summary-icon {
+  background: #efdffc;
+  color: #8b3fd1;
+}
+
+.staff-appointments-summary-card.doing .staff-appointments-summary-icon {
+  background: #fff0dd;
+  color: #c56a10;
+}
+
+.staff-appointments-summary-card.completed .staff-appointments-summary-icon {
+  background: #e8f6e8;
+  color: #2d8b45;
+}
+
+.staff-appointments-summary-card.cancelled .staff-appointments-summary-icon {
+  background: #ffe5e5;
+  color: #c24141;
+}
+
+.staff-appointments-summary-card.no-show .staff-appointments-summary-icon {
+  background: #e8e8e8;
+  color: #5d5d5d;
+}
+
 .staff-appointments-card {
   background: #ffffff;
   border: 1px solid var(--staff-border);

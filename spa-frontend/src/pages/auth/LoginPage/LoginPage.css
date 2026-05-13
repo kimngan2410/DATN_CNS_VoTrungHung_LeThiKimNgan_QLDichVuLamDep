@@ -747,3 +747,19 @@
     font-size: 15px;
   }
 }
+
+.login-form__error {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  background: #fff1f2;
+  color: #d92d20;
+  border: 1px solid #ffd3d8;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.login-form__submit:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}

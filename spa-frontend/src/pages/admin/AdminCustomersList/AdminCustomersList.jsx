@@ -12,6 +12,7 @@ import {
   Wallet,
   RotateCcw,
   ReceiptText,
+  Download,
 } from "lucide-react"
 import "./AdminCustomersList.css"
 
@@ -352,6 +353,16 @@ const formatMoney = (value) => {
   return `${value.toLocaleString("vi-VN")} đ`
 }
 
+const escapeCsvValue = (value) => {
+  const text = String(value ?? "")
+
+  if (text.includes(",") || text.includes('"') || text.includes("\n")) {
+    return `"${text.replace(/"/g, '""')}"`
+  }
+
+  return text
+}
+
 const getInvoiceTotal = (invoice) => {
   return invoice.details.reduce((sum, item) => {
     return sum + item.quantity * item.unitPrice
@@ -446,6 +457,56 @@ function AdminCustomers() {
     setYearFilter("Tất cả")
   }
 
+  const handleExportCustomers = () => {
+    const lines = [
+      [
+        "Mã khách hàng",
+        "Mã tài khoản",
+        "Họ tên",
+        "Email",
+        "Số điện thoại",
+        "Giới tính",
+        "Ngày sinh",
+        "Ngày tạo",
+        "Trạng thái",
+        "Loại khách hàng",
+        "Số lịch hẹn",
+        "Tổng chi tiêu",
+      ],
+      ...filteredCustomers.map((customer) => [
+        customer.id,
+        customer.accountId,
+        customer.fullName,
+        customer.email,
+        customer.phone,
+        customer.gender,
+        customer.birthday,
+        customer.createdAt,
+        customer.status,
+        customer.customerType,
+        customer.appointments.length,
+        getTotalSpent(customer),
+      ]),
+    ]
+
+    const csv =
+      "\uFEFF" +
+      lines.map((row) => row.map(escapeCsvValue).join(",")).join("\n")
+
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    })
+
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+
+    link.href = url
+    link.download = "danh-sach-khach-hang.csv"
+    link.click()
+
+    URL.revokeObjectURL(url)
+  }
+
   const handleCloseCustomerModal = () => {
     setSelectedCustomer(null)
     setHistoryModal(null)
@@ -475,6 +536,15 @@ function AdminCustomers() {
         >
           <Filter size={18} strokeWidth={2.3} />
           Lọc
+        </button>
+
+        <button
+          type="button"
+          className="admin-customers-export-btn"
+          onClick={handleExportCustomers}
+        >
+          <Download size={17} />
+          Xuất danh sách
         </button>
       </section>
 
@@ -561,7 +631,7 @@ function AdminCustomers() {
                 <th>Giới tính</th>
                 <th>Ngày tạo</th>
                 <th>Trạng thái</th>
-                <th></th>
+                <th className="admin-customers-action-th">Thao tác</th>
               </tr>
             </thead>
 
@@ -600,10 +670,11 @@ function AdminCustomers() {
                       </span>
                     </td>
 
-                    <td>
+                    <td className="admin-customers-action-td">
                       <button
                         type="button"
                         className="admin-view-btn"
+                        title="Xem chi tiết"
                         onClick={() => setSelectedCustomer(customer)}
                       >
                         <Eye size={17} />
@@ -747,10 +818,7 @@ function AdminCustomers() {
                   {selectedCustomer.appointments
                     .slice(0, 2)
                     .map((appointment) => (
-                      <div
-                        className="admin-history-item"
-                        key={appointment.id}
-                      >
+                      <div className="admin-history-item" key={appointment.id}>
                         <div>
                           <h4>{appointment.services}</h4>
                           <p>

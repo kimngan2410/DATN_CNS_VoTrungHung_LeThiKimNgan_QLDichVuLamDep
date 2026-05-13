@@ -18,6 +18,8 @@ import {
   CreditCard,
 } from "lucide-react"
 import "./AdminSidebar.css"
+import spaLogo from "../../assets/images/logo_header.png";
+
 
 const menuItems = [
   {
@@ -90,10 +92,11 @@ function AdminSidebar() {
   return (
     <aside className="admin-sidebar">
       <div className="admin-sidebar-brand">
-        <div className="admin-brand-icon">
-          <Sparkles size={26} />
-        </div>
-        <span>Lumière Spa</span>
+        <img
+          src={spaLogo}
+          alt="Serenity Spa Logo"
+          className="admin-brand-image"
+        />
       </div>
 
       <nav className="admin-sidebar-menu">

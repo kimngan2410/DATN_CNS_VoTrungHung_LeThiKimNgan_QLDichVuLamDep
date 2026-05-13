@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
 import FloatingChat from "../../../components/FloatingChat/FloatingChat"
+import { loginApi, saveAuthData } from "../../../services/authApi"
 import {
   ArrowLeft,
   CheckCircle2,
@@ -22,6 +23,11 @@ import "./LoginPage.css"
 const MOCK_OTP = "123456"
 
 function LoginPage() {
+
+  const navigate = useNavigate()
+  const [loginError, setLoginError] = useState("")
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+
   const otpInputRefs = useRef([])
 
   const [showPassword, setShowPassword] = useState(false)
@@ -72,9 +78,52 @@ function LoginPage() {
     }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log("Login data:", formData)
+
+    setLoginError("")
+
+    if (!formData.email.trim()) {
+      setLoginError("Vui lòng nhập email.")
+      return
+    }
+
+    if (!formData.password.trim()) {
+      setLoginError("Vui lòng nhập mật khẩu.")
+      return
+    }
+
+    try {
+      setIsLoggingIn(true)
+
+      const data = await loginApi({
+        email: formData.email.trim(),
+        password: formData.password,
+      })
+
+      saveAuthData(data)
+
+      if (data.user.vaiTro === "Admin") {
+        navigate("/admin/tong-quan")
+        return
+      }
+
+      if (data.user.vaiTro === "NhanVien") {
+        navigate("/staff/tong-quan")
+        return
+      }
+
+      if (data.user.vaiTro === "KhachHang") {
+        navigate("/trang-chu")
+        return
+      }
+
+      navigate("/trang-chu")
+    } catch (error) {
+      setLoginError(error.message || "Đăng nhập thất bại.")
+    } finally {
+      setIsLoggingIn(false)
+    }
   }
 
   const isValidEmail = (email) => {
@@ -351,8 +400,14 @@ function LoginPage() {
               </div>
             </div>
 
-            <button type="submit" className="login-form__submit">
-              Đăng nhập
+            {loginError && <div className="login-form__error">{loginError}</div>}
+
+            <button
+              type="submit"
+              className="login-form__submit"
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
 
             <div className="login-form__divider">

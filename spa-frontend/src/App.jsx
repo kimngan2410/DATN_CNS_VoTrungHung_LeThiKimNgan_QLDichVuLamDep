@@ -33,6 +33,7 @@ import RevenueReport from "./pages/admin/reports/RevenueReport/RevenueReport"
 import InvoiceReport from "./pages/admin/reports/InvoiceReport/InvoiceReport"
 import ServiceUsageReport from "./pages/admin/reports/ServiceUsageReport/ServiceUsageReport";
 import AppointmentReport from "./pages/admin/reports/AppointmentReport/AppointmentReport";
+import ChangePasswordPage from "./pages/customer/ChangePasswordPage/ChangePasswordPage"
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
       <Route path="/tai-khoan" element={<AccountProfilePage />} />
       <Route path="/lich-hen-cua-toi" element={<MyAppointmentsPage />} />
       <Route path="/lich-su-dich-vu" element={<ServiceHistoryPage />} />
+      <Route path="/doi-mat-khau" element={<ChangePasswordPage />} />
 
       {/* STAFF ROUTES */}
       <Route path="/staff" element={<StaffLayout />}>

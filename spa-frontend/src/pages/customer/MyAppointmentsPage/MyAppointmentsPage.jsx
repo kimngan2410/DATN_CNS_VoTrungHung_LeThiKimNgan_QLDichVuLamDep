@@ -459,22 +459,24 @@ function MyAppointmentsPage() {
           />
 
           <section className="my-appointments-content">
-            <h2 className="my-appointments-title">Lịch hẹn của tôi</h2>
+            <div className="my-appointments-header-card">
+              <h2 className="my-appointments-title">Lịch hẹn của tôi</h2>
 
-            <div className="appointment-status-tabs-wrap">
-              <div className="appointment-status-tabs">
-                {statusTabs.map((tab) => (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    className={`appointment-status-tab ${
-                      activeStatus === tab.value ? "active" : ""
-                    }`}
-                    onClick={() => setActiveStatus(tab.value)}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+              <div className="appointment-status-tabs-wrap">
+                <div className="appointment-status-tabs">
+                  {statusTabs.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      className={`appointment-status-tab ${
+                        activeStatus === tab.value ? "active" : ""
+                      }`}
+                      onClick={() => setActiveStatus(tab.value)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

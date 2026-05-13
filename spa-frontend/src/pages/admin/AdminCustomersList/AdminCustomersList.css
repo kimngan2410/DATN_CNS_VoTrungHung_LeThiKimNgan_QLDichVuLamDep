@@ -6,7 +6,9 @@
   color: var(--admin-text);
 }
 
-/* TOOLBAR */
+/* =========================
+   TOOLBAR
+========================= */
 
 .admin-customers-toolbar {
   display: flex;
@@ -18,14 +20,14 @@
 .admin-customers-search {
   width: min(420px, 100%);
   height: 40px;
+  padding: 0 13px;
   border: 1px solid var(--admin-border);
   border-radius: 10px;
   background: #ffffff;
+  color: var(--admin-muted);
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 13px;
-  color: var(--admin-muted);
 }
 
 .admin-customers-search input {
@@ -41,30 +43,39 @@
   color: #9aa4b5;
 }
 
-.admin-customers-filter-btn {
+.admin-customers-filter-btn,
+.admin-customers-export-btn {
   height: 40px;
   padding: 0 16px;
-  border: 1px solid var(--admin-border);
   border-radius: 10px;
-  background: #ffffff;
-  color: var(--admin-text);
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
+.admin-customers-filter-btn,
+.admin-customers-export-btn {
+  border: 1px solid var(--admin-border);
+  background: #ffffff;
+  color: var(--admin-text);
+}
+
 .admin-customers-filter-btn:hover,
-.admin-customers-filter-btn.active {
+.admin-customers-filter-btn.active,
+.admin-customers-export-btn:hover {
   background: var(--admin-primary-light);
   color: var(--admin-primary-dark);
   border-color: rgba(215, 169, 63, 0.45);
 }
 
-/* FILTER PANEL */
+/* =========================
+   FILTER PANEL
+========================= */
 
 .admin-customers-filter-panel {
   margin-bottom: 18px;
@@ -93,11 +104,11 @@
 .admin-filter-group select {
   width: 180px;
   height: 38px;
+  padding: 0 12px;
   border: 1px solid var(--admin-border);
   border-radius: 10px;
   background: #ffffff;
   color: var(--admin-text);
-  padding: 0 12px;
   outline: none;
   font-size: 13px;
   font-weight: 600;
@@ -122,7 +133,9 @@
   background: var(--admin-primary-light);
 }
 
-/* TABLE CARD */
+/* =========================
+   TABLE CARD
+========================= */
 
 .admin-customers-card {
   background: #ffffff;
@@ -139,6 +152,7 @@
 }
 
 .admin-customers-result-bar p {
+  margin: 0;
   color: var(--admin-muted);
   font-size: 13px;
   font-weight: 600;
@@ -192,6 +206,30 @@
   border-bottom: none;
 }
 
+/* Cột trạng thái */
+.admin-customers-table th:nth-child(6),
+.admin-customers-table td:nth-child(6) {
+  width: 140px;
+  min-width: 140px;
+}
+
+/* Cột thao tác */
+.admin-customers-table th:nth-child(7),
+.admin-customers-table td:nth-child(7),
+.admin-customers-action-th,
+.admin-customers-action-td {
+  width: 120px;
+  min-width: 120px;
+  padding-left: 10px;
+  padding-right: 18px;
+  text-align: left !important;
+  white-space: nowrap;
+}
+
+/* =========================
+   CUSTOMER INFO
+========================= */
+
 .admin-customer-code {
   color: var(--admin-dark);
   font-weight: 800;
@@ -241,6 +279,7 @@
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .admin-status-badge.active {
@@ -258,6 +297,7 @@
 .admin-view-btn {
   width: 34px;
   height: 34px;
+  margin: 0;
   border: none;
   border-radius: 9px;
   background: transparent;
@@ -266,7 +306,6 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  margin-left: auto;
 }
 
 .admin-view-btn:hover {
@@ -282,17 +321,19 @@
   font-weight: 700;
 }
 
-/* MODAL CHI TIẾT KHÁCH HÀNG */
+/* =========================
+   CUSTOMER DETAIL MODAL
+========================= */
 
 .admin-customer-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 3000;
+  padding: 24px;
   background: rgba(15, 23, 42, 0.42);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
 }
 
 .admin-customer-modal {
@@ -305,7 +346,6 @@
   box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22);
 }
 
-/* Sticky header giống popup danh mục */
 .admin-customer-modal .admin-customer-modal-header {
   position: sticky;
   top: 0;
@@ -314,15 +354,18 @@
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
 }
 
-.admin-customer-modal::-webkit-scrollbar {
+.admin-customer-modal::-webkit-scrollbar,
+.admin-history-modal-list::-webkit-scrollbar {
   width: 8px;
 }
 
-.admin-customer-modal::-webkit-scrollbar-track {
+.admin-customer-modal::-webkit-scrollbar-track,
+.admin-history-modal-list::-webkit-scrollbar-track {
   background: #f8fafc;
 }
 
-.admin-customer-modal::-webkit-scrollbar-thumb {
+.admin-customer-modal::-webkit-scrollbar-thumb,
+.admin-history-modal-list::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 999px;
 }
@@ -368,6 +411,10 @@
   color: var(--admin-primary-dark);
 }
 
+/* =========================
+   CUSTOMER PROFILE
+========================= */
+
 .admin-customer-profile-box {
   margin: 20px 22px;
   padding: 16px;
@@ -411,6 +458,10 @@
   margin-left: auto;
 }
 
+/* =========================
+   DETAIL GRID
+========================= */
+
 .admin-customer-detail-grid {
   padding: 0 22px;
   display: grid;
@@ -435,10 +486,10 @@
 
 .admin-detail-item span {
   display: block;
+  margin-bottom: 3px;
   color: var(--admin-muted);
   font-size: 13px;
   font-weight: 600;
-  margin-bottom: 3px;
 }
 
 .admin-detail-item strong {
@@ -446,6 +497,10 @@
   font-size: 13px;
   font-weight: 600;
 }
+
+/* =========================
+   STATS
+========================= */
 
 .admin-customer-stat-grid {
   padding: 16px 22px 0;
@@ -457,8 +512,8 @@
 .admin-customer-stat-grid div {
   min-height: 78px;
   padding: 13px;
-  border-radius: 12px;
   border: 1px solid var(--admin-border);
+  border-radius: 12px;
   background: #ffffff;
 }
 
@@ -469,10 +524,10 @@
 
 .admin-customer-stat-grid span {
   display: block;
+  margin-bottom: 5px;
   color: var(--admin-muted);
   font-size: 12px;
   font-weight: 600;
-  margin-bottom: 5px;
 }
 
 .admin-customer-stat-grid strong {
@@ -480,6 +535,10 @@
   font-size: 15px;
   font-weight: 800;
 }
+
+/* =========================
+   HISTORY CARDS
+========================= */
 
 .admin-customer-history-grid {
   padding: 16px 22px 22px;
@@ -489,18 +548,18 @@
 }
 
 .admin-history-card {
+  padding: 16px;
   border: 1px solid var(--admin-border);
   border-radius: 14px;
   background: #ffffff;
-  padding: 16px;
 }
 
 .admin-history-card-header {
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
 }
 
 .admin-history-card-header h3 {
@@ -519,8 +578,8 @@
   color: var(--admin-primary-dark);
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .admin-history-card-header button:hover {
@@ -567,17 +626,19 @@
   white-space: nowrap;
 }
 
-/* POPUP XEM TẤT CẢ LỊCH SỬ */
+/* =========================
+   HISTORY MODAL
+========================= */
 
 .admin-history-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 4000;
+  padding: 24px;
   background: rgba(15, 23, 42, 0.42);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
 }
 
 .admin-history-modal {
@@ -630,19 +691,6 @@
   gap: 10px;
 }
 
-.admin-history-modal-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.admin-history-modal-list::-webkit-scrollbar-track {
-  background: #f8fafc;
-}
-
-.admin-history-modal-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 999px;
-}
-
 .admin-history-modal-item {
   min-height: 64px;
   padding: 13px 14px;
@@ -677,7 +725,9 @@
   white-space: nowrap;
 }
 
-/* RESPONSIVE */
+/* =========================
+   RESPONSIVE
+========================= */
 
 @media (max-width: 900px) {
   .admin-customers-page {
@@ -693,7 +743,8 @@
     width: 100%;
   }
 
-  .admin-customers-filter-btn {
+  .admin-customers-filter-btn,
+  .admin-customers-export-btn {
     width: fit-content;
   }
 

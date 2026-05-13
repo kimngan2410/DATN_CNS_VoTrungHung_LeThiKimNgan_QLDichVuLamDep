@@ -440,7 +440,7 @@ function AppointmentReport() {
                     </td>
 
                     <td>
-                      <strong>{appointment.customer}</strong>
+                      <strong className="appointment-report-name">{appointment.customer}</strong>
                       <p>{appointment.phone}</p>
                     </td>
 

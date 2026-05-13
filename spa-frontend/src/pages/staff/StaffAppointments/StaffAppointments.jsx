@@ -16,6 +16,13 @@ import {
   CalendarDays,
   Clock3,
   ClipboardList,
+  ListChecks,
+  CheckCircle2,
+  BadgeCheck,
+  UserCheck,
+  PlayCircle,
+  XCircle,
+  UserX,
 } from "lucide-react";
 import "./StaffAppointments.css";
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
@@ -509,6 +516,92 @@ function StaffAppointments() {
       return matchesKeyword && matchesStatus && matchesDate;
     });
   }, [appointments, searchTerm, statusFilter, selectedDateValue]);
+
+  const appointmentsBySelectedDate = useMemo(() => {
+  const keyword = searchTerm.trim().toLowerCase();
+
+  return appointments.filter((appointment) => {
+    const matchesDate = appointment.date === selectedDateValue;
+
+    const matchesKeyword =
+      keyword === "" ||
+      appointment.id.toLowerCase().includes(keyword) ||
+      appointment.customer.toLowerCase().includes(keyword) ||
+      appointment.phone.toLowerCase().includes(keyword) ||
+      appointment.services.some((service) =>
+        service.name.toLowerCase().includes(keyword)
+      );
+
+    return matchesDate && matchesKeyword;
+  });
+  }, [appointments, searchTerm, selectedDateValue]);
+
+  const appointmentStatusCards = useMemo(() => {
+    const countByStatus = (status) => {
+      return appointmentsBySelectedDate.filter(
+        (appointment) => appointment.status === status
+      ).length;
+    };
+
+    return [
+      {
+        label: "Tất cả",
+        value: appointmentsBySelectedDate.length,
+        status: "Tất cả",
+        icon: ListChecks,
+        type: "all",
+      },
+      {
+        label: "Chờ xác nhận",
+        value: countByStatus("Chờ xác nhận"),
+        status: "Chờ xác nhận",
+        icon: Clock3,
+        type: "pending",
+      },
+      {
+        label: "Đã xác nhận",
+        value: countByStatus("Đã xác nhận"),
+        status: "Đã xác nhận",
+        icon: BadgeCheck,
+        type: "confirmed",
+      },
+      {
+        label: "Đã check-in",
+        value: countByStatus("Đã check-in"),
+        status: "Đã check-in",
+        icon: UserCheck,
+        type: "checked",
+      },
+      {
+        label: "Đang thực hiện",
+        value: countByStatus("Đang thực hiện"),
+        status: "Đang thực hiện",
+        icon: PlayCircle,
+        type: "doing",
+      },
+      {
+        label: "Đã hoàn thành",
+        value: countByStatus("Đã hoàn thành"),
+        status: "Đã hoàn thành",
+        icon: CheckCircle2,
+        type: "completed",
+      },
+      {
+        label: "Đã huỷ",
+        value: countByStatus("Đã huỷ"),
+        status: "Đã huỷ",
+        icon: XCircle,
+        type: "cancelled",
+      },
+      {
+        label: "Không đến",
+        value: countByStatus("Không đến"),
+        status: "Không đến",
+        icon: UserX,
+        type: "no-show",
+      },
+    ];
+  }, [appointmentsBySelectedDate]);
 
   const filteredCustomers = customerOptions.filter((customer) => {
     const keyword = createSearchCustomer.trim().toLowerCase();
@@ -1058,6 +1151,34 @@ function StaffAppointments() {
       <StaffPageHeader title="Quản lý lịch hẹn" />
 
       <section className="staff-appointments-content">
+        <div className="staff-appointments-summary-grid">
+            {appointmentStatusCards.map((card) => {
+              const Icon = card.icon;
+
+              return (
+                <button
+                  type="button"
+                  key={card.status}
+                  className={[
+                    "staff-appointments-summary-card",
+                    card.type,
+                    statusFilter === card.status ? "active" : "",
+                  ].join(" ")}
+                  onClick={() => setStatusFilter(card.status)}
+                >
+                  <div className="staff-appointments-summary-icon">
+                    <Icon size={20} />
+                  </div>
+
+                  <div>
+                    <span>{card.label}</span>
+                    <strong>{card.value}</strong>
+                  </div>
+                </button>
+              );
+            })}
+        </div>
+
         <div className="staff-appointments-card">
           <div className="staff-appointments-toolbar">
             <div className="staff-appointments-toolbar-left">

@@ -13,17 +13,23 @@
 }
 
 .admin-sidebar-brand {
-  height: 68px;
+  height: 85px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--admin-border);
-  color: var(--admin-dark);
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.4px;
+  padding: 20px 25px;
+
 }
+
+.admin-brand-image{
+  max-width: 100%;
+  max-height: 68px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
 
 .admin-brand-icon {
   width: 28px;
@@ -93,7 +99,7 @@
 .admin-sidebar-item.active {
   background: var(--admin-primary-light);
   color: var(--admin-primary-dark);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .admin-sidebar-item.active svg {
@@ -177,7 +183,7 @@
 .admin-sidebar-subitem.active {
   background: #fff8e8;
   color: var(--admin-primary-dark);
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-sidebar-subitem.active svg {
@@ -232,7 +238,7 @@
   margin: 0;
   font-size: 14px;
   color: var(--admin-text);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;

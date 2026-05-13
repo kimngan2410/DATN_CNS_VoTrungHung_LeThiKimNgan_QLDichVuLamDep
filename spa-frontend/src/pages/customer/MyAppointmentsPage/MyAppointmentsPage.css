@@ -20,8 +20,20 @@
   min-width: 0;
 }
 
+.my-appointments-header-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #edf0f4;
+  border-radius: 22px;
+  padding: 28px 36px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 5px 14px rgba(16, 24, 40, 0.05);
+}
+
 .my-appointments-title {
-  margin: 0 0 22px;
+  margin: 0 0 18px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eceff3;
   color: #07142b;
   font-size: 28px;
   font-weight: 600;
@@ -33,10 +45,10 @@
 
 .appointment-status-tabs-wrap {
   width: 100%;
-  margin-bottom: 28px;
+  margin-bottom: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 10px;
+  padding-bottom: 4px;
 }
 
 .appointment-status-tabs-wrap::-webkit-scrollbar {
@@ -58,6 +70,7 @@
   align-items: center;
   gap: 12px;
   min-width: max-content;
+  margin-top: 15px;
 }
 
 .appointment-status-tab {
@@ -651,6 +664,11 @@
   .logout-popup-actions {
     grid-template-columns: 1fr;
   }
+
+  .my-appointments-header-card {
+    padding: 24px 20px 20px;
+    border-radius: 20px;
+  }
 }
 
 @media (max-width: 576px) {
@@ -660,6 +678,8 @@
 
   .my-appointments-title {
     font-size: 25px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
   }
 
   .appointment-status-tab {
@@ -740,6 +760,10 @@
 
   .appointment-detail-total strong {
     font-size: 24px;
+  }
+
+  .my-appointments-header-card {
+    padding: 22px 18px 18px;
   }
 }
 

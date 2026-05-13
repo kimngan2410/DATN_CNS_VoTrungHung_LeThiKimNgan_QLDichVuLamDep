@@ -520,22 +520,24 @@ function ServiceHistoryPage() {
           />
 
           <section className="service-history-content">
-            <h2 className="service-history-title">Lịch sử dịch vụ</h2>
+            <div className="service-history-header-card">
+              <h2 className="service-history-title">Lịch sử dịch vụ</h2>
 
-            <div className="history-status-tabs-wrap">
-              <div className="history-status-tabs">
-                {historyTabs.map((tab) => (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    className={`history-status-tab ${
-                      activeStatus === tab.value ? "active" : ""
-                    }`}
-                    onClick={() => setActiveStatus(tab.value)}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+              <div className="history-status-tabs-wrap">
+                <div className="history-status-tabs">
+                  {historyTabs.map((tab) => (
+                    <button
+                      key={tab.value}
+                      type="button"
+                      className={`history-status-tab ${
+                        activeStatus === tab.value ? "active" : ""
+                      }`}
+                      onClick={() => setActiveStatus(tab.value)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

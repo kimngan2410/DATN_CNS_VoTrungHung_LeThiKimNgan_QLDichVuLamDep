@@ -1,37 +1,47 @@
 .account-sidebar {
+  width: 100%;
   background: #ffffff;
   border: 1px solid #ece7e1;
   border-radius: 24px;
-  padding: 28px 22px;
+  padding: 30px 22px;
   box-shadow: 0 8px 20px rgba(16, 24, 40, 0.04);
 }
 
 .account-user-card {
+  margin-bottom: 30px;
   text-align: center;
-  margin-bottom: 28px;
 }
 
-.account-avatar-wrap {
-  width: 110px;
-  height: 110px;
-  margin: 0 auto 18px;
+/* =========================
+   AVATAR
+========================= */
+
+.account-sidebar .account-avatar-wrap {
+  width: 118px;
+  height: 118px;
+  margin: 0 auto 20px;
   position: relative;
 }
 
-.account-avatar {
-  width: 110px;
-  height: 110px;
+.account-sidebar .account-avatar {
+  width: 118px !important;
+  height: 118px !important;
+  min-width: 118px !important;
+  min-height: 118px !important;
+  max-width: 118px !important;
+  max-height: 118px !important;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #e9eef4;
+  display: block;
+  border: 4px solid #f0eee9;
 }
 
-.account-avatar-btn {
+.account-sidebar .account-avatar-btn {
   position: absolute;
   right: 0;
-  bottom: 4px;
-  width: 38px;
-  height: 38px;
+  bottom: 6px;
+  width: 40px;
+  height: 40px;
   border: none;
   border-radius: 50%;
   background: #4d4a4b;
@@ -41,20 +51,34 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  transition: 0.2s ease;
 }
+
+.account-sidebar .account-avatar-btn:hover {
+  background: #3f3c3d;
+}
+
+/* =========================
+   USER INFO
+========================= */
 
 .account-user-card h3 {
   margin: 0 0 6px;
+  color: #152238;
   font-size: 22px;
   font-weight: 600;
-  color: #152238;
 }
 
 .account-user-card p {
   margin: 0;
-  font-size: 16px;
   color: #667085;
+  font-size: 16px;
+  word-break: break-word;
 }
+
+/* =========================
+   MENU
+========================= */
 
 .account-menu {
   display: flex;
@@ -64,16 +88,17 @@
 
 .account-menu-item {
   width: 100%;
+  min-height: 54px;
+  padding: 0 16px;
   border: none;
-  background: transparent;
   border-radius: 16px;
-  padding: 14px 16px;
+  background: transparent;
+  color: #667085;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   transition: 0.2s ease;
-  color: #667085;
 }
 
 .account-menu-item:hover {
@@ -93,11 +118,13 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .account-menu-left span {
   font-size: 16px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .account-badge {
@@ -107,20 +134,44 @@
   border-radius: 999px;
   background: #d4a62a;
   color: #ffffff;
-  font-size: 12px;
-  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
+
+/* =========================
+   RESPONSIVE
+========================= */
 
 @media (max-width: 576px) {
   .account-sidebar {
-    padding: 22px 18px;
+    padding: 24px 18px;
     border-radius: 20px;
   }
 
+  .account-sidebar .account-avatar-wrap {
+    width: 104px;
+    height: 104px;
+  }
+
+  .account-sidebar .account-avatar {
+    width: 104px !important;
+    height: 104px !important;
+    min-width: 104px !important;
+    min-height: 104px !important;
+    max-width: 104px !important;
+    max-height: 104px !important;
+  }
+
+  .account-sidebar .account-avatar-btn {
+    width: 36px;
+    height: 36px;
+  }
+
   .account-menu-left span {
-    font-size: 16px;
+    font-size: 15px;
   }
 }
