@@ -9,3 +9,4 @@ python-jose
 passlib
 python-multipart
 email-validator
+httpx

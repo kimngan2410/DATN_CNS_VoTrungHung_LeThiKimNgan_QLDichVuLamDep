@@ -15,6 +15,12 @@ import {
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
 import FloatingChat from "../../../components/FloatingChat/FloatingChat"
+import {
+  registerResendOtpApi,
+  registerSendOtpApi,
+  registerVerifyOtpApi,
+  saveAuthData,
+} from "../../../services/authApi"
 import "./RegisterPage.css"
 
 function RegisterPage() {
@@ -36,7 +42,13 @@ function RegisterPage() {
 
   const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""])
   const [otpError, setOtpError] = useState("")
-  const [countdown, setCountdown] = useState(58)
+  const [otpMessage, setOtpMessage] = useState("")
+  const [countdown, setCountdown] = useState(60)
+
+  const [isSendingOtp, setIsSendingOtp] = useState(false)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
+  const [isResendingOtp, setIsResendingOtp] = useState(false)
+  const [isEnteringHome, setIsEnteringHome] = useState(false)
 
   const otpRefs = useRef([])
 
@@ -51,7 +63,9 @@ function RegisterPage() {
     return () => clearInterval(timer)
   }, [step, countdown])
 
-  const maskedEmail = useMemo(() => formData.email || "example@gmail.com", [formData.email])
+  const maskedEmail = useMemo(() => {
+    return formData.email || "example@gmail.com"
+  }, [formData.email])
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -64,6 +78,7 @@ function RegisterPage() {
     setErrors((prev) => ({
       ...prev,
       [name]: "",
+      general: "",
     }))
   }
 
@@ -102,20 +117,50 @@ function RegisterPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleContinue = (e) => {
+  const buildRegisterPayload = () => {
+    return {
+      hoTen: formData.fullName.trim(),
+      email: formData.email.trim().toLowerCase(),
+      sdt: formData.phone.trim(),
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+    }
+  }
+
+  const handleContinue = async (e) => {
     e.preventDefault()
 
     if (!validateStepOne()) return
 
-    setStep(2)
-    setCountdown(58)
-    setOtpValues(["", "", "", "", "", ""])
-    setOtpError("")
+    try {
+      setIsSendingOtp(true)
+      setErrors({})
+      setOtpError("")
+      setOtpMessage("")
+
+      const data = await registerSendOtpApi(buildRegisterPayload())
+
+      setStep(2)
+      setCountdown(60)
+      setOtpValues(["", "", "", "", "", ""])
+      setOtpMessage(data.message || "Mã OTP đã được gửi đến email đăng ký")
+
+      setTimeout(() => {
+        otpRefs.current[0]?.focus()
+      }, 100)
+    } catch (error) {
+      setErrors({
+        general: error.message || "Không thể gửi mã OTP. Vui lòng thử lại.",
+      })
+    } finally {
+      setIsSendingOtp(false)
+    }
   }
 
   const handleBack = () => {
     setStep(1)
     setOtpError("")
+    setOtpMessage("")
   }
 
   const handleOtpChange = (index, value) => {
@@ -123,8 +168,10 @@ function RegisterPage() {
 
     const nextOtp = [...otpValues]
     nextOtp[index] = value
+
     setOtpValues(nextOtp)
     setOtpError("")
+    setOtpMessage("")
 
     if (value && index < 5) {
       otpRefs.current[index + 1]?.focus()
@@ -139,7 +186,11 @@ function RegisterPage() {
 
   const handlePasteOtp = (e) => {
     e.preventDefault()
-    const pastedValue = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6)
+
+    const pastedValue = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6)
 
     if (!pastedValue) return
 
@@ -148,20 +199,39 @@ function RegisterPage() {
 
     setOtpValues(nextOtp)
     setOtpError("")
+    setOtpMessage("")
 
     const lastIndex = Math.min(pastedValue.length - 1, 5)
     otpRefs.current[lastIndex]?.focus()
   }
 
-  const handleResendOtp = () => {
-    if (countdown > 0) return
-    setCountdown(58)
-    setOtpValues(["", "", "", "", "", ""])
-    setOtpError("")
-    otpRefs.current[0]?.focus()
+  const handleResendOtp = async () => {
+    if (countdown > 0 || isResendingOtp) return
+
+    try {
+      setIsResendingOtp(true)
+      setOtpError("")
+      setOtpMessage("")
+
+      const data = await registerResendOtpApi({
+        email: formData.email.trim().toLowerCase(),
+      })
+
+      setCountdown(60)
+      setOtpValues(["", "", "", "", "", ""])
+      setOtpMessage(data.message || "Mã OTP mới đã được gửi lại")
+
+      setTimeout(() => {
+        otpRefs.current[0]?.focus()
+      }, 100)
+    } catch (error) {
+      setOtpError(error.message || "Không thể gửi lại mã OTP")
+    } finally {
+      setIsResendingOtp(false)
+    }
   }
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     const enteredOtp = otpValues.join("")
 
     if (enteredOtp.length < 6) {
@@ -169,12 +239,28 @@ function RegisterPage() {
       return
     }
 
-    if (enteredOtp !== "123456") {
-      setOtpError("Mã OTP không đúng. Vui lòng thử lại")
-      return
-    }
+    try {
+      setIsVerifyingOtp(true)
+      setOtpError("")
+      setOtpMessage("")
 
-    navigate("/")
+      const data = await registerVerifyOtpApi({
+        email: formData.email.trim().toLowerCase(),
+        otp: enteredOtp,
+      })
+
+      saveAuthData(data)
+
+      setIsEnteringHome(true)
+
+      setTimeout(() => {
+        navigate("/trang-chu", { replace: true })
+      }, 2000)
+    } catch (error) {
+      setOtpError(error.message || "Mã OTP không đúng. Vui lòng thử lại")
+      setIsVerifyingOtp(false)
+      setIsEnteringHome(false)
+    }
   }
 
   return (
@@ -191,7 +277,9 @@ function RegisterPage() {
               </div>
 
               <div className="register-stepper">
-                <div className="register-stepper__item register-stepper__item--active">1</div>
+                <div className="register-stepper__item register-stepper__item--active">
+                  1
+                </div>
                 <div className="register-stepper__line"></div>
                 <div className="register-stepper__item">2</div>
               </div>
@@ -199,7 +287,11 @@ function RegisterPage() {
               <form className="register-form" onSubmit={handleContinue}>
                 <div className="register-form__group">
                   <label>Họ và tên</label>
-                  <div className={`register-form__input-wrap ${errors.fullName ? "register-form__input-wrap--error" : ""}`}>
+                  <div
+                    className={`register-form__input-wrap ${
+                      errors.fullName ? "register-form__input-wrap--error" : ""
+                    }`}
+                  >
                     <User size={18} />
                     <input
                       type="text"
@@ -209,12 +301,18 @@ function RegisterPage() {
                       onChange={handleChange}
                     />
                   </div>
-                  {errors.fullName && <p className="register-form__error">{errors.fullName}</p>}
+                  {errors.fullName && (
+                    <p className="register-form__error">{errors.fullName}</p>
+                  )}
                 </div>
 
                 <div className="register-form__group">
                   <label>Email</label>
-                  <div className={`register-form__input-wrap ${errors.email ? "register-form__input-wrap--error" : ""}`}>
+                  <div
+                    className={`register-form__input-wrap ${
+                      errors.email ? "register-form__input-wrap--error" : ""
+                    }`}
+                  >
                     <Mail size={18} />
                     <input
                       type="email"
@@ -224,12 +322,18 @@ function RegisterPage() {
                       onChange={handleChange}
                     />
                   </div>
-                  {errors.email && <p className="register-form__error">{errors.email}</p>}
+                  {errors.email && (
+                    <p className="register-form__error">{errors.email}</p>
+                  )}
                 </div>
 
                 <div className="register-form__group">
                   <label>Số điện thoại</label>
-                  <div className={`register-form__input-wrap ${errors.phone ? "register-form__input-wrap--error" : ""}`}>
+                  <div
+                    className={`register-form__input-wrap ${
+                      errors.phone ? "register-form__input-wrap--error" : ""
+                    }`}
+                  >
                     <Phone size={18} />
                     <input
                       type="text"
@@ -239,12 +343,18 @@ function RegisterPage() {
                       onChange={handleChange}
                     />
                   </div>
-                  {errors.phone && <p className="register-form__error">{errors.phone}</p>}
+                  {errors.phone && (
+                    <p className="register-form__error">{errors.phone}</p>
+                  )}
                 </div>
 
                 <div className="register-form__group">
                   <label>Mật khẩu</label>
-                  <div className={`register-form__input-wrap ${errors.password ? "register-form__input-wrap--error" : ""}`}>
+                  <div
+                    className={`register-form__input-wrap ${
+                      errors.password ? "register-form__input-wrap--error" : ""
+                    }`}
+                  >
                     <Lock size={18} />
                     <input
                       type={showPassword ? "text" : "password"}
@@ -261,14 +371,18 @@ function RegisterPage() {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                  {errors.password && <p className="register-form__error">{errors.password}</p>}
+                  {errors.password && (
+                    <p className="register-form__error">{errors.password}</p>
+                  )}
                 </div>
 
                 <div className="register-form__group">
                   <label>Xác nhận mật khẩu</label>
                   <div
                     className={`register-form__input-wrap ${
-                      errors.confirmPassword ? "register-form__input-wrap--error" : ""
+                      errors.confirmPassword
+                        ? "register-form__input-wrap--error"
+                        : ""
                     }`}
                   >
                     <Lock size={18} />
@@ -284,17 +398,33 @@ function RegisterPage() {
                       className="register-form__eye-btn"
                       onClick={() => setShowConfirmPassword((prev) => !prev)}
                     >
-                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showConfirmPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
                     </button>
                   </div>
                   {errors.confirmPassword && (
-                    <p className="register-form__error">{errors.confirmPassword}</p>
+                    <p className="register-form__error">
+                      {errors.confirmPassword}
+                    </p>
                   )}
                 </div>
 
-                <button type="submit" className="register-form__submit">
-                  Tiếp tục
-                  <ArrowRight size={16} />
+                {errors.general && (
+                  <p className="register-form__error register-form__error--center">
+                    {errors.general}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className="register-form__submit"
+                  disabled={isSendingOtp}
+                >
+                  {isSendingOtp ? "Đang gửi OTP..." : "Tiếp tục"}
+                  {!isSendingOtp && <ArrowRight size={16} />}
                 </button>
               </form>
             </>
@@ -306,9 +436,13 @@ function RegisterPage() {
               </div>
 
               <div className="register-stepper">
-                <div className="register-stepper__item register-stepper__item--active">1</div>
+                <div className="register-stepper__item register-stepper__item--active">
+                  1
+                </div>
                 <div className="register-stepper__line register-stepper__line--active"></div>
-                <div className="register-stepper__item register-stepper__item--active">2</div>
+                <div className="register-stepper__item register-stepper__item--active">
+                  2
+                </div>
               </div>
 
               <div className="register-otp">
@@ -327,17 +461,31 @@ function RegisterPage() {
                   {otpValues.map((digit, index) => (
                     <input
                       key={index}
-                      ref={(el) => (otpRefs.current[index] = el)}
+                      ref={(el) => {
+                        otpRefs.current[index] = el
+                      }}
                       type="text"
+                      inputMode="numeric"
                       maxLength={1}
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      disabled={isVerifyingOtp}
                     />
                   ))}
                 </div>
 
-                {otpError && <p className="register-form__error register-form__error--center">{otpError}</p>}
+                {otpMessage && (
+                  <p className="register-form__success register-form__success--center">
+                    {otpMessage}
+                  </p>
+                )}
+
+                {otpError && (
+                  <p className="register-form__error register-form__error--center">
+                    {otpError}
+                  </p>
+                )}
 
                 <div className="register-otp__resend">
                   {countdown > 0 ? (
@@ -345,14 +493,23 @@ function RegisterPage() {
                       Gửi lại mã sau <span>{countdown}s</span>
                     </p>
                   ) : (
-                    <button type="button" onClick={handleResendOtp}>
-                      Gửi lại mã
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={isResendingOtp}
+                    >
+                      {isResendingOtp ? "Đang gửi lại..." : "Gửi lại mã"}
                     </button>
                   )}
                 </div>
 
                 <div className="register-otp__actions">
-                  <button type="button" className="register-otp__btn register-otp__btn--outline" onClick={handleBack}>
+                  <button
+                    type="button"
+                    className="register-otp__btn register-otp__btn--outline"
+                    onClick={handleBack}
+                    disabled={isVerifyingOtp}
+                  >
                     <ArrowLeft size={16} />
                     Quay lại
                   </button>
@@ -361,9 +518,10 @@ function RegisterPage() {
                     type="button"
                     className="register-otp__btn register-otp__btn--primary"
                     onClick={handleVerifyOtp}
+                    disabled={isVerifyingOtp}
                   >
-                    Xác nhận
-                    <CheckCircle2 size={16} />
+                    {isVerifyingOtp ? "Đang xác nhận..." : "Xác nhận"}
+                    {!isVerifyingOtp && <CheckCircle2 size={16} />}
                   </button>
                 </div>
               </div>
@@ -378,6 +536,16 @@ function RegisterPage() {
 
       <Footer />
       <FloatingChat />
+
+      {isEnteringHome && (
+        <div className="register-loading">
+          <div className="register-loading__box">
+            <div className="register-loading__spinner"></div>
+            <h3>Đăng ký thành công</h3>
+            <p>Đang chuyển về trang chủ...</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

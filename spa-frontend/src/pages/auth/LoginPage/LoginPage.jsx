@@ -3,7 +3,12 @@ import { Link, useNavigate } from "react-router-dom"
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
 import FloatingChat from "../../../components/FloatingChat/FloatingChat"
-import { loginApi, saveAuthData } from "../../../services/authApi"
+import {
+  loginApi,
+  loginWithFacebook,
+  loginWithGoogle,
+  saveAuthData,
+} from "../../../services/authApi"
 import {
   ArrowLeft,
   CheckCircle2,
@@ -415,12 +420,20 @@ function LoginPage() {
             </div>
 
             <div className="login-form__socials">
-              <button type="button" className="login-form__social-btn">
+              <button
+                type="button"
+                className="login-form__social-btn"
+                onClick={loginWithGoogle}
+              >
                 <FcGoogle size={22} />
                 <span>Google</span>
               </button>
 
-              <button type="button" className="login-form__social-btn">
+              <button
+                type="button"
+                className="login-form__social-btn"
+                onClick={loginWithFacebook}
+              >
                 <FaFacebookF className="login-form__facebook-icon" />
                 <span>Facebook</span>
               </button>

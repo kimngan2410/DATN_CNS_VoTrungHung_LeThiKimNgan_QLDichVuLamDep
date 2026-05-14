@@ -10,6 +10,7 @@ import BookingPage from "./pages/customer/BookingPage/BookingPage"
 import AccountProfilePage from "./pages/customer/AccountProfilePage/AccountProfilePage"
 import MyAppointmentsPage from "./pages/customer/MyAppointmentsPage/MyAppointmentsPage"
 import ServiceHistoryPage from "./pages/customer/ServiceHistoryPage/ServiceHistoryPage"
+import OAuthCallbackPage from "./pages/auth/OAuthCallbackPage/OAuthCallbackPage"
 
 /* STAFF */
 import StaffLayout from "./components/StaffLayout/StaffLayout"
@@ -42,6 +43,7 @@ function App() {
       <Route path="/" element={<Navigate to="/trang-chu" replace />} />
       <Route path="/trang-chu" element={<HomePage />} />
       <Route path="/dang-nhap" element={<LoginPage />} />
+      <Route path="/oauth-callback" element={<OAuthCallbackPage />} />
       <Route path="/dang-ky" element={<RegisterPage />} />
       <Route path="/dich-vu" element={<ServiceListPage />} />
       <Route path="/dich-vu/:slug" element={<ServiceDetailPage />} />

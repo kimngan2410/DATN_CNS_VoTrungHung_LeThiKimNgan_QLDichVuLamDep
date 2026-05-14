@@ -1,6 +1,22 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1"
 
+async function handleResponse(response, defaultMessage) {
+  let data = null
+
+  try {
+    data = await response.json()
+  } catch {
+    data = null
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.detail || defaultMessage)
+  }
+
+  return data
+}
+
 export async function loginApi(payload) {
   const response = await fetch(`${API_BASE_URL}/auth/dang-nhap`, {
     method: "POST",
@@ -10,13 +26,51 @@ export async function loginApi(payload) {
     body: JSON.stringify(payload),
   })
 
-  const data = await response.json()
+  return handleResponse(response, "Đăng nhập thất bại")
+}
 
-  if (!response.ok) {
-    throw new Error(data.detail || "Đăng nhập thất bại")
-  }
+export function loginWithGoogle() {
+  window.location.href = `${API_BASE_URL}/auth/google`
+}
 
-  return data
+export function loginWithFacebook() {
+  window.location.href = `${API_BASE_URL}/auth/facebook`
+}
+
+export async function registerSendOtpApi(payload) {
+  const response = await fetch(`${API_BASE_URL}/auth/dang-ky/gui-otp`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return handleResponse(response, "Không thể gửi mã OTP")
+}
+
+export async function registerVerifyOtpApi(payload) {
+  const response = await fetch(`${API_BASE_URL}/auth/dang-ky/xac-nhan`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return handleResponse(response, "Xác nhận OTP thất bại")
+}
+
+export async function registerResendOtpApi(payload) {
+  const response = await fetch(`${API_BASE_URL}/auth/dang-ky/gui-lai-otp`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return handleResponse(response, "Không thể gửi lại mã OTP")
 }
 
 export function saveAuthData(data) {
@@ -40,3 +94,4 @@ export function logout() {
 
   window.dispatchEvent(new Event("auth-changed"))
 }
+
