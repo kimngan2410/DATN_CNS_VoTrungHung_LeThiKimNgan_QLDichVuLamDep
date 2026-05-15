@@ -51,3 +51,25 @@ class RegisterVerifyOtpRequest(BaseModel):
 
 class RegisterResendOtpRequest(BaseModel):
     email: EmailStr
+
+from pydantic import BaseModel, EmailStr, Field
+
+
+class ForgotPasswordSendOtpRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordResendOtpRequest(BaseModel):
+    email: EmailStr
+
+
+class ForgotPasswordVerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+
+
+class ForgotPasswordResetRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(..., min_length=6, max_length=6)
+    newPassword: str = Field(..., min_length=6)
+    confirmPassword: str = Field(..., min_length=6)

@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
 import FloatingChat from "../../../components/FloatingChat/FloatingChat"
 import {
+  forgotPasswordResendOtpApi,
+  forgotPasswordResetApi,
+  forgotPasswordSendOtpApi,
+  forgotPasswordVerifyOtpApi,
   loginApi,
   loginWithFacebook,
   loginWithGoogle,
@@ -14,32 +18,34 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  KeyRound,
   Loader2,
   Lock,
   Mail,
-  ShieldCheck,
   X,
 } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
 import { FaFacebookF } from "react-icons/fa"
 import "./LoginPage.css"
 
-const MOCK_OTP = "123456"
-
 function LoginPage() {
-
   const navigate = useNavigate()
+
   const [loginError, setLoginError] = useState("")
   const [isLoggingIn, setIsLoggingIn] = useState(false)
 
+  const [isEnteringHome, setIsEnteringHome] = useState(false)
+  const [loginSuccessMessage, setLoginSuccessMessage] = useState(
+    "Đăng nhập thành công. Đang chuyển trang..."
+  )
+
+  const redirectTimerRef = useRef(null)
   const otpInputRefs = useRef([])
 
   const [showPassword, setShowPassword] = useState(false)
 
   const [formData, setFormData] = useState({
-    email: "lethikimngan.dn43@gmail.com",
-    password: "123456",
+    email: "",
+    password: "",
   })
 
   const [showForgotModal, setShowForgotModal] = useState(false)
@@ -47,6 +53,7 @@ function LoginPage() {
 
   const [forgotEmail, setForgotEmail] = useState("")
   const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""])
+  const [verifiedOtp, setVerifiedOtp] = useState("")
   const [resendCooldown, setResendCooldown] = useState(52)
 
   const [newPassword, setNewPassword] = useState("")
@@ -61,6 +68,54 @@ function LoginPage() {
   const [isSendingOtp, setIsSendingOtp] = useState(false)
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
   const [isResettingPassword, setIsResettingPassword] = useState(false)
+
+  const redirectByRole = useCallback(
+    (user, message = "Đăng nhập thành công. Đang chuyển trang...") => {
+      setLoginSuccessMessage(message)
+      setIsEnteringHome(true)
+
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current)
+      }
+
+      redirectTimerRef.current = setTimeout(() => {
+        if (user?.vaiTro === "Admin") {
+          navigate("/admin/tong-quan", { replace: true })
+          return
+        }
+
+        if (user?.vaiTro === "NhanVien") {
+          navigate("/staff/tong-quan", { replace: true })
+          return
+        }
+
+        navigate("/trang-chu", { replace: true })
+      }, 1600)
+    },
+    [navigate]
+  )
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user")
+
+    if (!savedUser) return
+
+    try {
+      const user = JSON.parse(savedUser)
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      redirectByRole(user, "Bạn đã đăng nhập. Đang chuyển đến trang chủ...")
+    } catch {
+      localStorage.removeItem("user")
+      localStorage.removeItem("token")
+    }
+
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current)
+      }
+    }
+  }, [redirectByRole])
 
   useEffect(() => {
     if (!showForgotModal || forgotStep !== "otp" || resendCooldown <= 0) {
@@ -81,6 +136,8 @@ function LoginPage() {
       ...prev,
       [name]: value,
     }))
+
+    setLoginError("")
   }
 
   const handleSubmit = async (e) => {
@@ -107,27 +164,11 @@ function LoginPage() {
       })
 
       saveAuthData(data)
-
-      if (data.user.vaiTro === "Admin") {
-        navigate("/admin/tong-quan")
-        return
-      }
-
-      if (data.user.vaiTro === "NhanVien") {
-        navigate("/staff/tong-quan")
-        return
-      }
-
-      if (data.user.vaiTro === "KhachHang") {
-        navigate("/trang-chu")
-        return
-      }
-
-      navigate("/trang-chu")
+      redirectByRole(data.user, "Đăng nhập thành công. Đang chuyển trang...")
     } catch (error) {
       setLoginError(error.message || "Đăng nhập thất bại.")
-    } finally {
       setIsLoggingIn(false)
+      setIsEnteringHome(false)
     }
   }
 
@@ -139,6 +180,7 @@ function LoginPage() {
     setForgotStep("email")
     setForgotEmail("")
     setOtpDigits(["", "", "", "", "", ""])
+    setVerifiedOtp("")
     setResendCooldown(52)
     setNewPassword("")
     setConfirmPassword("")
@@ -162,35 +204,44 @@ function LoginPage() {
     resetForgotState()
   }
 
-  const handleSendOtp = (e) => {
+  const handleSendOtp = async (e) => {
     e.preventDefault()
 
     setForgotError("")
     setForgotMessage("")
 
-    if (!forgotEmail.trim()) {
+    const email = forgotEmail.trim().toLowerCase()
+
+    if (!email) {
       setForgotError("Vui lòng nhập email của bạn.")
       return
     }
 
-    if (!isValidEmail(forgotEmail.trim())) {
+    if (!isValidEmail(email)) {
       setForgotError("Email không đúng định dạng.")
       return
     }
 
-    setIsSendingOtp(true)
+    try {
+      setIsSendingOtp(true)
 
-    setTimeout(() => {
-      setIsSendingOtp(false)
+      const data = await forgotPasswordSendOtpApi({ email })
+
+      setForgotEmail(email)
       setForgotStep("otp")
       setOtpDigits(["", "", "", "", "", ""])
+      setVerifiedOtp("")
       setResendCooldown(52)
-      setForgotMessage("")
+      setForgotMessage(data.message || "Mã OTP đã được gửi đến email của bạn.")
 
       setTimeout(() => {
         otpInputRefs.current[0]?.focus()
       }, 80)
-    }, 800)
+    } catch (error) {
+      setForgotError(error.message || "Không gửi được mã OTP.")
+    } finally {
+      setIsSendingOtp(false)
+    }
   }
 
   const handleOtpDigitChange = (index, value) => {
@@ -201,6 +252,9 @@ function LoginPage() {
       next[index] = digit
       return next
     })
+
+    setForgotError("")
+    setForgotMessage("")
 
     if (digit && index < 5) {
       otpInputRefs.current[index + 1]?.focus()
@@ -230,36 +284,48 @@ function LoginPage() {
     })
 
     setOtpDigits(nextDigits)
+    setForgotError("")
+    setForgotMessage("")
 
     const nextFocusIndex = Math.min(pastedValue.length, 5)
     otpInputRefs.current[nextFocusIndex]?.focus()
   }
 
-  const handleResendOtp = () => {
+  const handleResendOtp = async () => {
     if (resendCooldown > 0 || isSendingOtp) return
 
     setForgotError("")
     setForgotMessage("")
-    setIsSendingOtp(true)
 
-    setTimeout(() => {
-      setIsSendingOtp(false)
+    const email = forgotEmail.trim().toLowerCase()
+
+    try {
+      setIsSendingOtp(true)
+
+      const data = await forgotPasswordResendOtpApi({ email })
+
       setOtpDigits(["", "", "", "", "", ""])
+      setVerifiedOtp("")
       setResendCooldown(52)
-      setForgotMessage("Mã OTP mới đã được gửi lại.")
+      setForgotMessage(data.message || "Mã OTP mới đã được gửi lại.")
 
       setTimeout(() => {
         otpInputRefs.current[0]?.focus()
       }, 80)
-    }, 800)
+    } catch (error) {
+      setForgotError(error.message || "Không gửi lại được mã OTP.")
+    } finally {
+      setIsSendingOtp(false)
+    }
   }
 
-  const handleVerifyOtp = (e) => {
+  const handleVerifyOtp = async (e) => {
     e.preventDefault()
 
     setForgotError("")
     setForgotMessage("")
 
+    const email = forgotEmail.trim().toLowerCase()
     const otpCode = otpDigits.join("")
 
     if (otpDigits.some((digit) => !digit)) {
@@ -267,26 +333,34 @@ function LoginPage() {
       return
     }
 
-    setIsVerifyingOtp(true)
+    try {
+      setIsVerifyingOtp(true)
 
-    setTimeout(() => {
-      setIsVerifyingOtp(false)
+      const data = await forgotPasswordVerifyOtpApi({
+        email,
+        otp: otpCode,
+      })
 
-      if (otpCode !== MOCK_OTP) {
-        setForgotError("Mã OTP không chính xác. Vui lòng kiểm tra lại.")
-        return
-      }
-
+      setVerifiedOtp(otpCode)
       setForgotStep("reset")
-      setForgotMessage("Xác minh OTP thành công. Vui lòng nhập mật khẩu mới.")
-    }, 800)
+      setForgotMessage(
+        data.message || "Xác minh OTP thành công. Vui lòng nhập mật khẩu mới."
+      )
+    } catch (error) {
+      setForgotError(error.message || "Mã OTP không chính xác.")
+    } finally {
+      setIsVerifyingOtp(false)
+    }
   }
 
-  const handleResetPassword = (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault()
 
     setForgotError("")
     setForgotMessage("")
+
+    const email = forgotEmail.trim().toLowerCase()
+    const otpCode = verifiedOtp || otpDigits.join("")
 
     if (!newPassword.trim()) {
       setForgotError("Vui lòng nhập mật khẩu mới.")
@@ -308,18 +382,28 @@ function LoginPage() {
       return
     }
 
-    setIsResettingPassword(true)
+    try {
+      setIsResettingPassword(true)
 
-    setTimeout(() => {
-      setIsResettingPassword(false)
+      const data = await forgotPasswordResetApi({
+        email,
+        otp: otpCode,
+        newPassword,
+        confirmPassword,
+      })
+
       setForgotStep("success")
-      setForgotMessage("Đổi mật khẩu thành công.")
+      setForgotMessage(data.message || "Đổi mật khẩu thành công.")
       setFormData((prev) => ({
         ...prev,
-        email: forgotEmail,
+        email,
         password: "",
       }))
-    }, 900)
+    } catch (error) {
+      setForgotError(error.message || "Không đổi được mật khẩu.")
+    } finally {
+      setIsResettingPassword(false)
+    }
   }
 
   const getForgotTitle = () => {
@@ -346,7 +430,7 @@ function LoginPage() {
   }
 
   return (
-    <>
+    <div className="login-page">
       <Header />
 
       <main className="login-main">
@@ -364,9 +448,11 @@ function LoginPage() {
                 <input
                   type="email"
                   name="email"
-                  placeholder="nhap@email.com"
+                  placeholder="Nhập email của bạn"
                   value={formData.email}
                   onChange={handleChange}
+                  disabled={isLoggingIn || isEnteringHome}
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -379,6 +465,7 @@ function LoginPage() {
                   type="button"
                   className="login-form__forgot"
                   onClick={openForgotModal}
+                  disabled={isLoggingIn || isEnteringHome}
                 >
                   Quên mật khẩu?
                 </button>
@@ -389,9 +476,11 @@ function LoginPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
-                  placeholder="••••••••"
+                  placeholder="Nhập mật khẩu"
                   value={formData.password}
                   onChange={handleChange}
+                  disabled={isLoggingIn || isEnteringHome}
+                  autoComplete="current-password"
                 />
 
                 <button
@@ -399,6 +488,7 @@ function LoginPage() {
                   className="login-form__eye-btn"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  disabled={isLoggingIn || isEnteringHome}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -410,7 +500,7 @@ function LoginPage() {
             <button
               type="submit"
               className="login-form__submit"
-              disabled={isLoggingIn}
+              disabled={isLoggingIn || isEnteringHome}
             >
               {isLoggingIn ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
@@ -424,6 +514,7 @@ function LoginPage() {
                 type="button"
                 className="login-form__social-btn"
                 onClick={loginWithGoogle}
+                disabled={isLoggingIn || isEnteringHome}
               >
                 <FcGoogle size={22} />
                 <span>Google</span>
@@ -433,6 +524,7 @@ function LoginPage() {
                 type="button"
                 className="login-form__social-btn"
                 onClick={loginWithFacebook}
+                disabled={isLoggingIn || isEnteringHome}
               >
                 <FaFacebookF className="login-form__facebook-icon" />
                 <span>Facebook</span>
@@ -564,6 +656,12 @@ function LoginPage() {
                   ))}
                 </div>
 
+                {forgotMessage && (
+                  <div className="forgot-password-alert forgot-password-alert--success">
+                    {forgotMessage}
+                  </div>
+                )}
+
                 <div className="forgot-otp-resend">
                   {resendCooldown > 0 ? (
                     <span>
@@ -589,6 +687,7 @@ function LoginPage() {
                       setForgotError("")
                       setForgotMessage("")
                       setOtpDigits(["", "", "", "", "", ""])
+                      setVerifiedOtp("")
                     }}
                   >
                     <ArrowLeft size={18} />
@@ -736,7 +835,17 @@ function LoginPage() {
           </div>
         </div>
       )}
-    </>
+
+      {isEnteringHome && (
+        <div className="login-success-loading">
+          <div className="login-success-loading__box">
+            <div className="login-success-loading__spinner"></div>
+            <h3>Serenity Spa</h3>
+            <p>{loginSuccessMessage}</p>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

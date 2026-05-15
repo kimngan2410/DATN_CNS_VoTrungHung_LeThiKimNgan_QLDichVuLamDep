@@ -6,27 +6,59 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react"
 
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
 import FloatingChat from "../../../components/FloatingChat/FloatingChat"
 import ServiceCard from "../../../components/ServiceCard/ServiceCard"
-
 import {
-  services,
-  serviceCategories,
-  servicePriceRanges,
-  serviceDurations,
-  sortOptions,
-} from "../../../data/serviceData"
+  getServiceCategoriesApi,
+  getServicesApi,
+} from "../../../services/serviceApi"
 
 import "./ServiceListPage.css"
 
 const ITEMS_PER_PAGE = 6
 
+const servicePriceRanges = [
+  "Tất cả mức giá",
+  "Dưới 500.000đ",
+  "500.000đ - 1.000.000đ",
+  "Trên 1.000.000đ",
+]
+
+const serviceDurations = [
+  "Tất cả thời lượng",
+  "Dưới 60 phút",
+  "60 - 90 phút",
+  "Trên 90 phút",
+]
+
+const sortOptions = [
+  {
+    value: "default",
+    label: "Mặc định",
+  },
+  {
+    value: "price-asc",
+    label: "Giá tăng dần",
+  },
+  {
+    value: "price-desc",
+    label: "Giá giảm dần",
+  },
+]
+
 function ServiceListPage() {
   const location = useLocation()
+
+  const [services, setServices] = useState([])
+  const [categories, setCategories] = useState([])
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [hasError, setHasError] = useState(false)
 
   const [appliedKeyword, setAppliedKeyword] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Tất cả")
@@ -35,24 +67,52 @@ function ServiceListPage() {
   const [sortBy, setSortBy] = useState("default")
   const [currentPage, setCurrentPage] = useState(1)
 
-  const hasError = false
-
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const keywordFromHeader = params.get("q") || ""
+
     setAppliedKeyword(keywordFromHeader)
     setCurrentPage(1)
   }, [location.search])
 
+  useEffect(() => {
+    const fetchServiceData = async () => {
+      try {
+        setIsLoading(true)
+        setHasError(false)
+
+        const [categoryData, serviceData] = await Promise.all([
+          getServiceCategoriesApi(),
+          getServicesApi(),
+        ])
+
+        setCategories(categoryData)
+        setServices(serviceData)
+      } catch (error) {
+        console.error(error)
+        setHasError(true)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchServiceData()
+  }, [])
+
+  const serviceCategories = useMemo(() => {
+    return ["Tất cả", ...categories.map((category) => category.tenDM)]
+  }, [categories])
+
   const activeServices = useMemo(() => {
     return services.filter((service) => service.isActive)
-  }, [])
+  }, [services])
 
   const filteredServices = useMemo(() => {
     let result = [...activeServices]
 
     if (appliedKeyword.trim()) {
       const keyword = appliedKeyword.toLowerCase().trim()
+
       result = result.filter(
         (service) =>
           service.title.toLowerCase().includes(keyword) ||
@@ -223,7 +283,7 @@ function ServiceListPage() {
             </aside>
 
             <div className="service-list">
-              {!hasError && activeServices.length > 0 && (
+              {!hasError && !isLoading && activeServices.length > 0 && (
                 <div className="service-list__toolbar">
                   <p>
                     Hiển thị <strong>{filteredServices.length}</strong> dịch vụ
@@ -248,7 +308,13 @@ function ServiceListPage() {
                 </div>
               )}
 
-              {hasError ? (
+              {isLoading ? (
+                <div className="service-state">
+                  <Loader2 size={34} className="service-state__loading-icon" />
+                  <h3>Đang tải dịch vụ</h3>
+                  <p>Vui lòng chờ trong giây lát.</p>
+                </div>
+              ) : hasError ? (
                 <div className="service-state service-state--error">
                   <AlertCircle size={32} />
                   <h3>Không thể truy xuất dữ liệu</h3>

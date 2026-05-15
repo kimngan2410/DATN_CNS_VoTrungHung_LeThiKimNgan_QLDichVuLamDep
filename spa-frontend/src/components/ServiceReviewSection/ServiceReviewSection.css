@@ -13,8 +13,7 @@
 .service-review-box h2 {
   margin: 0 0 30px;
   color: #3f3a37;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 32px;
+  font-size: 24px;
   line-height: 1.2;
   font-weight: 600;
 }
@@ -197,7 +196,7 @@
   padding: 28px;
   color: #7c736c;
   text-align: center;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .service-review-pagination {
@@ -268,4 +267,8 @@
     width: 82px;
     height: 82px;
   }
+}
+
+img.service-review-item__avatar {
+  object-fit: cover;
 }

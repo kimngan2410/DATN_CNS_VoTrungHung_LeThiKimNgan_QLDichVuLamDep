@@ -1,28 +1,73 @@
 import random
 from datetime import datetime, timedelta
 from typing import Optional
+from urllib.parse import quote_plus
 
 from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password, verify_password
-from app.services.email_service import send_otp_email
 from app.models.khach_hang import KhachHang
 from app.models.otp_xac_thuc import OTPXacThuc
 from app.models.tai_khoan import TaiKhoan
 from app.schemas.auth_schema import (
+    ForgotPasswordResendOtpRequest,
+    ForgotPasswordResetRequest,
+    ForgotPasswordSendOtpRequest,
+    ForgotPasswordVerifyOtpRequest,
     RegisterResendOtpRequest,
     RegisterSendOtpRequest,
     RegisterVerifyOtpRequest,
 )
+from app.services.email_service import send_otp_email
 
-
-DEFAULT_AVATAR = (
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80"
-)
 
 OTP_EXPIRE_MINUTES = 5
+
+
+def make_default_avatar(name: str | None, email: str | None) -> str:
+    display_name = name or (email.split("@")[0] if email else "User")
+    encoded_name = quote_plus(display_name)
+
+    return (
+        "https://ui-avatars.com/api/"
+        f"?name={encoded_name}"
+        "&background=d7a93f"
+        "&color=ffffff"
+        "&size=128"
+        "&bold=true"
+    )
+
+
+DEFAULT_AVATAR = make_default_avatar("Khách hàng", None)
+
+
+def is_valid_avatar_url(avatar: str | None) -> bool:
+    if not avatar:
+        return False
+
+    avatar = avatar.strip()
+
+    return (
+        avatar.startswith("http://")
+        or avatar.startswith("https://")
+        or avatar.startswith("/")
+        or avatar.startswith("data:image/")
+    )
+
+
+def get_safe_avatar(
+    khach_hang: Optional[KhachHang],
+    tai_khoan: TaiKhoan,
+) -> str:
+    ho_ten = khach_hang.hoTen if khach_hang else None
+    avatar = khach_hang.anhDaiDien if khach_hang else None
+
+    if is_valid_avatar_url(avatar):
+        return avatar.strip()
+
+    return make_default_avatar(ho_ten, tai_khoan.email)
 
 
 def map_role_to_frontend(loai_tk: str) -> str:
@@ -48,23 +93,26 @@ def generate_customer_code(db: Session) -> str:
     return f"KH{next_number:04d}"
 
 
-def build_login_response(
+def build_user_payload(
     tai_khoan: TaiKhoan,
     khach_hang: Optional[KhachHang] = None,
 ):
-    user = {
+    return {
         "maTK": tai_khoan.idTaiKhoan,
         "email": tai_khoan.email,
         "vaiTro": map_role_to_frontend(tai_khoan.loaiTK),
         "maKH": khach_hang.idKhachHang if khach_hang else None,
         "maNV": None,
         "hoTen": khach_hang.hoTen if khach_hang else None,
-        "avatar": (
-            khach_hang.anhDaiDien
-            if khach_hang and khach_hang.anhDaiDien
-            else DEFAULT_AVATAR
-        ),
+        "avatar": get_safe_avatar(khach_hang, tai_khoan),
     }
+
+
+def build_login_response(
+    tai_khoan: TaiKhoan,
+    khach_hang: Optional[KhachHang] = None,
+):
+    user = build_user_payload(tai_khoan, khach_hang)
 
     access_token = create_access_token(
         data={
@@ -95,6 +143,9 @@ def authenticate_user(db: Session, email: str, password: str):
     if tai_khoan.loaiTK == "KHACH_HANG" and not tai_khoan.emailDaXacThuc:
         return None
 
+    if not tai_khoan.matKhau:
+        return None
+
     is_valid_password = verify_password(password, tai_khoan.matKhau)
 
     # Hỗ trợ tạm nếu DB cũ từng lưu mật khẩu dạng text thường.
@@ -107,30 +158,24 @@ def authenticate_user(db: Session, email: str, password: str):
     if not is_valid_password:
         return None
 
+    tai_khoan.lanDangNhapCuoi = datetime.now()
+
     khach_hang = (
         db.query(KhachHang)
         .filter(KhachHang.idTaiKhoan == tai_khoan.idTaiKhoan)
         .first()
     )
 
-    return {
-        "maTK": tai_khoan.idTaiKhoan,
-        "email": tai_khoan.email,
-        "vaiTro": map_role_to_frontend(tai_khoan.loaiTK),
-        "maKH": khach_hang.idKhachHang if khach_hang else None,
-        "maNV": None,
-        "hoTen": khach_hang.hoTen if khach_hang else None,
-        "avatar": (
-            khach_hang.anhDaiDien
-            if khach_hang and khach_hang.anhDaiDien
-            else DEFAULT_AVATAR
-        ),
-    }
+    db.commit()
+    db.refresh(tai_khoan)
+
+    return build_user_payload(tai_khoan, khach_hang)
 
 
 def send_register_otp(db: Session, payload: RegisterSendOtpRequest):
     email = payload.email.strip().lower()
     phone = payload.sdt.strip()
+    ho_ten = payload.hoTen.strip()
 
     if payload.password != payload.confirmPassword:
         raise HTTPException(
@@ -159,6 +204,8 @@ def send_register_otp(db: Session, payload: RegisterSendOtpRequest):
             )
 
     try:
+        default_avatar = make_default_avatar(ho_ten, email)
+
         if existing_account and not existing_account.emailDaXacThuc:
             tai_khoan = existing_account
 
@@ -174,18 +221,20 @@ def send_register_otp(db: Session, payload: RegisterSendOtpRequest):
             )
 
             if khach_hang:
-                khach_hang.hoTen = payload.hoTen.strip()
+                khach_hang.hoTen = ho_ten
                 khach_hang.sdt = phone
-                khach_hang.anhDaiDien = khach_hang.anhDaiDien or DEFAULT_AVATAR
                 khach_hang.loaiKH = khach_hang.loaiKH or "Thường"
+
+                if not is_valid_avatar_url(khach_hang.anhDaiDien):
+                    khach_hang.anhDaiDien = default_avatar
             else:
                 khach_hang = KhachHang(
                     idTaiKhoan=tai_khoan.idTaiKhoan,
                     maKH=generate_customer_code(db),
-                    hoTen=payload.hoTen.strip(),
+                    hoTen=ho_ten,
                     sdt=phone,
                     loaiKH="Thường",
-                    anhDaiDien=DEFAULT_AVATAR,
+                    anhDaiDien=default_avatar,
                 )
                 db.add(khach_hang)
 
@@ -205,10 +254,10 @@ def send_register_otp(db: Session, payload: RegisterSendOtpRequest):
             khach_hang = KhachHang(
                 idTaiKhoan=tai_khoan.idTaiKhoan,
                 maKH=generate_customer_code(db),
-                hoTen=payload.hoTen.strip(),
+                hoTen=ho_ten,
                 sdt=phone,
                 loaiKH="Thường",
-                anhDaiDien=DEFAULT_AVATAR,
+                anhDaiDien=default_avatar,
             )
 
             db.add(khach_hang)
@@ -317,6 +366,12 @@ def verify_register_otp(db: Session, payload: RegisterVerifyOtpRequest):
             .first()
         )
 
+        if khach_hang and not is_valid_avatar_url(khach_hang.anhDaiDien):
+            khach_hang.anhDaiDien = make_default_avatar(
+                khach_hang.hoTen,
+                tai_khoan.email,
+            )
+
         db.commit()
         db.refresh(tai_khoan)
 
@@ -393,7 +448,7 @@ def resend_register_otp(db: Session, payload: RegisterResendOtpRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi gửi lại OTP: {str(error)}",
         )
-    
+
 
 def create_or_login_social_user(
     db: Session,
@@ -445,13 +500,21 @@ def create_or_login_social_user(
             .first()
         )
 
+        safe_name = full_name.strip() if full_name else "Khách hàng"
+        safe_avatar = avatar.strip() if avatar and is_valid_avatar_url(avatar) else None
+
         if tai_khoan.loaiTK == "KHACH_HANG":
             if khach_hang:
-                if full_name:
-                    khach_hang.hoTen = full_name
+                if safe_name:
+                    khach_hang.hoTen = safe_name
 
-                if avatar:
-                    khach_hang.anhDaiDien = avatar
+                if safe_avatar:
+                    khach_hang.anhDaiDien = safe_avatar
+                elif not is_valid_avatar_url(khach_hang.anhDaiDien):
+                    khach_hang.anhDaiDien = make_default_avatar(
+                        khach_hang.hoTen,
+                        tai_khoan.email,
+                    )
 
                 khach_hang.loaiKH = khach_hang.loaiKH or "Thường"
 
@@ -459,10 +522,11 @@ def create_or_login_social_user(
                 khach_hang = KhachHang(
                     idTaiKhoan=tai_khoan.idTaiKhoan,
                     maKH=generate_customer_code(db),
-                    hoTen=full_name or "Khách hàng",
+                    hoTen=safe_name,
                     sdt=None,
                     loaiKH="Thường",
-                    anhDaiDien=avatar or DEFAULT_AVATAR,
+                    anhDaiDien=safe_avatar
+                    or make_default_avatar(safe_name, tai_khoan.email),
                 )
 
                 db.add(khach_hang)
@@ -481,4 +545,253 @@ def create_or_login_social_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi đăng nhập {provider}: {str(error)}",
+        )
+    
+FORGOT_PASSWORD_OTP_TYPE = "QUEN_MAT_KHAU"
+RESEND_OTP_COOLDOWN_SECONDS = 60
+
+
+def get_latest_forgot_password_otp(db: Session, tai_khoan_id: int):
+    return (
+        db.query(OTPXacThuc)
+        .filter(
+            OTPXacThuc.idTaiKhoan == tai_khoan_id,
+            OTPXacThuc.loaiOTP == FORGOT_PASSWORD_OTP_TYPE,
+            OTPXacThuc.daSuDung.is_(False),
+        )
+        .order_by(OTPXacThuc.otp_id.desc())
+        .first()
+    )
+
+
+def validate_forgot_password_account(db: Session, email: str):
+    email = email.strip().lower()
+
+    tai_khoan = db.query(TaiKhoan).filter(TaiKhoan.email == email).first()
+
+    if not tai_khoan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy tài khoản với email này",
+        )
+
+    if tai_khoan.trangThai == "KHOA":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản đã bị khóa",
+        )
+
+    if tai_khoan.loaiTK == "KHACH_HANG" and not tai_khoan.emailDaXacThuc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tài khoản chưa xác thực email",
+        )
+
+    if not tai_khoan.matKhau:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tài khoản này đăng nhập bằng Google/Facebook, vui lòng dùng phương thức đăng nhập tương ứng",
+        )
+
+    return tai_khoan
+
+
+def send_forgot_password_otp(db: Session, payload: ForgotPasswordSendOtpRequest):
+    email = payload.email.strip().lower()
+    tai_khoan = validate_forgot_password_account(db, email)
+
+    try:
+        db.query(OTPXacThuc).filter(
+            OTPXacThuc.idTaiKhoan == tai_khoan.idTaiKhoan,
+            OTPXacThuc.loaiOTP == FORGOT_PASSWORD_OTP_TYPE,
+            OTPXacThuc.daSuDung.is_(False),
+        ).update(
+            {OTPXacThuc.daSuDung: True},
+            synchronize_session=False,
+        )
+
+        otp_code = generate_otp()
+        now = datetime.now()
+
+        otp = OTPXacThuc(
+            idTaiKhoan=tai_khoan.idTaiKhoan,
+            maOTP=otp_code,
+            loaiOTP=FORGOT_PASSWORD_OTP_TYPE,
+            thoiGianHetHan=now + timedelta(minutes=OTP_EXPIRE_MINUTES),
+            daSuDung=False,
+            soLanGui=1,
+            thoiGianGuiCuoi=now,
+        )
+
+        db.add(otp)
+        db.commit()
+
+        send_otp_email(to_email=email, otp_code=otp_code)
+
+        return {
+            "message": "Mã OTP đặt lại mật khẩu đã được gửi đến email",
+            "email": email,
+            "expires_in_seconds": OTP_EXPIRE_MINUTES * 60,
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi gửi OTP quên mật khẩu: {str(error)}",
+        )
+
+
+def resend_forgot_password_otp(
+    db: Session,
+    payload: ForgotPasswordResendOtpRequest,
+):
+    email = payload.email.strip().lower()
+    tai_khoan = validate_forgot_password_account(db, email)
+
+    latest_otp = get_latest_forgot_password_otp(db, tai_khoan.idTaiKhoan)
+
+    if latest_otp and latest_otp.thoiGianGuiCuoi:
+        seconds_from_last_send = (
+            datetime.now() - latest_otp.thoiGianGuiCuoi
+        ).total_seconds()
+
+        if seconds_from_last_send < RESEND_OTP_COOLDOWN_SECONDS:
+            wait_seconds = int(RESEND_OTP_COOLDOWN_SECONDS - seconds_from_last_send)
+
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Vui lòng chờ {wait_seconds} giây trước khi gửi lại mã OTP",
+            )
+
+    try:
+        if latest_otp:
+            latest_otp.daSuDung = True
+
+        otp_code = generate_otp()
+        now = datetime.now()
+
+        new_otp = OTPXacThuc(
+            idTaiKhoan=tai_khoan.idTaiKhoan,
+            maOTP=otp_code,
+            loaiOTP=FORGOT_PASSWORD_OTP_TYPE,
+            thoiGianHetHan=now + timedelta(minutes=OTP_EXPIRE_MINUTES),
+            daSuDung=False,
+            soLanGui=(latest_otp.soLanGui + 1) if latest_otp else 1,
+            thoiGianGuiCuoi=now,
+        )
+
+        db.add(new_otp)
+        db.commit()
+
+        send_otp_email(to_email=email, otp_code=otp_code)
+
+        return {
+            "message": "Mã OTP mới đã được gửi lại email",
+            "email": email,
+            "expires_in_seconds": OTP_EXPIRE_MINUTES * 60,
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi gửi lại OTP quên mật khẩu: {str(error)}",
+        )
+
+
+def verify_forgot_password_otp(
+    db: Session,
+    payload: ForgotPasswordVerifyOtpRequest,
+):
+    email = payload.email.strip().lower()
+    otp_code = payload.otp.strip()
+
+    tai_khoan = validate_forgot_password_account(db, email)
+
+    otp = get_latest_forgot_password_otp(db, tai_khoan.idTaiKhoan)
+
+    if not otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không tìm thấy mã OTP hợp lệ",
+        )
+
+    if otp.thoiGianHetHan < datetime.now():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mã OTP đã hết hạn",
+        )
+
+    if otp.maOTP != otp_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mã OTP không đúng",
+        )
+
+    return {
+        "message": "Xác minh OTP thành công",
+        "email": email,
+    }
+
+
+def reset_password_by_otp(db: Session, payload: ForgotPasswordResetRequest):
+    email = payload.email.strip().lower()
+    otp_code = payload.otp.strip()
+
+    if payload.newPassword != payload.confirmPassword:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu xác nhận không khớp",
+        )
+
+    tai_khoan = validate_forgot_password_account(db, email)
+
+    otp = get_latest_forgot_password_otp(db, tai_khoan.idTaiKhoan)
+
+    if not otp:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không tìm thấy mã OTP hợp lệ",
+        )
+
+    if otp.thoiGianHetHan < datetime.now():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mã OTP đã hết hạn",
+        )
+
+    if otp.maOTP != otp_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mã OTP không đúng",
+        )
+
+    try:
+        tai_khoan.matKhau = hash_password(payload.newPassword)
+        tai_khoan.loaiDangNhap = "LOCAL"
+        tai_khoan.lanDangNhapCuoi = None
+
+        otp.daSuDung = True
+
+        db.commit()
+
+        return {
+            "message": "Đặt lại mật khẩu thành công",
+            "email": email,
+        }
+
+    except Exception as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi đặt lại mật khẩu: {str(error)}",
         )

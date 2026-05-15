@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react"
 import { Star } from "lucide-react"
-import { serviceReviews } from "../../data/reviewData"
 import "./ServiceReviewSection.css"
 
 const FILTERS = [
@@ -17,21 +16,12 @@ const FILTERS = [
 
 const REVIEWS_PER_PAGE = 3
 
-function ServiceReviewSection({ serviceId }) {
+function ServiceReviewSection({ reviewData }) {
   const [activeFilter, setActiveFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
 
-  const reviewsByService = useMemo(() => {
-    return serviceReviews.filter((review) => review.serviceId === serviceId)
-  }, [serviceId])
-
-  const averageRating =
-    reviewsByService.length > 0
-      ? (
-          reviewsByService.reduce((total, item) => total + item.rating, 0) /
-          reviewsByService.length
-        ).toFixed(1)
-      : "0.0"
+  const reviewsByService = reviewData?.reviews || []
+  const averageRating = Number(reviewData?.averageRating || 0).toFixed(1)
 
   const getFilterCount = (value) => {
     if (value === "all") return reviewsByService.length
@@ -96,7 +86,8 @@ function ServiceReviewSection({ serviceId }) {
     return (
       <section className="service-review-section">
         <div className="service-review-box">
-          <h2>Đánh giá từ khách hàng</h2>
+          <h2>ĐÁNH GIÁ</h2>
+
           <div className="service-review-empty">
             Chưa có đánh giá nào cho dịch vụ này.
           </div>
@@ -108,7 +99,7 @@ function ServiceReviewSection({ serviceId }) {
   return (
     <section className="service-review-section">
       <div className="service-review-box">
-        <h2>Đánh giá từ khách hàng</h2>
+        <h2>ĐÁNH GIÁ</h2>
 
         <div className="service-review-summary">
           <div className="service-review-summary__score">
@@ -149,9 +140,17 @@ function ServiceReviewSection({ serviceId }) {
                 <article key={review.id} className="service-review-item">
                   <div className="service-review-item__header">
                     <div className="service-review-item__customer">
-                      <div className="service-review-item__avatar">
-                        {review.customerName.charAt(0)}
-                      </div>
+                      {review.avatar ? (
+                        <img
+                          className="service-review-item__avatar"
+                          src={review.avatar}
+                          alt={review.customerName}
+                        />
+                      ) : (
+                        <div className="service-review-item__avatar">
+                          {review.customerName?.charAt(0) || "K"}
+                        </div>
+                      )}
 
                       <div>
                         <h3>{review.customerName}</h3>
@@ -164,9 +163,11 @@ function ServiceReviewSection({ serviceId }) {
                     </div>
                   </div>
 
-                  <p className="service-review-item__content">
-                    {review.content}
-                  </p>
+                  {review.content && (
+                    <p className="service-review-item__content">
+                      {review.content}
+                    </p>
+                  )}
 
                   {review.images?.length > 0 && (
                     <div className="service-review-item__images">

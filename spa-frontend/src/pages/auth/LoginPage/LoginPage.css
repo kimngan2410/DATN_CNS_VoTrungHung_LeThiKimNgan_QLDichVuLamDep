@@ -517,7 +517,7 @@
   margin: 0;
   color: #2f2a27;
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .forgot-password-success p {
@@ -762,4 +762,71 @@
 .login-form__submit:disabled {
   opacity: 0.75;
   cursor: not-allowed;
+}
+
+/* =========================
+   Login success loading
+========================= */
+
+.login-success-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-success-loading__box {
+  width: 330px;
+  padding: 34px 28px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid #ece7e1;
+  box-shadow: 0 24px 70px rgba(44, 39, 35, 0.18);
+  text-align: center;
+  animation: login-success-pop 0.22s ease;
+}
+
+.login-success-loading__spinner {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  border: 4px solid #f1e5c7;
+  border-top-color: #d7a93f;
+  animation: login-success-spin 0.8s linear infinite;
+}
+
+.login-success-loading__box h3 {
+  margin: 0;
+  color: #2f2a27;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.login-success-loading__box p {
+  margin: 8px 0 0;
+  color: #8a7f72;
+  font-size: 15px;
+}
+
+@keyframes login-success-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes login-success-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

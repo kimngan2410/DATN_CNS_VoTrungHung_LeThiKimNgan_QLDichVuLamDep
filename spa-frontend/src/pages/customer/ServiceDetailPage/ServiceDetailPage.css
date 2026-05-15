@@ -19,7 +19,7 @@
 .service-detail-product {
   background: #ffffff;
   border-radius: 28px;
-  padding: 30px;
+  padding: 50px;
   display: grid;
   grid-template-columns: 460px 1fr;
   gap: 45px;
@@ -162,8 +162,8 @@
   color: #5b5552;
   padding: 10px 16px;
   border-radius: 999px;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .service-info__category svg {
@@ -190,8 +190,7 @@
 
 .service-info h1 {
   color: #3f3a37;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 38px;
+  font-size: 32px;
   line-height: 1.2;
   font-weight: 600;
   margin: 18px 0;
@@ -200,14 +199,14 @@
 .service-info__desc {
   margin: 0;
   color: #6f6761;
-  font-size: 17px;
+  font-size: 14px;
   line-height: 1.7;
 }
 
 .service-summary{
 display:flex;
 gap:90px;
-padding:32px 0;
+padding:30px 0;
 margin-top:28px;
 border-top:1px solid #eee6de;
 border-bottom:1px solid #eee6de;
@@ -220,7 +219,7 @@ gap:12px;
 }
 
 .service-summary .label{
-font-size:18px;
+font-size:16px;
 font-weight:500;
 color:#6f6761;
 }
@@ -236,14 +235,14 @@ color:#d4a437;
 }
 
 .service-summary .duration strong{
-font-size:26px;
+font-size:22px;
 font-weight:600;
 color:#20233b;
 }
 
 .service-summary .price strong{
-font-size:34px;
-font-weight:800;
+font-size:28px;
+font-weight:600;
 color:#d4a437;
 }
 
@@ -258,7 +257,7 @@ color:#d4a437;
   align-items: center;
   gap: 9px;
   color: #4f4945;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -274,11 +273,11 @@ color:#d4a437;
 }
 
 .service-info__book {
-  min-width: 170px;
-  height: 54px;
+  min-width: 150px;
+  height: 50px;
   border-radius: 999px;
   border: none;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
@@ -291,6 +290,12 @@ color:#d4a437;
   background: #5b5552;
   color: #ffffff;
   box-shadow: 0 12px 22px rgba(91, 85, 82, 0.22);
+}
+
+button.service-info__book {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 
@@ -309,14 +314,14 @@ color:#d4a437;
 .service-related h2 {
   margin: 0 0 18px;
   color: #3f3a37;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 32px;
+  font-size: 24px;
+  font-weight: 600;
 }
 
 .service-detail-description p {
   margin: 0;
   color: #20233b;
-  font-size: 17px;
+  font-size: 14px;
   line-height: 1.85;
   white-space: pre-line;
 }
@@ -393,8 +398,8 @@ color:#d4a437;
 
 .service-related__header a {
   color: #d4a437;
-  font-weight: 800;
-  text-decoration: none;
+  font-weight: 600;
+  text-decoration: underline;
 }
 
 .service-related__grid {
@@ -522,5 +527,17 @@ color:#d4a437;
 
   .service-review-card__stars {
     margin-left: 0;
+  }
+}
+
+.service-detail-loading-icon {
+  color: #d4a437;
+  animation: service-detail-spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes service-detail-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

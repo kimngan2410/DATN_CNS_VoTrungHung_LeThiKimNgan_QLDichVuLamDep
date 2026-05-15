@@ -1,4 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.crud.lich_hen_crud import create_booking
+from app.db.session import get_db
+from app.schemas.lich_hen_schema import (
+    LichHenCreateRequest,
+    LichHenCreateResponse,
+)
 
 router = APIRouter()
 
@@ -18,11 +26,12 @@ def get_appointment_detail(appointment_id: int):
     }
 
 
-@router.post("/")
-def create_appointment():
-    return {
-        "message": "API đặt lịch hẹn"
-    }
+@router.post("/", response_model=LichHenCreateResponse)
+def create_appointment(
+    payload: LichHenCreateRequest,
+    db: Session = Depends(get_db),
+):
+    return create_booking(db, payload)
 
 
 @router.patch("/{appointment_id}/trang-thai")

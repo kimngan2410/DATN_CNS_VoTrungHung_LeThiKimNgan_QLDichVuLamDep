@@ -73,6 +73,63 @@ export async function registerResendOtpApi(payload) {
   return handleResponse(response, "Không thể gửi lại mã OTP")
 }
 
+export async function forgotPasswordSendOtpApi(payload) {
+  const response = await fetch(`${API_BASE_URL}/auth/quen-mat-khau/gui-otp`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return handleResponse(response, "Không thể gửi mã OTP quên mật khẩu")
+}
+
+export async function forgotPasswordResendOtpApi(payload) {
+  const response = await fetch(
+    `${API_BASE_URL}/auth/quen-mat-khau/gui-lai-otp`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  )
+
+  return handleResponse(response, "Không thể gửi lại mã OTP quên mật khẩu")
+}
+
+export async function forgotPasswordVerifyOtpApi(payload) {
+  const response = await fetch(
+    `${API_BASE_URL}/auth/quen-mat-khau/xac-nhan-otp`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  )
+
+  return handleResponse(response, "Xác nhận OTP thất bại")
+}
+
+export async function forgotPasswordResetApi(payload) {
+  const response = await fetch(
+    `${API_BASE_URL}/auth/quen-mat-khau/dat-lai-mat-khau`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }
+  )
+
+  return handleResponse(response, "Không thể đặt lại mật khẩu")
+}
+
 export function saveAuthData(data) {
   localStorage.setItem("token", data.access_token)
   localStorage.setItem("user", JSON.stringify(data.user))
@@ -94,4 +151,3 @@ export function logout() {
 
   window.dispatchEvent(new Event("auth-changed"))
 }
-

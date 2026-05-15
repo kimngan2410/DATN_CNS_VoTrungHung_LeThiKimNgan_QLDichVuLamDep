@@ -8,6 +8,10 @@ from app.crud.auth_crud import (
     resend_register_otp,
     send_register_otp,
     verify_register_otp,
+    resend_forgot_password_otp,
+    reset_password_by_otp,
+    send_forgot_password_otp,
+    verify_forgot_password_otp,
 )
 from app.db.session import get_db
 from app.schemas.auth_schema import (
@@ -17,6 +21,10 @@ from app.schemas.auth_schema import (
     RegisterSendOtpRequest,
     RegisterSendOtpResponse,
     RegisterVerifyOtpRequest,
+    ForgotPasswordResendOtpRequest,
+    ForgotPasswordResetRequest,
+    ForgotPasswordSendOtpRequest,
+    ForgotPasswordVerifyOtpRequest,
 )
 
 import json
@@ -90,6 +98,37 @@ def register_resend_otp(
     db: Session = Depends(get_db),
 ):
     return resend_register_otp(db, payload)
+
+@router.post("/quen-mat-khau/gui-otp")
+def forgot_password_send_otp(
+    payload: ForgotPasswordSendOtpRequest,
+    db: Session = Depends(get_db),
+):
+    return send_forgot_password_otp(db, payload)
+
+
+@router.post("/quen-mat-khau/gui-lai-otp")
+def forgot_password_resend_otp(
+    payload: ForgotPasswordResendOtpRequest,
+    db: Session = Depends(get_db),
+):
+    return resend_forgot_password_otp(db, payload)
+
+
+@router.post("/quen-mat-khau/xac-nhan-otp")
+def forgot_password_verify_otp(
+    payload: ForgotPasswordVerifyOtpRequest,
+    db: Session = Depends(get_db),
+):
+    return verify_forgot_password_otp(db, payload)
+
+
+@router.post("/quen-mat-khau/dat-lai-mat-khau")
+def forgot_password_reset(
+    payload: ForgotPasswordResetRequest,
+    db: Session = Depends(get_db),
+):
+    return reset_password_by_otp(db, payload)
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"

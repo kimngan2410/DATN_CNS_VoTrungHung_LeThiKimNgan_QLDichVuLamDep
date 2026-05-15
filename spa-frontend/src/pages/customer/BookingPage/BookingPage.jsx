@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
@@ -24,33 +24,54 @@ import Footer from "../../../components/Footer/Footer"
 import FloatingChat from "../../../components/FloatingChat/FloatingChat"
 
 import {
-  services,
-  formatPrice,
-  serviceCategories,
-} from "../../../data/serviceData"
+  getServiceCategoriesApi,
+  getServicesApi,
+} from "../../../services/serviceApi"
+import { createAppointmentApi } from "../../../services/bookingApi"
+import { getCurrentUser } from "../../../services/authApi"
 
 import "./BookingPage.css"
 
-const timeSlots = [
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
-  "18:00",
-  "18:30",
-]
+function generateTimeSlots(start = "09:00", end = "21:00", stepMinutes = 30) {
+  const [startHour, startMinute] = start.split(":").map(Number)
+  const [endHour, endMinute] = end.split(":").map(Number)
+
+  const startTotalMinutes = startHour * 60 + startMinute
+  const endTotalMinutes = endHour * 60 + endMinute
+
+  const slots = []
+
+  for (
+    let totalMinutes = startTotalMinutes;
+    totalMinutes <= endTotalMinutes;
+    totalMinutes += stepMinutes
+  ) {
+    const hour = String(Math.floor(totalMinutes / 60)).padStart(2, "0")
+    const minute = String(totalMinutes % 60).padStart(2, "0")
+
+    slots.push(`${hour}:${minute}`)
+  }
+
+  return slots
+}
+
+const timeSlots = generateTimeSlots("09:00", "21:00", 30)
+
+function formatPrice(value) {
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(value || 0)
+}
+
+function formatDateForApi(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return `${year}-${month}-${day}`
+}
 
 function BookingPage() {
   const location = useLocation()
@@ -58,47 +79,37 @@ function BookingPage() {
 
   const params = new URLSearchParams(location.search)
   const serviceSlug = params.get("service")
+  const fromPage = params.get("from")
+
+  const currentUser = getCurrentUser()
 
   const customerInfo = {
-    fullName: "Nguyễn Thị Mai",
-    phone: "0901234567",
+    fullName: currentUser?.hoTen || "Khách hàng",
+    phone: currentUser?.sdt || currentUser?.email || "",
   }
 
-  const activeServices = useMemo(() => {
-    return services.filter((service) => service.isActive)
-  }, [])
-
-  const bookingCategories = useMemo(() => {
-    return serviceCategories.filter((category) => category && category !== "")
-  }, [])
-
-  const defaultService = useMemo(() => {
-    return (
-      activeServices.find((service) => service.slug === serviceSlug) ||
-      activeServices[0]
-    )
-  }, [activeServices, serviceSlug])
+  const [services, setServices] = useState([])
+  const [categories, setCategories] = useState([])
+  const [isLoadingServices, setIsLoadingServices] = useState(true)
 
   const [step, setStep] = useState(1)
   const [bookingSuccess, setBookingSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const [selectedServiceIds, setSelectedServiceIds] = useState(
-    defaultService?.id ? [defaultService.id] : []
-  )
+  const [selectedServiceIds, setSelectedServiceIds] = useState([])
 
   const [selectedDate, setSelectedDate] = useState(null)
   const [tempDate, setTempDate] = useState(null)
   const [openCalendar, setOpenCalendar] = useState(false)
 
   const [openServiceModal, setOpenServiceModal] = useState(false)
-  const [activeCategory, setActiveCategory] = useState(
-    defaultService?.category || "Tất cả"
-  )
+  const [activeCategory, setActiveCategory] = useState("Tất cả")
 
   const [selectedTime, setSelectedTime] = useState("")
   const [note, setNote] = useState("")
   const [peopleCount, setPeopleCount] = useState(1)
+
+  const [now, setNow] = useState(new Date())
 
   const [notice, setNotice] = useState({
     open: false,
@@ -123,6 +134,34 @@ function BookingPage() {
     }))
   }
 
+  const getBackPath = () => {
+    if (fromPage === "list") {
+      return "/dich-vu"
+    }
+
+    if (fromPage === "detail" && serviceSlug) {
+      return `/dich-vu/${serviceSlug}`
+    }
+
+    if (serviceSlug) {
+      return `/dich-vu/${serviceSlug}`
+    }
+
+    return "/dich-vu"
+  }
+
+  const handleBackToPreviousPage = () => {
+    navigate(getBackPath())
+  }
+
+  const activeServices = useMemo(() => {
+    return services.filter((service) => service.isActive)
+  }, [services])
+
+  const bookingCategories = useMemo(() => {
+    return ["Tất cả", ...categories.map((category) => category.tenDM)]
+  }, [categories])
+
   const selectedServices = useMemo(() => {
     return activeServices.filter((service) =>
       selectedServiceIds.some((id) => String(id) === String(service.id))
@@ -138,6 +177,75 @@ function BookingPage() {
   const totalDuration = selectedServices.reduce((sum, service) => {
     return sum + Number(service.duration || 0)
   }, 0)
+
+  const filteredServicesForModal = useMemo(() => {
+    const baseServices =
+      activeCategory === "Tất cả"
+        ? activeServices
+        : activeServices.filter((service) => service.category === activeCategory)
+
+    return [...baseServices].sort((a, b) => {
+      const aSelected = selectedServiceIds.some(
+        (id) => String(id) === String(a.id)
+      )
+
+      const bSelected = selectedServiceIds.some(
+        (id) => String(id) === String(b.id)
+      )
+
+      if (aSelected === bSelected) return 0
+
+      return aSelected ? -1 : 1
+    })
+  }, [activeServices, activeCategory, selectedServiceIds])
+
+  useEffect(() => {
+    const fetchBookingData = async () => {
+      try {
+        setIsLoadingServices(true)
+
+        const [categoryData, serviceData] = await Promise.all([
+          getServiceCategoriesApi(),
+          getServicesApi(),
+        ])
+
+        setCategories(categoryData)
+        setServices(serviceData)
+
+        const selectedService =
+          serviceData.find(
+            (service) => String(service.id) === String(serviceSlug)
+          ) || serviceData[0]
+
+        if (selectedService) {
+          setSelectedServiceIds([selectedService.id])
+          setActiveCategory(selectedService.category || "Tất cả")
+        }
+      } catch (error) {
+        console.error(error)
+
+        showNotice({
+          type: "warning",
+          title: "Không tải được dịch vụ",
+          message:
+            "Không thể tải danh sách dịch vụ từ hệ thống. Vui lòng kiểm tra backend.",
+        })
+      } finally {
+        setIsLoadingServices(false)
+      }
+    }
+
+    fetchBookingData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceSlug])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date())
+    }, 60000)
+
+    return () => clearInterval(timer)
+  }, [])
 
   const formatDurationText = (minutes) => {
     const total = Number(minutes || 0)
@@ -170,45 +278,35 @@ function BookingPage() {
     return `${weekday}, ${day}/${month}/${year}`
   }
 
-  const categoryPreviewMap = useMemo(() => {
-    const result = {}
+  const isSameDay = (dateA, dateB) => {
+    if (!dateA || !dateB) return false
 
-    bookingCategories.forEach((category) => {
-      if (category === "Tất cả") {
-        result[category] = activeServices[0]?.image || ""
-      } else {
-        result[category] =
-          activeServices.find((service) => service.category === category)
-            ?.image || ""
-      }
-    })
+    return (
+      dateA.getFullYear() === dateB.getFullYear() &&
+      dateA.getMonth() === dateB.getMonth() &&
+      dateA.getDate() === dateB.getDate()
+    )
+  }
 
-    return result
-  }, [bookingCategories, activeServices])
+  const isTimeSlotDisabled = (time) => {
+    if (!selectedDate) return true
 
-  const filteredServicesForModal = useMemo(() => {
-    const baseServices =
-      activeCategory === "Tất cả"
-        ? activeServices
-        : activeServices.filter((service) => service.category === activeCategory)
+    if (!isSameDay(selectedDate, now)) return false
 
-    return [...baseServices].sort((a, b) => {
-      const aSelected = selectedServiceIds.some(
-        (id) => String(id) === String(a.id)
-      )
+    const [hour, minute] = time.split(":").map(Number)
 
-      const bSelected = selectedServiceIds.some(
-        (id) => String(id) === String(b.id)
-      )
+    const slotDateTime = new Date(selectedDate)
+    slotDateTime.setHours(hour, minute, 0, 0)
 
-      if (aSelected === bSelected) return 0
+    return slotDateTime <= now
+  }
 
-      return aSelected ? 1 : -1
-    })
-  }, [activeServices, activeCategory, selectedServiceIds])
+  const hasAvailableTimeSlots = selectedDate
+    ? timeSlots.some((time) => !isTimeSlotDisabled(time))
+    : true
 
   const openServiceSelector = () => {
-    setActiveCategory(defaultService?.category || "Tất cả")
+    setActiveCategory(selectedServices[0]?.category || "Tất cả")
     setOpenServiceModal(true)
   }
 
@@ -276,16 +374,31 @@ function BookingPage() {
   }
 
   const handleContinue = () => {
-    if (selectedServices.length === 0 || !selectedDate || !selectedTime) {
+    if (isLoadingServices) {
       showNotice({
         type: "warning",
-        title: "Thiếu thông tin đặt lịch",
-        message:
-          "Vui lòng chọn đầy đủ dịch vụ, ngày và giờ hẹn trước khi tiếp tục.",
+        title: "Đang tải dịch vụ",
+        message: "Vui lòng chờ hệ thống tải xong danh sách dịch vụ.",
       })
 
       return
     }
+
+    if (
+      selectedServices.length === 0 ||
+      !selectedDate ||
+      !selectedTime ||
+      isTimeSlotDisabled(selectedTime)
+    ) {
+      showNotice({
+        type: "warning",
+        title: "Thiếu thông tin đặt lịch",
+        message:
+          "Vui lòng chọn đầy đủ dịch vụ, ngày và giờ hẹn hợp lệ trước khi tiếp tục.",
+      })
+
+    return
+  }
 
     setStep(2)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -296,42 +409,60 @@ function BookingPage() {
 
     if (isSubmitting) return
 
+    if (!currentUser?.maTK) {
+      showNotice({
+        type: "warning",
+        title: "Vui lòng đăng nhập",
+        message: "Bạn cần đăng nhập trước khi đặt lịch.",
+      })
+
+      setTimeout(() => {
+        navigate("/dang-nhap")
+      }, 900)
+
+      return
+    }
+
+    if (
+      selectedServices.length === 0 ||
+      !selectedDate ||
+      !selectedTime ||
+      isTimeSlotDisabled(selectedTime)
+    ) {
+      showNotice({
+        type: "warning",
+        title: "Thiếu thông tin đặt lịch",
+        message: "Vui lòng chọn đầy đủ dịch vụ, ngày và giờ hẹn hợp lệ.",
+      })
+
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
-      console.log({
-        lichHen: {
-          soLuongNguoi: peopleCount,
-          tongTien: finalTotalPrice,
-          tongThoiLuong: totalDuration,
-          ngayHen: selectedDate,
-          gioHen: selectedTime,
-          ghiChu: note,
-          trangThai: "Chờ xác nhận",
-        },
-        chiTietLichHen: selectedServices.map((service) => ({
-          idDichVu: service.id,
-          tenDichVu: service.title,
-          donGia: service.price,
-          thoiLuongPhut: service.duration,
-          soLuong: peopleCount,
-        })),
-      })
+      const payload = {
+        idTaiKhoan: currentUser.maTK,
+        ngayHen: formatDateForApi(selectedDate),
+        gioHen: selectedTime,
+        soLuongNguoi: peopleCount,
+        ghiChu: note.trim() || null,
+        dichVuIds: selectedServiceIds.map((id) => Number(id)),
+      }
 
-      // Giả lập thời gian gửi dữ liệu lên server
-      await new Promise((resolve) => setTimeout(resolve, 1200))
+      await createAppointmentApi(payload)
 
       setBookingSuccess(true)
       window.scrollTo({ top: 0, behavior: "smooth" })
-      } catch {
-        showNotice({
-          type: "warning",
-          title: "Đặt lịch thất bại",
-          message: "Có lỗi xảy ra khi đặt lịch. Vui lòng thử lại.",
-        })
-      } finally {
-        setIsSubmitting(false)
-      }
+    } catch (error) {
+      showNotice({
+        type: "warning",
+        title: "Đặt lịch thất bại",
+        message: error.message || "Có lỗi xảy ra khi đặt lịch. Vui lòng thử lại.",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (bookingSuccess) {
@@ -403,7 +534,7 @@ function BookingPage() {
             <button
               type="button"
               className="booking-success-secondary"
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/trang-chu")}
             >
               Về trang chủ
             </button>
@@ -459,6 +590,7 @@ function BookingPage() {
                       type="button"
                       className="btn-add-service"
                       onClick={openServiceSelector}
+                      disabled={isLoadingServices}
                     >
                       <Plus size={18} />
                       Thêm dịch vụ
@@ -478,42 +610,81 @@ function BookingPage() {
                       </div>
                     </div>
 
-                    {selectedServices.map((service) => (
-                      <div className="selected-service-item" key={service.id}>
+                    {isLoadingServices ? (
+                      <div className="selected-service-item">
                         <div className="service-info-left">
                           <div className="service-thumb">
-                            {service.image ? (
-                              <img src={service.image} alt={service.title} />
-                            ) : (
-                              <ShoppingBag size={26} />
-                            )}
+                            <Loader2
+                              size={26}
+                              className="booking-loading-icon"
+                            />
                           </div>
 
                           <div>
-                            <h4>{service.title}</h4>
-
-                            <p>
-                              {service.duration
-                                ? `Thời lượng: ${service.duration} phút`
-                                : "Dịch vụ chăm sóc sắc đẹp"}
-                            </p>
+                            <h4>Đang tải dịch vụ...</h4>
+                            <p>Vui lòng chờ trong giây lát</p>
                           </div>
                         </div>
 
-                        <div className="service-price">
-                          {formatPrice(service.price)}
+                        <div className="service-price">--</div>
+
+                        <span></span>
+                      </div>
+                    ) : selectedServices.length === 0 ? (
+                      <div className="selected-service-item">
+                        <div className="service-info-left">
+                          <div className="service-thumb">
+                            <ShoppingBag size={26} />
+                          </div>
+
+                          <div>
+                            <h4>Chưa chọn dịch vụ</h4>
+                            <p>Bấm “Thêm dịch vụ” để chọn dịch vụ đặt lịch</p>
+                          </div>
                         </div>
 
-                        <button
-                          type="button"
-                          className="btn-remove-service"
-                          onClick={() => handleRemoveService(service.id)}
-                        >
-                          <Trash2 size={18} />
-                          Xóa
-                        </button>
+                        <div className="service-price">--</div>
+
+                        <span></span>
                       </div>
-                    ))}
+                    ) : (
+                      selectedServices.map((service) => (
+                        <div className="selected-service-item" key={service.id}>
+                          <div className="service-info-left">
+                            <div className="service-thumb">
+                              {service.image ? (
+                                <img src={service.image} alt={service.title} />
+                              ) : (
+                                <ShoppingBag size={26} />
+                              )}
+                            </div>
+
+                            <div>
+                              <h4>{service.title}</h4>
+
+                              <p>
+                                {service.duration
+                                  ? `Thời lượng: ${service.duration} phút`
+                                  : "Dịch vụ chăm sóc sắc đẹp"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="service-price">
+                            {formatPrice(service.price)}
+                          </div>
+
+                          <button
+                            type="button"
+                            className="btn-remove-service"
+                            onClick={() => handleRemoveService(service.id)}
+                          >
+                            <Trash2 size={18} />
+                            Xóa
+                          </button>
+                        </div>
+                      ))
+                    )}
 
                     <div className="selected-service-total">
                       <span>
@@ -590,20 +761,35 @@ function BookingPage() {
                   </label>
 
                   <div className="booking-time-grid">
-                    {timeSlots.map((time) => (
-                      <button
-                        key={time}
-                        type="button"
-                        disabled={!selectedDate}
-                        className={`booking-time ${
-                          selectedTime === time ? "active" : ""
-                        }`}
-                        onClick={() => setSelectedTime(time)}
-                      >
-                        {time}
-                      </button>
-                    ))}
+                    {timeSlots.map((time) => {
+                      const disabled = isTimeSlotDisabled(time)
+
+                      return (
+                        <button
+                          key={time}
+                          type="button"
+                          disabled={disabled}
+                          className={`booking-time ${
+                            selectedTime === time ? "active" : ""
+                          }`}
+                          onClick={() => {
+                            if (!disabled) {
+                              setSelectedTime(time)
+                            }
+                          }}
+                        >
+                          {time}
+                        </button>
+                      )
+                    })}
                   </div>
+
+                  {selectedDate && !hasAvailableTimeSlots && (
+                    <p className="booking-time-note">
+                      Hôm nay đã hết khung giờ đặt lịch. Vui lòng chọn ngày
+                      khác.
+                    </p>
+                  )}
                 </div>
 
                 <div className="booking-field">
@@ -620,13 +806,25 @@ function BookingPage() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  className="booking-submit"
-                  onClick={handleContinue}
-                >
-                  Tiếp tục
-                </button>
+                <div className="booking-step-actions">
+                  <button
+                    type="button"
+                    className="booking-back-inline"
+                    onClick={handleBackToPreviousPage}
+                  >
+                    <ChevronLeft size={20} />
+                    Quay lại
+                  </button>
+
+                  <button
+                    type="button"
+                    className="booking-submit booking-submit-inline"
+                    onClick={handleContinue}
+                    disabled={isLoadingServices}
+                  >
+                    {isLoadingServices ? "Đang tải dịch vụ..." : "Tiếp tục"}
+                  </button>
+                </div>
               </>
             )}
 
@@ -642,8 +840,8 @@ function BookingPage() {
                     </div>
 
                     <div className="confirm-booking-row">
-                      <span>Số điện thoại</span>
-                      <strong>{customerInfo.phone}</strong>
+                      <span>Số điện thoại / Email</span>
+                      <strong>{customerInfo.phone || "Chưa cập nhật"}</strong>
                     </div>
 
                     <div className="confirm-booking-row">
@@ -669,11 +867,16 @@ function BookingPage() {
 
                     <div className="confirm-service-list-new">
                       {selectedServices.map((service) => (
-                        <div className="confirm-service-row-new" key={service.id}>
+                        <div
+                          className="confirm-service-row-new"
+                          key={service.id}
+                        >
                           <span>{service.title}</span>
 
                           <strong>
-                            {formatPrice(Number(service.price || 0) * peopleCount)}
+                            {formatPrice(
+                              Number(service.price || 0) * peopleCount
+                            )}
                           </strong>
                         </div>
                       ))}
@@ -707,6 +910,7 @@ function BookingPage() {
                     type="button"
                     className="btn-back"
                     onClick={() => setStep(1)}
+                    disabled={isSubmitting}
                   >
                     Quay lại
                   </button>
@@ -744,33 +948,24 @@ function BookingPage() {
             </button>
 
             <div className="service-modal-header">
-              <h3>Chọn dịch vụ cho lịch hẹn</h3>
-
+              <h3>Chọn thêm dịch vụ</h3>
               <p>
-                Chọn nhóm dịch vụ rồi nhấn vào dịch vụ tương ứng để thêm hoặc
-                bỏ dịch vụ trong lịch hẹn của bạn.
+                Bạn có thể chọn nhiều dịch vụ trong cùng một lịch hẹn. Hệ thống
+                sẽ tính tổng tiền dự kiến theo số lượng người.
               </p>
             </div>
 
-            <div className="service-category-tabs">
+            <div className="service-category-tabs service-category-tabs--text-only">
               {bookingCategories.map((category) => (
                 <button
-                  key={category}
                   type="button"
-                  className={`service-category-tab ${
+                  key={category}
+                  className={`service-category-tab service-category-tab--text-only ${
                     activeCategory === category ? "active" : ""
                   }`}
                   onClick={() => setActiveCategory(category)}
                 >
-                  <div className="service-category-thumb">
-                    {categoryPreviewMap[category] ? (
-                      <img src={categoryPreviewMap[category]} alt={category} />
-                    ) : (
-                      <span>{category.charAt(0)}</span>
-                    )}
-                  </div>
-
-                  <span>{category}</span>
+                  {category}
                 </button>
               ))}
             </div>
@@ -778,17 +973,24 @@ function BookingPage() {
             <div className="service-card-list">
               <div className="service-card-grid">
                 {filteredServicesForModal.map((service) => {
-                  const isAdded = selectedServiceIds.some(
+                  const isSelected = selectedServiceIds.some(
                     (id) => String(id) === String(service.id)
                   )
 
                   return (
                     <div
-                      className={`service-picker-card ${
-                        isAdded ? "is-added" : ""
-                      }`}
                       key={service.id}
+                      className={`service-picker-card ${
+                        isSelected ? "is-added" : ""
+                      }`}
                       onClick={() => handleToggleService(service.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleToggleService(service.id)
+                        }
+                      }}
                     >
                       <div className="service-picker-image">
                         {service.image ? (
@@ -804,17 +1006,17 @@ function BookingPage() {
                         <div className="service-picker-top">
                           <h4>{service.title}</h4>
 
-                          <div
+                          <span
                             className={`service-top-check ${
-                              isAdded ? "is-checked" : ""
+                              isSelected ? "is-checked" : ""
                             }`}
                           >
-                            {isAdded && <Check size={14} />}
-                          </div>
+                            <Check size={15} />
+                          </span>
                         </div>
 
                         <p className="service-picker-description">
-                          {service.description}
+                          {service.description || "Dịch vụ chăm sóc sắc đẹp"}
                         </p>
 
                         <div className="service-picker-meta">
@@ -822,16 +1024,14 @@ function BookingPage() {
                             {service.category}
                           </span>
 
-                          {service.duration && (
-                            <span className="service-picker-chip">
-                              {service.duration} phút
-                            </span>
-                          )}
+                          <span className="service-picker-chip">
+                            {service.duration} phút
+                          </span>
                         </div>
 
                         <div
                           className={`service-price-pill ${
-                            isAdded ? "is-checked" : ""
+                            isSelected ? "is-checked" : ""
                           }`}
                         >
                           {formatPrice(service.price)}
