@@ -1,30 +1,69 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { LogOut, PencilLine, Save, X } from "lucide-react"
+import { AlertCircle, Loader2, LogOut, PencilLine, Save, X } from "lucide-react"
 
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
 import AccountSidebar from "../../../components/AccountSidebar/AccountSidebar"
-// import FloatingChat from "../../../components/FloatingChat/FloatingChat"
+
+import { getCurrentUser, logout } from "../../../services/authApi"
+import {
+  getAccountProfileApi,
+  updateAccountProfileApi,
+} from "../../../services/accountApi"
 
 import "./AccountProfilePage.css"
 
-const initialProfile = {
+const emptyProfile = {
   avatar:
     "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80",
-  fullName: "Nguyễn Thị Mai",
-  email: "admin@gmail.com",
-  phone: "0901234567",
-  birthDate: "1995-08-15",
-  gender: "Nữ",
+  fullName: "",
+  email: "",
+  phone: "",
+  birthDate: "",
+  gender: "",
+}
+
+function syncProfileToStoredUser(updatedProfile) {
+  const localUser = localStorage.getItem("user")
+  const sessionUser = sessionStorage.getItem("user")
+
+  const storage = localUser ? localStorage : sessionUser ? sessionStorage : null
+
+  if (!storage) return
+
+  try {
+    const oldUser = JSON.parse(storage.getItem("user") || "{}")
+
+    const nextUser = {
+      ...oldUser,
+      hoTen: updatedProfile.fullName,
+      email: updatedProfile.email,
+      sdt: updatedProfile.phone,
+
+      // lưu cả 2 tên trường để Header đọc chắc chắn được
+      avatar: updatedProfile.avatar,
+      anhDaiDien: updatedProfile.avatar,
+    }
+
+    storage.setItem("user", JSON.stringify(nextUser))
+
+    window.dispatchEvent(new Event("auth-changed"))
+  } catch {
+    // Nếu dữ liệu user trong storage lỗi thì bỏ qua
+  }
 }
 
 function AccountProfilePage() {
   const navigate = useNavigate()
   const objectUrlRef = useRef("")
 
-  const [profile, setProfile] = useState(initialProfile)
-  const [formData, setFormData] = useState(initialProfile)
+  const [profile, setProfile] = useState(emptyProfile)
+  const [formData, setFormData] = useState(emptyProfile)
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [loadError, setLoadError] = useState("")
 
   const [isEditing, setIsEditing] = useState(false)
   const [errors, setErrors] = useState({})
@@ -34,6 +73,33 @@ function AccountProfilePage() {
   })
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false)
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const currentUser = getCurrentUser()
+
+      if (!currentUser?.maTK) {
+        navigate("/dang-nhap", { replace: true })
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        setLoadError("")
+
+        const data = await getAccountProfileApi(currentUser.maTK)
+
+        setProfile(data)
+        setFormData(data)
+      } catch (error) {
+        setLoadError(error.message || "Không thể tải thông tin cá nhân.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProfile()
+  }, [navigate])
 
   useEffect(() => {
     return () => {
@@ -60,9 +126,7 @@ function AccountProfilePage() {
       newErrors.phone = "Số điện thoại không hợp lệ."
     }
 
-    if (!formData.birthDate) {
-      newErrors.birthDate = "Vui lòng chọn ngày sinh."
-    } else {
+    if (formData.birthDate) {
       const selectedDate = new Date(formData.birthDate)
       const today = new Date()
 
@@ -98,6 +162,11 @@ function AccountProfilePage() {
       text: "",
     })
     setIsEditing(false)
+
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = ""
+    }
   }
 
   const handleInputChange = (event) => {
@@ -159,8 +228,15 @@ function AccountProfilePage() {
     })
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+
+    const currentUser = getCurrentUser()
+
+    if (!currentUser?.maTK) {
+      navigate("/dang-nhap", { replace: true })
+      return
+    }
 
     if (!validateForm()) {
       setMessage({
@@ -170,29 +246,52 @@ function AccountProfilePage() {
       return
     }
 
-    setProfile(formData)
-    setIsEditing(false)
-
-    setMessage({
-      type: "success",
-      text: "Cập nhật thông tin cá nhân thành công.",
-    })
-
-    /*
-      Khi nối backend, bạn thay phần setProfile phía trên bằng API:
+    try {
+      setIsSaving(true)
+      setMessage({
+        type: "",
+        text: "",
+      })
 
       const payload = new FormData()
-      payload.append("fullName", formData.fullName)
-      payload.append("phone", formData.phone)
-      payload.append("birthDate", formData.birthDate)
-      payload.append("gender", formData.gender)
+
+      payload.append("fullName", formData.fullName.trim())
+      payload.append("phone", formData.phone.trim())
+      payload.append("birthDate", formData.birthDate || "")
+      payload.append("gender", formData.gender || "")
 
       if (formData.avatarFile) {
         payload.append("avatar", formData.avatarFile)
       }
 
-      await updateProfileApi(payload)
-    */
+      const updatedProfile = await updateAccountProfileApi(
+        currentUser.maTK,
+        payload
+      )
+
+      setProfile(updatedProfile)
+      setFormData(updatedProfile)
+      setIsEditing(false)
+
+      syncProfileToStoredUser(updatedProfile)
+
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+        objectUrlRef.current = ""
+      }
+
+      setMessage({
+        type: "success",
+        text: "Cập nhật thông tin cá nhân thành công.",
+      })
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error.message || "Không thể cập nhật thông tin cá nhân.",
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleLogout = () => {
@@ -200,8 +299,7 @@ function AccountProfilePage() {
   }
 
   const confirmLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
+    logout()
     setShowLogoutPopup(false)
     navigate("/trang-chu")
   }
@@ -228,165 +326,208 @@ function AccountProfilePage() {
 
           <section className="account-profile-content">
             <div className="account-profile-card">
-              <div className="account-profile-card__top">
-                <div>
-                  <h1 className="account-profile-card__title">
-                    Thông tin cá nhân
-                  </h1>
-
-                  {isEditing && (
-                    <p className="account-profile-card__note">
-                      Bạn có thể cập nhật họ tên, số điện thoại, ngày sinh,
-                      giới tính và ảnh đại diện.
-                    </p>
-                  )}
+              {isLoading ? (
+                <div className="account-profile-loading">
+                  <Loader2 size={34} className="account-profile-loading-icon" />
+                  <h2>Đang tải thông tin cá nhân</h2>
+                  <p>Vui lòng chờ trong giây lát.</p>
                 </div>
+              ) : loadError ? (
+                <div className="account-profile-loading">
+                  <AlertCircle size={36} />
+                  <h2>Không thể tải thông tin</h2>
+                  <p>{loadError}</p>
 
-                {!isEditing && (
                   <button
                     type="button"
-                    className="account-profile-card__edit-btn"
-                    onClick={handleStartEdit}
+                    className="btn-save"
+                    onClick={() => window.location.reload()}
                   >
-                    <PencilLine size={18} />
-                    <span>Chỉnh sửa</span>
+                    Thử lại
                   </button>
-                )}
-              </div>
-
-              <div className="account-profile-card__divider"></div>
-
-              {message.text && (
-                <div
-                  className={`account-profile-card__message ${
-                    message.type === "success"
-                      ? "success"
-                      : message.type === "error"
-                      ? "error"
-                      : ""
-                  }`}
-                >
-                  {message.text}
                 </div>
+              ) : (
+                <>
+                  <div className="account-profile-card__top">
+                    <div>
+                      <h1 className="account-profile-card__title">
+                        Thông tin cá nhân
+                      </h1>
+
+                      {isEditing && (
+                        <p className="account-profile-card__note">
+                          Bạn có thể cập nhật họ tên, số điện thoại, ngày sinh,
+                          giới tính và ảnh đại diện.
+                        </p>
+                      )}
+                    </div>
+
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        className="account-profile-card__edit-btn"
+                        onClick={handleStartEdit}
+                      >
+                        <PencilLine size={18} />
+                        <span>Chỉnh sửa</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="account-profile-card__divider"></div>
+
+                  {message.text && (
+                    <div
+                      className={`account-profile-card__message ${
+                        message.type === "success"
+                          ? "success"
+                          : message.type === "error"
+                          ? "error"
+                          : ""
+                      }`}
+                    >
+                      {message.text}
+                    </div>
+                  )}
+
+                  <form
+                    className="account-profile-form"
+                    onSubmit={handleSubmit}
+                  >
+                    <div className="account-profile-form__grid">
+                      <div className="account-profile-form__group">
+                        <label htmlFor="fullName">Họ và tên</label>
+
+                        <input
+                          id="fullName"
+                          name="fullName"
+                          type="text"
+                          value={formData.fullName}
+                          onChange={handleInputChange}
+                          disabled={!isEditing || isSaving}
+                          placeholder="Nhập họ và tên"
+                        />
+
+                        {errors.fullName && (
+                          <span className="form-error">{errors.fullName}</span>
+                        )}
+                      </div>
+
+                      <div className="account-profile-form__group">
+                        <label htmlFor="email">Email</label>
+
+                        <input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          disabled
+                          className="readonly-input"
+                        />
+                      </div>
+
+                      <div className="account-profile-form__group">
+                        <label htmlFor="phone">Số điện thoại</label>
+
+                        <input
+                          id="phone"
+                          name="phone"
+                          type="text"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          disabled={!isEditing || isSaving}
+                          placeholder="Nhập số điện thoại"
+                        />
+
+                        {errors.phone && (
+                          <span className="form-error">{errors.phone}</span>
+                        )}
+                      </div>
+
+                      <div className="account-profile-form__group">
+                        <label htmlFor="birthDate">Ngày sinh</label>
+
+                        <input
+                          id="birthDate"
+                          name="birthDate"
+                          type="date"
+                          value={formData.birthDate}
+                          onChange={handleInputChange}
+                          disabled={!isEditing || isSaving}
+                        />
+
+                        {errors.birthDate && (
+                          <span className="form-error">
+                            {errors.birthDate}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="account-profile-form__group account-profile-form__group--half">
+                        <label htmlFor="gender">Giới tính</label>
+
+                        <select
+                          id="gender"
+                          name="gender"
+                          value={formData.gender}
+                          onChange={handleInputChange}
+                          disabled={!isEditing || isSaving}
+                        >
+                          <option value="">-- Chọn giới tính --</option>
+                          <option value="Nam">Nam</option>
+                          <option value="Nữ">Nữ</option>
+                          <option value="Khác">Khác</option>
+                        </select>
+
+                        {errors.gender && (
+                          <span className="form-error">{errors.gender}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {isEditing && (
+                      <div className="account-profile-form__actions">
+                        <button
+                          type="button"
+                          className="btn-cancel"
+                          onClick={handleCancelEdit}
+                          disabled={isSaving}
+                        >
+                          <X size={18} />
+                          <span>Hủy</span>
+                        </button>
+
+                        <button
+                          type="submit"
+                          className="btn-save"
+                          disabled={isSaving}
+                        >
+                          {isSaving ? (
+                            <>
+                              <Loader2
+                                size={18}
+                                className="account-profile-loading-icon"
+                              />
+                              <span>Đang lưu...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save size={18} />
+                              <span>Lưu</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </form>
+                </>
               )}
-
-              <form className="account-profile-form" onSubmit={handleSubmit}>
-                <div className="account-profile-form__grid">
-                  <div className="account-profile-form__group">
-                    <label htmlFor="fullName">Họ và tên</label>
-
-                    <input
-                      id="fullName"
-                      name="fullName"
-                      type="text"
-                      value={formData.fullName}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      placeholder="Nhập họ và tên"
-                    />
-
-                    {errors.fullName && (
-                      <span className="form-error">{errors.fullName}</span>
-                    )}
-                  </div>
-
-                  <div className="account-profile-form__group">
-                    <label htmlFor="email">Email (Không thể thay đổi)</label>
-
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      readOnly
-                      className="readonly-input"
-                    />
-                  </div>
-
-                  <div className="account-profile-form__group">
-                    <label htmlFor="phone">Số điện thoại</label>
-
-                    <input
-                      id="phone"
-                      name="phone"
-                      type="text"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                      placeholder="Nhập số điện thoại"
-                    />
-
-                    {errors.phone && (
-                      <span className="form-error">{errors.phone}</span>
-                    )}
-                  </div>
-
-                  <div className="account-profile-form__group">
-                    <label htmlFor="birthDate">Ngày sinh</label>
-
-                    <input
-                      id="birthDate"
-                      name="birthDate"
-                      type="date"
-                      value={formData.birthDate}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                    />
-
-                    {errors.birthDate && (
-                      <span className="form-error">{errors.birthDate}</span>
-                    )}
-                  </div>
-
-                  <div className="account-profile-form__group account-profile-form__group--half">
-                    <label htmlFor="gender">Giới tính</label>
-
-                    <select
-                      id="gender"
-                      name="gender"
-                      value={formData.gender}
-                      onChange={handleInputChange}
-                      disabled={!isEditing}
-                    >
-                      <option value="">-- Chọn giới tính --</option>
-                      <option value="Nam">Nam</option>
-                      <option value="Nữ">Nữ</option>
-                      <option value="Khác">Khác</option>
-                    </select>
-
-                    {errors.gender && (
-                      <span className="form-error">{errors.gender}</span>
-                    )}
-                  </div>
-                </div>
-
-                {isEditing && (
-                  <div className="account-profile-form__actions">
-                    <button
-                      type="button"
-                      className="btn-cancel"
-                      onClick={handleCancelEdit}
-                    >
-                      <X size={18} />
-                      <span>Hủy</span>
-                    </button>
-
-                    <button type="submit" className="btn-save">
-                      <Save size={18} />
-                      <span>Lưu</span>
-                    </button>
-                  </div>
-                )}
-              </form>
             </div>
           </section>
         </div>
       </main>
 
       <Footer />
-
-      {/* Nếu bạn có FloatingChat giống trang lịch hẹn thì mở dòng này */}
-      {/* <FloatingChat /> */}
 
       {showLogoutPopup && (
         <div className="logout-popup-overlay">

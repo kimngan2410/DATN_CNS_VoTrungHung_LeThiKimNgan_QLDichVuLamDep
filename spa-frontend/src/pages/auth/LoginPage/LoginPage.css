@@ -830,3 +830,61 @@
     transform: translateY(0) scale(1);
   }
 }
+
+/* =========================
+   Remember login checkbox
+========================= */
+
+.login-form__options {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.login-form__remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #5d5753;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.login-form__remember input {
+  display: none;
+}
+
+.login-form__remember-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.6px solid #ddd8d2;
+  background: #ffffff;
+  position: relative;
+  transition: 0.2s ease;
+}
+
+.login-form__remember input:checked + .login-form__remember-box {
+  background: #d4a437;
+  border-color: #d4a437;
+}
+
+.login-form__remember input:checked + .login-form__remember-box::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.login-form__remember:hover .login-form__remember-box {
+  border-color: #d4a437;
+  box-shadow: 0 0 0 3px rgba(212, 164, 55, 0.12);
+}

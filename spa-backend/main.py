@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api.v1.api import api_router
@@ -14,6 +17,14 @@ app = FastAPI(
     version="1.0.0",
     description="Backend API cho hệ thống quản lý dịch vụ làm đẹp Serenity Spa",
 )
+
+# Tạo thư mục uploads nếu chưa có
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Cho phép truy cập file upload qua URL:
+# http://127.0.0.1:8000/uploads/...
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Cấu hình CORS để frontend React gọi được backend
 app.add_middleware(

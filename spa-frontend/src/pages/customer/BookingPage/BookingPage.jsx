@@ -15,7 +15,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Check,
-  Users,
   Loader2,
 } from "lucide-react"
 
@@ -80,6 +79,7 @@ function BookingPage() {
   const params = new URLSearchParams(location.search)
   const serviceSlug = params.get("service")
   const fromPage = params.get("from")
+  const initialQuantity = Math.max(1, Number(params.get("quantity") || 1))
 
   const currentUser = getCurrentUser()
 
@@ -94,9 +94,11 @@ function BookingPage() {
 
   const [step, setStep] = useState(1)
   const [bookingSuccess, setBookingSuccess] = useState(false)
+  const [bookingResult, setBookingResult] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [selectedServiceIds, setSelectedServiceIds] = useState([])
+  const [serviceQuantities, setServiceQuantities] = useState({})
 
   const [selectedDate, setSelectedDate] = useState(null)
   const [tempDate, setTempDate] = useState(null)
@@ -107,8 +109,6 @@ function BookingPage() {
 
   const [selectedTime, setSelectedTime] = useState("")
   const [note, setNote] = useState("")
-  const [peopleCount, setPeopleCount] = useState(1)
-
   const [now, setNow] = useState(new Date())
 
   const [notice, setNotice] = useState({
@@ -168,11 +168,17 @@ function BookingPage() {
     )
   }, [activeServices, selectedServiceIds])
 
-  const totalPrice = selectedServices.reduce((sum, service) => {
-    return sum + Number(service.price || 0)
+  const getServiceQuantity = (serviceId) => {
+    return Math.max(1, Number(serviceQuantities[String(serviceId)] || 1))
+  }
+
+  const finalTotalPrice = selectedServices.reduce((sum, service) => {
+    return sum + Number(service.price || 0) * getServiceQuantity(service.id)
   }, 0)
 
-  const finalTotalPrice = totalPrice * peopleCount
+  const totalPeopleCount = selectedServices.reduce((sum, service) => {
+    return sum + getServiceQuantity(service.id)
+  }, 0)
 
   const totalDuration = selectedServices.reduce((sum, service) => {
     return sum + Number(service.duration || 0)
@@ -219,6 +225,9 @@ function BookingPage() {
 
         if (selectedService) {
           setSelectedServiceIds([selectedService.id])
+          setServiceQuantities({
+            [String(selectedService.id)]: initialQuantity,
+          })
           setActiveCategory(selectedService.category || "Tất cả")
         }
       } catch (error) {
@@ -237,7 +246,7 @@ function BookingPage() {
 
     fetchBookingData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceSlug])
+  }, [serviceSlug, initialQuantity])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -318,6 +327,11 @@ function BookingPage() {
 
       return [...prev, serviceId]
     })
+
+    setServiceQuantities((prev) => ({
+      ...prev,
+      [String(serviceId)]: prev[String(serviceId)] || 1,
+    }))
   }
 
   const handleRemoveService = (serviceId) => {
@@ -334,6 +348,12 @@ function BookingPage() {
     setSelectedServiceIds((prev) =>
       prev.filter((id) => String(id) !== String(serviceId))
     )
+
+    setServiceQuantities((prev) => {
+      const next = { ...prev }
+      delete next[String(serviceId)]
+      return next
+    })
   }
 
   const handleToggleService = (serviceId) => {
@@ -349,15 +369,28 @@ function BookingPage() {
     handleAddService(serviceId)
   }
 
-  const handleDecreasePeople = () => {
-    setPeopleCount((prev) => {
-      if (prev <= 1) return 1
-      return prev - 1
+  const handleDecreaseServiceQuantity = (serviceId) => {
+    setServiceQuantities((prev) => {
+      const key = String(serviceId)
+      const currentValue = Math.max(1, Number(prev[key] || 1))
+
+      return {
+        ...prev,
+        [key]: currentValue <= 1 ? 1 : currentValue - 1,
+      }
     })
   }
 
-  const handleIncreasePeople = () => {
-    setPeopleCount((prev) => prev + 1)
+  const handleIncreaseServiceQuantity = (serviceId) => {
+    setServiceQuantities((prev) => {
+      const key = String(serviceId)
+      const currentValue = Math.max(1, Number(prev[key] || 1))
+
+      return {
+        ...prev,
+        [key]: currentValue + 1,
+      }
+    })
   }
 
   const openDateModal = () => {
@@ -368,7 +401,10 @@ function BookingPage() {
   const applyDate = () => {
     if (!tempDate) return
 
-    setSelectedDate(tempDate)
+    const pickedDate = new Date(tempDate)
+    pickedDate.setHours(0, 0, 0, 0)
+
+    setSelectedDate(pickedDate)
     setSelectedTime("")
     setOpenCalendar(false)
   }
@@ -397,8 +433,8 @@ function BookingPage() {
           "Vui lòng chọn đầy đủ dịch vụ, ngày và giờ hẹn hợp lệ trước khi tiếp tục.",
       })
 
-    return
-  }
+      return
+    }
 
     setStep(2)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -445,13 +481,16 @@ function BookingPage() {
         idTaiKhoan: currentUser.maTK,
         ngayHen: formatDateForApi(selectedDate),
         gioHen: selectedTime,
-        soLuongNguoi: peopleCount,
         ghiChu: note.trim() || null,
-        dichVuIds: selectedServiceIds.map((id) => Number(id)),
+        dichVuItems: selectedServiceIds.map((id) => ({
+          idDichVu: Number(id),
+          soLuong: getServiceQuantity(id),
+        })),
       }
 
-      await createAppointmentApi(payload)
+      const result = await createAppointmentApi(payload)
 
+      setBookingResult(result)
       setBookingSuccess(true)
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (error) {
@@ -483,6 +522,18 @@ function BookingPage() {
               nhận. Chúng tôi sẽ liên hệ sớm nhất.
             </p>
 
+            {bookingResult?.emailThongBao && (
+              <div
+                className={`booking-success-email-card ${
+                  bookingResult.emailDaGui
+                    ? "booking-success-email-card--success"
+                    : "booking-success-email-card--warning"
+                }`}
+              >
+                {bookingResult.emailThongBao}
+              </div>
+            )}
+
             <div className="booking-success-info">
               <div className="success-info-row success-info-row-full">
                 <span>Dịch vụ</span>
@@ -490,7 +541,7 @@ function BookingPage() {
                 <div className="success-service-list">
                   {selectedServices.map((service) => (
                     <div key={service.id} className="success-service-item">
-                      {service.title}
+                      {service.title} x {getServiceQuantity(service.id)}
                     </div>
                   ))}
                 </div>
@@ -512,8 +563,8 @@ function BookingPage() {
 
               <div className="success-info-grid">
                 <div>
-                  <span>Số lượng người</span>
-                  <strong>{peopleCount} người</strong>
+                  <span>Tổng lượt dịch vụ</span>
+                  <strong>{totalPeopleCount} lượt</strong>
                 </div>
 
                 <div>
@@ -605,7 +656,8 @@ function BookingPage() {
                       </div>
 
                       <div className="selected-service-columns">
-                        <span>Đơn giá</span>
+                        <span>Thành tiền</span>
+                        <span>Số lượng</span>
                         <span>Thao tác</span>
                       </div>
                     </div>
@@ -627,7 +679,7 @@ function BookingPage() {
                         </div>
 
                         <div className="service-price">--</div>
-
+                        <span></span>
                         <span></span>
                       </div>
                     ) : selectedServices.length === 0 ? (
@@ -644,7 +696,7 @@ function BookingPage() {
                         </div>
 
                         <div className="service-price">--</div>
-
+                        <span></span>
                         <span></span>
                       </div>
                     ) : (
@@ -671,7 +723,33 @@ function BookingPage() {
                           </div>
 
                           <div className="service-price">
-                            {formatPrice(service.price)}
+                            {formatPrice(
+                              Number(service.price || 0) *
+                                getServiceQuantity(service.id)
+                            )}
+                          </div>
+
+                          <div className="service-quantity-control">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDecreaseServiceQuantity(service.id)
+                              }
+                              disabled={getServiceQuantity(service.id) <= 1}
+                            >
+                              <Minus size={14} />
+                            </button>
+
+                            <span>{getServiceQuantity(service.id)}</span>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleIncreaseServiceQuantity(service.id)
+                              }
+                            >
+                              <Plus size={14} />
+                            </button>
                           </div>
 
                           <button
@@ -688,49 +766,11 @@ function BookingPage() {
 
                     <div className="selected-service-total">
                       <span>
-                        Tổng cộng ({selectedServices.length} dịch vụ x{" "}
-                        {peopleCount} người):
+                        Tổng cộng ({selectedServices.length} dịch vụ,{" "}
+                        {totalPeopleCount} lượt):
                       </span>
 
                       <strong>{formatPrice(finalTotalPrice)}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="booking-field">
-                  <label>
-                    Số lượng người <span>*</span>
-                  </label>
-
-                  <div className="people-count-box">
-                    <div className="people-count-info">
-                      <Users size={22} />
-
-                      <div>
-                        <h4>Số khách sử dụng dịch vụ</h4>
-                        <p>Chọn số lượng người đi cùng trong lịch hẹn này</p>
-                      </div>
-                    </div>
-
-                    <div className="people-count-control">
-                      <button
-                        type="button"
-                        className="people-count-btn"
-                        onClick={handleDecreasePeople}
-                        disabled={peopleCount <= 1}
-                      >
-                        <Minus size={18} />
-                      </button>
-
-                      <span className="people-count-number">{peopleCount}</span>
-
-                      <button
-                        type="button"
-                        className="people-count-btn"
-                        onClick={handleIncreasePeople}
-                      >
-                        <Plus size={18} />
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -845,8 +885,8 @@ function BookingPage() {
                     </div>
 
                     <div className="confirm-booking-row">
-                      <span>Số lượng người</span>
-                      <strong>{peopleCount}</strong>
+                      <span>Tổng lượt dịch vụ</span>
+                      <strong>{totalPeopleCount}</strong>
                     </div>
 
                     <div className="confirm-booking-row">
@@ -871,11 +911,14 @@ function BookingPage() {
                           className="confirm-service-row-new"
                           key={service.id}
                         >
-                          <span>{service.title}</span>
+                          <span>
+                            {service.title} x {getServiceQuantity(service.id)}
+                          </span>
 
                           <strong>
                             {formatPrice(
-                              Number(service.price || 0) * peopleCount
+                              Number(service.price || 0) *
+                                getServiceQuantity(service.id)
                             )}
                           </strong>
                         </div>
@@ -951,7 +994,7 @@ function BookingPage() {
               <h3>Chọn thêm dịch vụ</h3>
               <p>
                 Bạn có thể chọn nhiều dịch vụ trong cùng một lịch hẹn. Hệ thống
-                sẽ tính tổng tiền dự kiến theo số lượng người.
+                sẽ tính tổng tiền dự kiến theo số lượng của từng dịch vụ.
               </p>
             </div>
 

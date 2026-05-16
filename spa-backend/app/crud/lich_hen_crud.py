@@ -8,6 +8,8 @@ from app.models.chi_tiet_lich_hen import ChiTietLichHen
 from app.models.dich_vu import DichVu
 from app.models.lich_hen import LichHen
 from app.models.tai_khoan import TaiKhoan
+from app.models.khach_hang import KhachHang
+from app.services.booking_email_service import send_booking_success_email
 
 
 ACTIVE_SERVICE_STATUSES = [
@@ -128,7 +130,7 @@ def check_customer_time_conflict(
 
 
 def create_booking(db: Session, payload):
-    validate_account(db, payload.idTaiKhoan)
+    tai_khoan = validate_account(db, payload.idTaiKhoan)
 
     start_time = parse_booking_datetime(payload.ngayHen, payload.gioHen)
 
@@ -137,8 +139,15 @@ def create_booking(db: Session, payload):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Không thể đặt lịch ở thời gian đã qua",
         )
+    booking_items = payload.dichVuItems
 
-    services = get_valid_services(db, payload.dichVuIds)
+    service_ids = [item.idDichVu for item in booking_items]
+    quantity_map = {
+        int(item.idDichVu): int(item.soLuong or 1)
+        for item in booking_items
+    }
+
+    services = get_valid_services(db, service_ids)
 
     total_duration = sum(int(service.thoiLuongPhut or 0) for service in services)
 
@@ -177,7 +186,7 @@ def create_booking(db: Session, payload):
 
         for service in services:
             don_gia = float(service.gia or 0)
-            so_luong = int(payload.soLuongNguoi or 1)
+            so_luong = quantity_map.get(int(service.idDichVu), 1)
             thanh_tien = don_gia * so_luong
             tong_tien += thanh_tien
 
@@ -205,7 +214,9 @@ def create_booking(db: Session, payload):
         db.commit()
         db.refresh(lich_hen)
 
-        return {
+        tong_so_luong = sum(quantity_map.values())
+
+        booking_response = {
             "idLichHen": int(lich_hen.idLichHen),
             "maLH": lich_hen.maLH,
             "idTaiKhoan": int(lich_hen.idTaiKhoan),
@@ -217,12 +228,37 @@ def create_booking(db: Session, payload):
             ),
             "trangThai": lich_hen.trangThai,
             "ghiChu": lich_hen.ghiChu,
-            "soLuongNguoi": int(payload.soLuongNguoi or 1),
+            "soLuongNguoi": tong_so_luong,
             "tongTienDuKien": tong_tien,
             "tongThoiLuong": total_duration,
             "chiTietLichHen": chi_tiet_output,
             "message": "Đặt lịch thành công",
+            "emailDaGui": False,
+            "emailThongBao": None,
         }
+
+        khach_hang = (
+            db.query(KhachHang)
+            .filter(KhachHang.idTaiKhoan == payload.idTaiKhoan)
+            .first()
+        )
+
+        customer_name = (
+            khach_hang.hoTen
+            if khach_hang and khach_hang.hoTen
+            else tai_khoan.email.split("@")[0]
+        )
+
+        email_da_gui, email_thong_bao = send_booking_success_email(
+            to_email=tai_khoan.email,
+            customer_name=customer_name,
+            booking_data=booking_response,
+        )
+
+        booking_response["emailDaGui"] = email_da_gui
+        booking_response["emailThongBao"] = email_thong_bao
+
+        return booking_response
 
     except HTTPException:
         db.rollback()

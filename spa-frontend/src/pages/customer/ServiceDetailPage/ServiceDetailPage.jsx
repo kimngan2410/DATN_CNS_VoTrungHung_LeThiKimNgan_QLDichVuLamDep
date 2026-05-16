@@ -4,6 +4,8 @@ import {
   AlertCircle,
   Clock,
   Loader2,
+  Minus,
+  Plus,
   ShieldCheck,
   Sparkles,
   Star,
@@ -46,6 +48,7 @@ function ServiceDetailPage() {
   const [selectedImage, setSelectedImage] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
+  const [serviceQuantity, setServiceQuantity] = useState(1)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -128,6 +131,17 @@ function ServiceDetailPage() {
     ))
   }
 
+  const handleDecreaseQuantity = () => {
+    setServiceQuantity((prev) => {
+      if (prev <= 1) return 1
+      return prev - 1
+    })
+  }
+
+  const handleIncreaseQuantity = () => {
+    setServiceQuantity((prev) => prev + 1)
+  }
+
   const handleBookingNow = () => {
     const currentUser = getCurrentUser()
 
@@ -136,7 +150,7 @@ function ServiceDetailPage() {
       return
     }
 
-    navigate(`/dat-lich?service=${service.id}&from=detail`)
+    navigate(`/dat-lich?service=${service.id}&quantity=${serviceQuantity}&from=detail`)
   }
 
   if (isLoading) {
@@ -281,6 +295,26 @@ function ServiceDetailPage() {
 
                     <div className="value price">
                       <strong>{formatPrice(service.price)}</strong>
+                    </div>
+                  </div>
+
+                  <div className="service-summary__item service-summary__item--quantity">
+                    <span className="label">Số lượng người</span>
+
+                    <div className="service-detail-quantity__control">
+                      <button
+                        type="button"
+                        onClick={handleDecreaseQuantity}
+                        disabled={serviceQuantity <= 1}
+                      >
+                        <Minus size={16} />
+                      </button>
+
+                      <strong>{serviceQuantity}</strong>
+
+                      <button type="button" onClick={handleIncreaseQuantity}>
+                        <Plus size={16} />
+                      </button>
                     </div>
                   </div>
                 </div>

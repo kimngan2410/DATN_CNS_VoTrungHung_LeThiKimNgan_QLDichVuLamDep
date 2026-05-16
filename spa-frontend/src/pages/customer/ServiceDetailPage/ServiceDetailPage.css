@@ -203,47 +203,52 @@
   line-height: 1.7;
 }
 
-.service-summary{
-display:flex;
-gap:90px;
-padding:30px 0;
-margin-top:28px;
-border-top:1px solid #eee6de;
-border-bottom:1px solid #eee6de;
+.service-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 34px;
+  padding: 30px 0;
+  margin-top: 28px;
+  border-top: 1px solid #eee6de;
+  border-bottom: 1px solid #eee6de;
 }
 
-.service-summary__item{
-display:flex;
-flex-direction:column;
-gap:12px;
+.service-summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.service-summary__item--quantity {
+  align-items: flex-start;
 }
 
 .service-summary .label{
-font-size:16px;
-font-weight:500;
-color:#6f6761;
+  font-size:16px;
+  font-weight:500;
+  color:#6f6761;
 }
 
 .service-summary .value{
-display:flex;
-align-items:center;
-gap:10px;
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
 .service-summary .duration svg{
-color:#d4a437;
+  color:#d4a437;
 }
 
 .service-summary .duration strong{
-font-size:22px;
-font-weight:600;
-color:#20233b;
+  font-size:22px;
+  font-weight:600;
+  color:#20233b;
 }
 
 .service-summary .price strong{
-font-size:28px;
-font-weight:600;
-color:#d4a437;
+  font-size:28px;
+  font-weight:600;
+  color:#d4a437;
 }
 
 .service-info__commitments {
@@ -539,5 +544,57 @@ button.service-info__book {
 @keyframes service-detail-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+.service-detail-quantity__control {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.service-detail-quantity__control button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #ead8c5;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #4f4945;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.service-detail-quantity__control button:hover {
+  border-color: #d4a437;
+  background: #fff7e6;
+  color: #b38322;
+}
+
+.service-detail-quantity__control button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.service-detail-quantity__control strong {
+  min-width: 34px;
+  height: 36px;
+  border-radius: 999px;
+  background: #fff7e6;
+  color: #b38322;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .service-summary {
+    grid-template-columns: 1fr;
+    gap: 22px;
   }
 }

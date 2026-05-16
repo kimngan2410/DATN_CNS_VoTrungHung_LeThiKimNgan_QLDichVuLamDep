@@ -130,16 +130,32 @@ export async function forgotPasswordResetApi(payload) {
   return handleResponse(response, "Không thể đặt lại mật khẩu")
 }
 
-export function saveAuthData(data) {
-  localStorage.setItem("token", data.access_token)
-  localStorage.setItem("user", JSON.stringify(data.user))
+export function saveAuthData(data, rememberMe = true) {
+  localStorage.removeItem("token")
+  localStorage.removeItem("user")
+  sessionStorage.removeItem("token")
+  sessionStorage.removeItem("user")
+
+  const storage = rememberMe ? localStorage : sessionStorage
+
+  storage.setItem("token", data.access_token)
+  storage.setItem("user", JSON.stringify(data.user))
+
+  localStorage.setItem("authStorageMode", rememberMe ? "local" : "session")
 
   window.dispatchEvent(new Event("auth-changed"))
 }
 
+export function getAuthToken() {
+  return localStorage.getItem("token") || sessionStorage.getItem("token")
+}
+
 export function getCurrentUser() {
   try {
-    return JSON.parse(localStorage.getItem("user") || "null")
+    const savedUser =
+      localStorage.getItem("user") || sessionStorage.getItem("user")
+
+    return JSON.parse(savedUser || "null")
   } catch {
     return null
   }
@@ -148,6 +164,10 @@ export function getCurrentUser() {
 export function logout() {
   localStorage.removeItem("token")
   localStorage.removeItem("user")
+  localStorage.removeItem("authStorageMode")
+
+  sessionStorage.removeItem("token")
+  sessionStorage.removeItem("user")
 
   window.dispatchEvent(new Event("auth-changed"))
 }

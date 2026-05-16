@@ -108,7 +108,12 @@ function Header() {
     }, 3000)
   }
 
-  const avatarUrl = currentUser?.avatar || DEFAULT_AVATAR
+  const avatarUrl =
+    currentUser?.avatar ||
+    currentUser?.anhDaiDien ||
+    currentUser?.avatarUrl ||
+    DEFAULT_AVATAR
+    
   const userName = currentUser?.hoTen || "Tài khoản"
   const userEmail = currentUser?.email || "email@gmail.com"
 

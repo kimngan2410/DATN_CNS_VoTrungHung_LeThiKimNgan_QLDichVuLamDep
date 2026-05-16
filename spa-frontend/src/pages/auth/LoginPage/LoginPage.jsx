@@ -43,9 +43,18 @@ function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false)
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem("rememberMe") === "true"
+  })
+
+  const [formData, setFormData] = useState(() => {
+    const savedRememberMe = localStorage.getItem("rememberMe") === "true"
+    const savedEmail = localStorage.getItem("rememberedEmail") || ""
+
+    return {
+      email: savedRememberMe ? savedEmail : "",
+      password: "",
+    }
   })
 
   const [showForgotModal, setShowForgotModal] = useState(false)
@@ -96,7 +105,8 @@ function LoginPage() {
   )
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user")
+    const savedUser =
+      localStorage.getItem("user") || sessionStorage.getItem("user")
 
     if (!savedUser) return
 
@@ -106,8 +116,10 @@ function LoginPage() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       redirectByRole(user, "Bạn đã đăng nhập. Đang chuyển đến trang chủ...")
     } catch {
-      localStorage.removeItem("user")
-      localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        localStorage.removeItem("token")
+        sessionStorage.removeItem("user")
+        sessionStorage.removeItem("token")
     }
 
     return () => {
@@ -158,12 +170,22 @@ function LoginPage() {
     try {
       setIsLoggingIn(true)
 
+      const loginEmail = formData.email.trim().toLowerCase()
+
       const data = await loginApi({
-        email: formData.email.trim(),
+        email: loginEmail,
         password: formData.password,
       })
 
-      saveAuthData(data)
+      if (rememberMe) {
+        localStorage.setItem("rememberMe", "true")
+        localStorage.setItem("rememberedEmail", loginEmail)
+      } else {
+        localStorage.removeItem("rememberMe")
+        localStorage.removeItem("rememberedEmail")
+      }
+
+      saveAuthData(data, rememberMe)
       redirectByRole(data.user, "Đăng nhập thành công. Đang chuyển trang...")
     } catch (error) {
       setLoginError(error.message || "Đăng nhập thất bại.")
@@ -493,6 +515,21 @@ function LoginPage() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+            </div>
+
+            <div className="login-form__options">
+              <label className="login-form__remember">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoggingIn || isEnteringHome}
+                />
+
+                <span className="login-form__remember-box"></span>
+
+                <span>Ghi nhớ đăng nhập</span>
+              </label>
             </div>
 
             {loginError && <div className="login-form__error">{loginError}</div>}
