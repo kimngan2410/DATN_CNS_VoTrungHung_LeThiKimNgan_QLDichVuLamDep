@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useMemo, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   User,
@@ -11,17 +11,34 @@ import {
 
 import "./AccountSidebar.css"
 
+const DEFAULT_AVATAR =
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80"
+
 function AccountSidebar({
   activeMenu = "profile",
-  profileData,
+  profileData = {},
   appointmentCount = 0,
   onAvatarChange,
   onLogout,
+  isAvatarUploading = false,
 }) {
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
 
+  const avatarSrc = useMemo(() => {
+    return profileData?.avatar || profileData?.anhDaiDien || DEFAULT_AVATAR
+  }, [profileData?.avatar, profileData?.anhDaiDien])
+
+  const fullName = useMemo(() => {
+    return profileData?.fullName || profileData?.hoTen || "Khách hàng"
+  }, [profileData?.fullName, profileData?.hoTen])
+
+  const email = useMemo(() => {
+    return profileData?.email || ""
+  }, [profileData?.email])
+
   const handleChooseAvatar = () => {
+    if (isAvatarUploading) return
     fileInputRef.current?.click()
   }
 
@@ -37,23 +54,37 @@ function AccountSidebar({
     event.target.value = ""
   }
 
+  const handleAvatarError = (event) => {
+    if (event.currentTarget.src !== DEFAULT_AVATAR) {
+      event.currentTarget.src = DEFAULT_AVATAR
+    }
+  }
+
   return (
     <aside className="account-sidebar">
       <div className="account-user-card">
         <div className="account-avatar-wrap">
-          <img
-            src={profileData.avatar}
-            alt={profileData.fullName}
-            className="account-avatar"
-          />
+          {isAvatarUploading ? (
+            <div className="account-avatar-skeleton"></div>
+          ) : (
+            <img
+              src={avatarSrc}
+              alt={fullName}
+              className="account-avatar"
+              onError={handleAvatarError}
+            />
+          )}
 
           <button
             type="button"
-            className="account-avatar-btn"
+            className={`account-avatar-btn ${
+              isAvatarUploading ? "account-avatar-btn--loading" : ""
+            }`}
             onClick={handleChooseAvatar}
             title="Đổi ảnh đại diện"
+            disabled={isAvatarUploading}
           >
-            <Camera size={17} />
+            {!isAvatarUploading && <Camera size={17} />}
           </button>
 
           <input
@@ -62,11 +93,12 @@ function AccountSidebar({
             accept="image/*"
             hidden
             onChange={handleAvatarInputChange}
+            disabled={isAvatarUploading}
           />
         </div>
 
-        <h3>{profileData.fullName}</h3>
-        <p>{profileData.email}</p>
+        <h3>{fullName}</h3>
+        <p>{email}</p>
       </div>
 
       <div className="account-menu">

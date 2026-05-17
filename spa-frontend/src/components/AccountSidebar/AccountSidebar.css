@@ -13,7 +13,7 @@
 }
 
 /* =========================
-   AVATAR
+   Avatar
 ========================= */
 
 .account-sidebar .account-avatar-wrap {
@@ -21,9 +21,11 @@
   height: 118px;
   margin: 0 auto 20px;
   position: relative;
+  flex-shrink: 0;
 }
 
-.account-sidebar .account-avatar {
+.account-sidebar .account-avatar,
+.account-sidebar .account-avatar-skeleton {
   width: 118px !important;
   height: 118px !important;
   min-width: 118px !important;
@@ -31,9 +33,33 @@
   max-width: 118px !important;
   max-height: 118px !important;
   border-radius: 50%;
-  object-fit: cover;
-  display: block;
   border: 4px solid #f0eee9;
+  display: block;
+  box-sizing: border-box;
+}
+
+.account-sidebar .account-avatar {
+  object-fit: cover;
+}
+
+.account-sidebar .account-avatar-skeleton {
+  background: #e9e9e9;
+  position: relative;
+  overflow: hidden;
+}
+
+.account-sidebar .account-avatar-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 45%,
+    transparent 80%
+  );
+  transform: translateX(-100%);
+  animation: avatar-skeleton-shimmer 1.1s infinite;
 }
 
 .account-sidebar .account-avatar-btn {
@@ -58,26 +84,46 @@
   background: #3f3c3d;
 }
 
+.account-sidebar .account-avatar-btn:disabled {
+  cursor: not-allowed;
+}
+
+.account-sidebar .account-avatar-btn--loading {
+  background: #d7d7d7;
+  color: transparent;
+  box-shadow: none;
+}
+
+.account-sidebar .account-avatar-btn--loading:hover {
+  background: #d7d7d7;
+}
+
+@keyframes avatar-skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* =========================
-   USER INFO
+   User info
 ========================= */
 
 .account-user-card h3 {
   margin: 0 0 6px;
   color: #152238;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
 }
 
 .account-user-card p {
   margin: 0;
   color: #667085;
-  font-size: 16px;
+  font-size: 14px;
   word-break: break-word;
 }
 
 /* =========================
-   MENU
+   Menu
 ========================= */
 
 .account-menu {
@@ -88,7 +134,7 @@
 
 .account-menu-item {
   width: 100%;
-  min-height: 54px;
+  min-height: 50px;
   padding: 0 16px;
   border: none;
   border-radius: 16px;
@@ -122,7 +168,7 @@
 }
 
 .account-menu-left span {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -143,7 +189,7 @@
 }
 
 /* =========================
-   RESPONSIVE
+   Responsive
 ========================= */
 
 @media (max-width: 576px) {
@@ -157,7 +203,8 @@
     height: 104px;
   }
 
-  .account-sidebar .account-avatar {
+  .account-sidebar .account-avatar,
+  .account-sidebar .account-avatar-skeleton {
     width: 104px !important;
     height: 104px !important;
     min-width: 104px !important;

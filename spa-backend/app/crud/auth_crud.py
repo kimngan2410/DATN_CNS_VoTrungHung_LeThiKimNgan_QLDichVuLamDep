@@ -469,6 +469,8 @@ def create_or_login_social_user(
     tai_khoan = db.query(TaiKhoan).filter(TaiKhoan.email == email).first()
 
     try:
+        is_new_account = tai_khoan is None
+
         if tai_khoan:
             if tai_khoan.trangThai == "KHOA":
                 raise HTTPException(
@@ -505,15 +507,17 @@ def create_or_login_social_user(
 
         if tai_khoan.loaiTK == "KHACH_HANG":
             if khach_hang:
-                if safe_name:
+                # Chỉ lấy tên từ Google/Facebook nếu khách hàng chưa có tên.
+                # Không ghi đè tên người dùng đã tự cập nhật trong hệ thống.
+                if not khach_hang.hoTen and safe_name:
                     khach_hang.hoTen = safe_name
 
-                if safe_avatar:
-                    khach_hang.anhDaiDien = safe_avatar
-                elif not is_valid_avatar_url(khach_hang.anhDaiDien):
-                    khach_hang.anhDaiDien = make_default_avatar(
-                        khach_hang.hoTen,
-                        tai_khoan.email,
+                # Chỉ lấy avatar từ Google/Facebook nếu avatar trong DB đang trống/không hợp lệ.
+                # Không ghi đè avatar người dùng đã upload trong hệ thống.
+                if not is_valid_avatar_url(khach_hang.anhDaiDien):
+                    khach_hang.anhDaiDien = (
+                        safe_avatar
+                        or make_default_avatar(khach_hang.hoTen, tai_khoan.email)
                     )
 
                 khach_hang.loaiKH = khach_hang.loaiKH or "Thường"

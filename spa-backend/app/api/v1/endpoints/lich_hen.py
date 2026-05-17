@@ -1,14 +1,90 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.crud.lich_hen_crud import create_booking
+from app.crud.lich_hen_crud import (
+    cancel_customer_appointment,
+    create_booking,
+    get_customer_appointment_detail,
+    get_customer_appointments,
+    reschedule_customer_appointment,
+)
 from app.db.session import get_db
 from app.schemas.lich_hen_schema import (
+    LichHenActionResponse,
+    LichHenCancelRequest,
     LichHenCreateRequest,
     LichHenCreateResponse,
+    LichHenCustomerOut,
+    LichHenRescheduleRequest,
 )
 
 router = APIRouter()
+
+
+@router.get(
+    "/tai-khoan/{id_tai_khoan}",
+    response_model=list[LichHenCustomerOut],
+)
+def get_my_appointments(
+    id_tai_khoan: int,
+    db: Session = Depends(get_db),
+):
+    return get_customer_appointments(db, id_tai_khoan)
+
+
+@router.get(
+    "/tai-khoan/{id_tai_khoan}/{appointment_id}",
+    response_model=LichHenCustomerOut,
+)
+def get_my_appointment_detail(
+    id_tai_khoan: int,
+    appointment_id: int,
+    db: Session = Depends(get_db),
+):
+    return get_customer_appointment_detail(db, id_tai_khoan, appointment_id)
+
+
+@router.post("/", response_model=LichHenCreateResponse)
+def create_appointment(
+    payload: LichHenCreateRequest,
+    db: Session = Depends(get_db),
+):
+    return create_booking(db, payload)
+
+
+@router.patch(
+    "/{appointment_id}/huy",
+    response_model=LichHenActionResponse,
+)
+def cancel_appointment(
+    appointment_id: int,
+    payload: LichHenCancelRequest,
+    db: Session = Depends(get_db),
+):
+    return cancel_customer_appointment(
+        db=db,
+        appointment_id=appointment_id,
+        id_tai_khoan=payload.idTaiKhoan,
+        ly_do_huy=payload.lyDoHuy,
+    )
+
+
+@router.patch(
+    "/{appointment_id}/doi-lich",
+    response_model=LichHenActionResponse,
+)
+def reschedule_appointment(
+    appointment_id: int,
+    payload: LichHenRescheduleRequest,
+    db: Session = Depends(get_db),
+):
+    return reschedule_customer_appointment(
+        db=db,
+        appointment_id=appointment_id,
+        id_tai_khoan=payload.idTaiKhoan,
+        ngay_hen=payload.ngayHen,
+        gio_hen=payload.gioHen,
+    )
 
 
 @router.get("/")
@@ -24,14 +100,6 @@ def get_appointment_detail(appointment_id: int):
         "message": "API chi tiết lịch hẹn",
         "appointment_id": appointment_id,
     }
-
-
-@router.post("/", response_model=LichHenCreateResponse)
-def create_appointment(
-    payload: LichHenCreateRequest,
-    db: Session = Depends(get_db),
-):
-    return create_booking(db, payload)
 
 
 @router.patch("/{appointment_id}/trang-thai")

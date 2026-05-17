@@ -17,6 +17,30 @@ import "./Header.css"
 const DEFAULT_AVATAR =
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80"
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1"
+
+const API_ORIGIN = API_BASE_URL.replace("/api/v1", "")
+
+function getFullAvatarUrl(avatar) {
+  if (!avatar) return DEFAULT_AVATAR
+
+  if (
+    avatar.startsWith("http://") ||
+    avatar.startsWith("https://") ||
+    avatar.startsWith("blob:") ||
+    avatar.startsWith("data:")
+  ) {
+    return avatar
+  }
+
+  if (avatar.startsWith("/uploads")) {
+    return `${API_ORIGIN}${avatar}`
+  }
+
+  return avatar
+}
+
 function Header() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -108,11 +132,11 @@ function Header() {
     }, 3000)
   }
 
-  const avatarUrl =
+  const avatarUrl = getFullAvatarUrl(
     currentUser?.avatar ||
-    currentUser?.anhDaiDien ||
-    currentUser?.avatarUrl ||
-    DEFAULT_AVATAR
+      currentUser?.anhDaiDien ||
+      currentUser?.avatarUrl
+  )
     
   const userName = currentUser?.hoTen || "Tài khoản"
   const userEmail = currentUser?.email || "email@gmail.com"
@@ -178,6 +202,9 @@ function Header() {
                     src={avatarUrl}
                     alt={userName}
                     className="header__avatar-img"
+                    onError={(event) => {
+                      event.currentTarget.src = DEFAULT_AVATAR
+                    }}
                   />
                 </button>
 

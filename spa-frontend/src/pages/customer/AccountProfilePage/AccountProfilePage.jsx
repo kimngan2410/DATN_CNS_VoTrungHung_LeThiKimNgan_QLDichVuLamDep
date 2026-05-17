@@ -11,18 +11,12 @@ import {
   getAccountProfileApi,
   updateAccountProfileApi,
 } from "../../../services/accountApi"
+import { getMyAppointmentsApi } from "../../../services/appointmentApi"
 
 import "./AccountProfilePage.css"
 
-const emptyProfile = {
-  avatar:
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80",
-  fullName: "",
-  email: "",
-  phone: "",
-  birthDate: "",
-  gender: "",
-}
+const DEFAULT_AVATAR =
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80"
 
 function syncProfileToStoredUser(updatedProfile) {
   const localUser = localStorage.getItem("user")
@@ -38,19 +32,31 @@ function syncProfileToStoredUser(updatedProfile) {
     const nextUser = {
       ...oldUser,
       hoTen: updatedProfile.fullName,
+      fullName: updatedProfile.fullName,
       email: updatedProfile.email,
       sdt: updatedProfile.phone,
 
-      // lưu cả 2 tên trường để Header đọc chắc chắn được
       avatar: updatedProfile.avatar,
       anhDaiDien: updatedProfile.avatar,
     }
 
     storage.setItem("user", JSON.stringify(nextUser))
-
     window.dispatchEvent(new Event("auth-changed"))
   } catch {
-    // Nếu dữ liệu user trong storage lỗi thì bỏ qua
+    // Bỏ qua nếu dữ liệu storage bị lỗi
+  }
+}
+
+function getInitialProfileFromStorage() {
+  const user = getCurrentUser()
+
+  return {
+    avatar: user?.avatar || user?.anhDaiDien || DEFAULT_AVATAR,
+    fullName: user?.hoTen || user?.fullName || "",
+    email: user?.email || "",
+    phone: user?.sdt || "",
+    birthDate: "",
+    gender: "",
   }
 }
 
@@ -58,21 +64,44 @@ function AccountProfilePage() {
   const navigate = useNavigate()
   const objectUrlRef = useRef("")
 
-  const [profile, setProfile] = useState(emptyProfile)
-  const [formData, setFormData] = useState(emptyProfile)
+  const [profile, setProfile] = useState(() => getInitialProfileFromStorage())
+  const [formData, setFormData] = useState(() => getInitialProfileFromStorage())
+
+  const [appointmentCount, setAppointmentCount] = useState(0)
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [loadError, setLoadError] = useState("")
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false)
 
+  const [loadError, setLoadError] = useState("")
   const [isEditing, setIsEditing] = useState(false)
   const [errors, setErrors] = useState({})
+
   const [message, setMessage] = useState({
     type: "",
     text: "",
   })
 
+  const [avatarToast, setAvatarToast] = useState({
+    open: false,
+    message: "",
+  })
+
   const [showLogoutPopup, setShowLogoutPopup] = useState(false)
+
+  const showAvatarToast = (toastMessage) => {
+    setAvatarToast({
+      open: true,
+      message: toastMessage,
+    })
+
+    setTimeout(() => {
+      setAvatarToast({
+        open: false,
+        message: "",
+      })
+    }, 2600)
+  }
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -87,10 +116,19 @@ function AccountProfilePage() {
         setIsLoading(true)
         setLoadError("")
 
-        const data = await getAccountProfileApi(currentUser.maTK)
+        const [profileResult, appointmentResult] = await Promise.all([
+          getAccountProfileApi(currentUser.maTK),
+          getMyAppointmentsApi(currentUser.maTK).catch(() => []),
+        ])
 
-        setProfile(data)
-        setFormData(data)
+        setProfile(profileResult)
+        setFormData(profileResult)
+
+        const activeAppointmentCount = appointmentResult.filter((item) =>
+          ["pending", "confirmed", "checkedin", "doing"].includes(item.status)
+        ).length
+
+        setAppointmentCount(activeAppointmentCount)
       } catch (error) {
         setLoadError(error.message || "Không thể tải thông tin cá nhân.")
       } finally {
@@ -98,6 +136,7 @@ function AccountProfilePage() {
       }
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProfile()
   }, [navigate])
 
@@ -185,8 +224,15 @@ function AccountProfilePage() {
     }
   }
 
-  const handleAvatarChange = (file) => {
+  const handleAvatarChange = async (file) => {
     if (!file) return
+
+    const currentUser = getCurrentUser()
+
+    if (!currentUser?.maTK) {
+      navigate("/dang-nhap", { replace: true })
+      return
+    }
 
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"]
     const maxSize = 2 * 1024 * 1024
@@ -207,25 +253,41 @@ function AccountProfilePage() {
       return
     }
 
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current)
+    try {
+      setIsAvatarUploading(true)
+
+      setMessage({
+        type: "",
+        text: "",
+      })
+
+      const payload = new FormData()
+
+      payload.append("fullName", profile.fullName || formData.fullName || "")
+      payload.append("phone", profile.phone || formData.phone || "")
+      payload.append("birthDate", profile.birthDate || formData.birthDate || "")
+      payload.append("gender", profile.gender || formData.gender || "")
+      payload.append("avatar", file)
+
+      const updatedProfile = await updateAccountProfileApi(
+        currentUser.maTK,
+        payload
+      )
+
+      setProfile(updatedProfile)
+      setFormData(updatedProfile)
+
+      syncProfileToStoredUser(updatedProfile)
+
+      showAvatarToast("Đã cập nhật ảnh đại diện thành công")
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error.message || "Không thể cập nhật ảnh đại diện.",
+      })
+    } finally {
+      setIsAvatarUploading(false)
     }
-
-    const previewUrl = URL.createObjectURL(file)
-    objectUrlRef.current = previewUrl
-
-    setFormData((prev) => ({
-      ...prev,
-      avatar: previewUrl,
-      avatarFile: file,
-    }))
-
-    setIsEditing(true)
-
-    setMessage({
-      type: "success",
-      text: "Đã chọn ảnh đại diện mới. Nhấn “Lưu” để cập nhật.",
-    })
   }
 
   const handleSubmit = async (event) => {
@@ -248,6 +310,7 @@ function AccountProfilePage() {
 
     try {
       setIsSaving(true)
+
       setMessage({
         type: "",
         text: "",
@@ -259,10 +322,6 @@ function AccountProfilePage() {
       payload.append("phone", formData.phone.trim())
       payload.append("birthDate", formData.birthDate || "")
       payload.append("gender", formData.gender || "")
-
-      if (formData.avatarFile) {
-        payload.append("avatar", formData.avatarFile)
-      }
 
       const updatedProfile = await updateAccountProfileApi(
         currentUser.maTK,
@@ -314,14 +373,34 @@ function AccountProfilePage() {
     <div className="account-profile-page">
       <Header />
 
+      {avatarToast.open && (
+        <div className="account-profile-toast">
+          <span>{avatarToast.message}</span>
+
+          <button
+            type="button"
+            onClick={() =>
+              setAvatarToast({
+                open: false,
+                message: "",
+              })
+            }
+            aria-label="Đóng thông báo"
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       <main className="account-profile-main">
         <div className="account-profile-container">
           <AccountSidebar
             activeMenu="profile"
             profileData={sidebarProfile}
-            appointmentCount={3}
+            appointmentCount={appointmentCount}
             onAvatarChange={handleAvatarChange}
             onLogout={handleLogout}
+            isAvatarUploading={isAvatarUploading}
           />
 
           <section className="account-profile-content">
@@ -329,13 +408,17 @@ function AccountProfilePage() {
               {isLoading ? (
                 <div className="account-profile-loading">
                   <Loader2 size={34} className="account-profile-loading-icon" />
+
                   <h2>Đang tải thông tin cá nhân</h2>
+
                   <p>Vui lòng chờ trong giây lát.</p>
                 </div>
               ) : loadError ? (
                 <div className="account-profile-loading">
                   <AlertCircle size={36} />
+
                   <h2>Không thể tải thông tin</h2>
+
                   <p>{loadError}</p>
 
                   <button
@@ -356,8 +439,9 @@ function AccountProfilePage() {
 
                       {isEditing && (
                         <p className="account-profile-card__note">
-                          Bạn có thể cập nhật họ tên, số điện thoại, ngày sinh,
-                          giới tính và ảnh đại diện.
+                          Bạn có thể cập nhật họ tên, số điện thoại, ngày sinh
+                          và giới tính. Ảnh đại diện sẽ được cập nhật ngay sau
+                          khi chọn ảnh.
                         </p>
                       )}
                     </div>

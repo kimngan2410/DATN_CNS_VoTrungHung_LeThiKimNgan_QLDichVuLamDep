@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.chi_tiet_lich_hen import ChiTietLichHen
 from app.models.dich_vu import DichVu
+from app.models.hinh_anh_dich_vu import HinhAnhDichVu
 from app.models.lich_hen import LichHen
 from app.models.tai_khoan import TaiKhoan
 from app.models.khach_hang import KhachHang
@@ -110,17 +111,19 @@ def check_customer_time_conflict(
     id_tai_khoan: int,
     start_time: datetime,
     end_time: datetime,
+    exclude_appointment_id: int | None = None,
 ):
-    conflict = (
-        db.query(LichHen)
-        .filter(
-            LichHen.idTaiKhoan == id_tai_khoan,
-            ~LichHen.trangThai.in_(CANCELLED_APPOINTMENT_STATUSES),
-            LichHen.thoiGianBatDau < end_time,
-            LichHen.thoiGianKetThuc > start_time,
-        )
-        .first()
+    query = db.query(LichHen).filter(
+        LichHen.idTaiKhoan == id_tai_khoan,
+        ~LichHen.trangThai.in_(CANCELLED_APPOINTMENT_STATUSES),
+        LichHen.thoiGianBatDau < end_time,
+        LichHen.thoiGianKetThuc > start_time,
     )
+
+    if exclude_appointment_id:
+        query = query.filter(LichHen.idLichHen != exclude_appointment_id)
+
+    conflict = query.first()
 
     if conflict:
         raise HTTPException(
@@ -270,3 +273,234 @@ def create_booking(db: Session, payload):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi tạo lịch hẹn: {str(error)}",
         )
+    
+
+STATUS_CODE_MAP = {
+    "Chờ xác nhận": "pending",
+    "Đã xác nhận": "confirmed",
+    "Đã check-in": "checkedin",
+    "Đang thực hiện": "doing",
+    "Đã hoàn thành": "completed",
+    "Đã huỷ": "cancelled",
+    "Đã hủy": "cancelled",
+    "Không đến": "no_show",
+}
+
+
+def get_status_code(status_value: str) -> str:
+    return STATUS_CODE_MAP.get(status_value, "pending")
+
+
+def format_datetime_value(value: datetime) -> str:
+    return value.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def get_service_image(db: Session, id_dich_vu: int) -> str:
+    image = (
+        db.query(HinhAnhDichVu)
+        .filter(HinhAnhDichVu.idDichVu == id_dich_vu)
+        .order_by(HinhAnhDichVu.anhChinh.desc(), HinhAnhDichVu.idHinhAnh.asc())
+        .first()
+    )
+
+    return image.duongDanAnh if image else ""
+
+
+def build_appointment_response(db: Session, lich_hen: LichHen):
+    rows = (
+        db.query(ChiTietLichHen, DichVu)
+        .join(DichVu, ChiTietLichHen.idDichVu == DichVu.idDichVu)
+        .filter(ChiTietLichHen.idLichHen == lich_hen.idLichHen)
+        .all()
+    )
+
+    chi_tiet_output = []
+    tong_tien = 0
+    tong_thoi_luong = 0
+    tong_so_luong = 0
+
+    for chi_tiet, dich_vu in rows:
+        so_luong = int(chi_tiet.soLuong or 1)
+        don_gia = float(chi_tiet.donGia or dich_vu.gia or 0)
+        thoi_luong = int(chi_tiet.thoiLuongPhut or dich_vu.thoiLuongPhut or 0)
+        thanh_tien = don_gia * so_luong
+
+        tong_tien += thanh_tien
+        tong_thoi_luong += thoi_luong
+        tong_so_luong += so_luong
+
+        chi_tiet_output.append(
+            {
+                "idDichVu": int(dich_vu.idDichVu),
+                "tenDichVu": dich_vu.tenDV,
+                "donGia": don_gia,
+                "thoiLuongPhut": thoi_luong,
+                "soLuong": so_luong,
+                "thanhTien": thanh_tien,
+                "hinhAnh": get_service_image(db, int(dich_vu.idDichVu)),
+            }
+        )
+
+    return {
+        "idLichHen": int(lich_hen.idLichHen),
+        "maLH": lich_hen.maLH,
+        "idTaiKhoan": int(lich_hen.idTaiKhoan),
+        "thoiGianBatDau": format_datetime_value(lich_hen.thoiGianBatDau),
+        "thoiGianKetThuc": format_datetime_value(lich_hen.thoiGianKetThuc),
+        "ngayHen": lich_hen.thoiGianBatDau.strftime("%Y-%m-%d"),
+        "gioHen": lich_hen.thoiGianBatDau.strftime("%H:%M"),
+        "gioKetThuc": lich_hen.thoiGianKetThuc.strftime("%H:%M"),
+        "trangThai": lich_hen.trangThai,
+        "trangThaiCode": get_status_code(lich_hen.trangThai),
+        "ghiChu": lich_hen.ghiChu,
+        "lyDoHuy": lich_hen.lyDoHuy,
+        "tongTienDuKien": tong_tien,
+        "tongThoiLuong": tong_thoi_luong,
+        "tongSoLuong": tong_so_luong,
+        "chiTietLichHen": chi_tiet_output,
+    }
+
+
+def get_customer_appointments(db: Session, id_tai_khoan: int):
+    validate_account(db, id_tai_khoan)
+
+    appointments = (
+        db.query(LichHen)
+        .filter(LichHen.idTaiKhoan == id_tai_khoan)
+        .order_by(LichHen.thoiGianBatDau.desc())
+        .all()
+    )
+
+    return [build_appointment_response(db, item) for item in appointments]
+
+
+def get_customer_appointment_detail(
+    db: Session,
+    id_tai_khoan: int,
+    appointment_id: int,
+):
+    validate_account(db, id_tai_khoan)
+
+    lich_hen = (
+        db.query(LichHen)
+        .filter(
+            LichHen.idLichHen == appointment_id,
+            LichHen.idTaiKhoan == id_tai_khoan,
+        )
+        .first()
+    )
+
+    if not lich_hen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy lịch hẹn",
+        )
+
+    return build_appointment_response(db, lich_hen)
+
+
+def cancel_customer_appointment(
+    db: Session,
+    appointment_id: int,
+    id_tai_khoan: int,
+    ly_do_huy: str,
+):
+    lich_hen = (
+        db.query(LichHen)
+        .filter(
+            LichHen.idLichHen == appointment_id,
+            LichHen.idTaiKhoan == id_tai_khoan,
+        )
+        .first()
+    )
+
+    if not lich_hen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy lịch hẹn",
+        )
+
+    if lich_hen.trangThai not in ["Chờ xác nhận", "Đã xác nhận"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chỉ có thể hủy lịch ở trạng thái chờ xác nhận hoặc đã xác nhận",
+        )
+
+    lich_hen.trangThai = "Đã huỷ"
+    lich_hen.lyDoHuy = ly_do_huy.strip()
+
+    db.commit()
+
+    return {
+        "message": "Hủy lịch hẹn thành công",
+    }
+
+
+def reschedule_customer_appointment(
+    db: Session,
+    appointment_id: int,
+    id_tai_khoan: int,
+    ngay_hen: str,
+    gio_hen: str,
+):
+    lich_hen = (
+        db.query(LichHen)
+        .filter(
+            LichHen.idLichHen == appointment_id,
+            LichHen.idTaiKhoan == id_tai_khoan,
+        )
+        .first()
+    )
+
+    if not lich_hen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy lịch hẹn",
+        )
+
+    if lich_hen.trangThai not in ["Chờ xác nhận", "Đã xác nhận"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Chỉ có thể đổi lịch ở trạng thái chờ xác nhận hoặc đã xác nhận",
+        )
+
+    start_time = parse_booking_datetime(ngay_hen, gio_hen)
+
+    if start_time < datetime.now():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không thể đổi sang thời gian đã qua",
+        )
+
+    total_duration = (
+        db.query(func.coalesce(func.sum(ChiTietLichHen.thoiLuongPhut), 0))
+        .filter(ChiTietLichHen.idLichHen == appointment_id)
+        .scalar()
+    )
+
+    total_duration = int(total_duration or 0)
+
+    if total_duration <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không xác định được thời lượng lịch hẹn",
+        )
+
+    end_time = start_time + timedelta(minutes=total_duration)
+
+    check_customer_time_conflict(
+        db=db,
+        id_tai_khoan=id_tai_khoan,
+        start_time=start_time,
+        end_time=end_time,
+        exclude_appointment_id=appointment_id,
+    )
+
+    lich_hen.thoiGianBatDau = start_time
+    lich_hen.thoiGianKetThuc = end_time
+
+    db.commit()
+
+    return {
+        "message": "Đổi lịch hẹn thành công",
+    }
