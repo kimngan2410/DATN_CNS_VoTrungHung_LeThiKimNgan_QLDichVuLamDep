@@ -426,3 +426,14 @@
     transform: translateY(0) scale(1);
   }
 }
+
+.register-password-note {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #faf8f4;
+  color: #6e6762;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid #eee7df;
+}

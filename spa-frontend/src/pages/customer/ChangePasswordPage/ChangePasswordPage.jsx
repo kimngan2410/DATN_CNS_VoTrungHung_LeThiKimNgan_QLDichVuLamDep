@@ -1,9 +1,9 @@
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Eye,
   EyeOff,
-  KeyRound,
+  Loader2,
   LogOut,
   Save,
   ShieldCheck,
@@ -14,17 +14,43 @@ import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
 import AccountSidebar from "../../../components/AccountSidebar/AccountSidebar"
 
-import "./ChangePasswordPage.css"
+import {
+  changePasswordApi,
+  getCurrentUser,
+  logout,
+} from "../../../services/authApi"
+import {
+  getAccountProfileApi,
+  updateAccountProfileApi,
+} from "../../../services/accountApi"
+import { getMyAppointmentsApi } from "../../../services/appointmentApi"
+import {
+  getStrongPasswordError,
+  PASSWORD_HINT,
+} from "../../../utils/passwordValidation"
 
-const profileData = {
-  avatar:
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80",
-  fullName: "Nguyễn Thị Mai",
-  email: "admin@gmail.com",
-}
+import "./ChangePasswordPage.css"
 
 function ChangePasswordPage() {
   const navigate = useNavigate()
+
+  const [profileData, setProfileData] = useState(() => {
+    const user = getCurrentUser()
+
+    return {
+      avatar: user?.avatar || user?.anhDaiDien || "",
+      fullName: user?.hoTen || user?.fullName || "Khách hàng",
+      email: user?.email || "",
+      phone: "",
+      birthDate: "",
+      gender: "",
+    }
+  })
+
+  const [appointmentCount, setAppointmentCount] = useState(0)
+  const [isProfileLoading, setIsProfileLoading] = useState(true)
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
     currentPassword: "",
@@ -45,6 +71,132 @@ function ChangePasswordPage() {
   })
 
   const [showLogoutPopup, setShowLogoutPopup] = useState(false)
+
+  const updateStoredUser = useCallback((profile) => {
+    const currentUser = getCurrentUser()
+
+    if (!currentUser || !profile) return
+
+    const updatedUser = {
+      ...currentUser,
+      hoTen: profile.fullName,
+      fullName: profile.fullName,
+      avatar: profile.avatar,
+      anhDaiDien: profile.avatar,
+      email: profile.email,
+    }
+
+    const storageMode = localStorage.getItem("authStorageMode")
+    const storage = storageMode === "session" ? sessionStorage : localStorage
+
+    storage.setItem("user", JSON.stringify(updatedUser))
+    window.dispatchEvent(new Event("auth-changed"))
+  }, [])
+
+  const fetchChangePasswordProfile = useCallback(async () => {
+    const user = getCurrentUser()
+
+    if (!user?.maTK) {
+      navigate("/dang-nhap", { replace: true })
+      return
+    }
+
+    try {
+      setIsProfileLoading(true)
+
+      const [profile, appointmentData] = await Promise.all([
+        getAccountProfileApi(user.maTK),
+        getMyAppointmentsApi(user.maTK).catch(() => []),
+      ])
+
+      const nextProfile = {
+        avatar: profile.avatar,
+        fullName: profile.fullName,
+        email: profile.email,
+        phone: profile.phone || "",
+        birthDate: profile.birthDate || "",
+        gender: profile.gender || "",
+      }
+
+      setProfileData(nextProfile)
+
+      const activeAppointmentCount = appointmentData.filter((item) =>
+        ["pending", "confirmed"].includes(item.status)
+      ).length
+
+      setAppointmentCount(activeAppointmentCount)
+      updateStoredUser(nextProfile)
+    } catch (error) {
+      console.error(error)
+
+      const fallbackUser = getCurrentUser()
+
+      setProfileData((prev) => ({
+        ...prev,
+        avatar: fallbackUser?.avatar || fallbackUser?.anhDaiDien || "",
+        fullName:
+          fallbackUser?.hoTen || fallbackUser?.fullName || "Khách hàng",
+        email: fallbackUser?.email || "",
+      }))
+    } finally {
+      setIsProfileLoading(false)
+    }
+  }, [navigate, updateStoredUser])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchChangePasswordProfile()
+  }, [fetchChangePasswordProfile])
+
+  const handleAvatarChange = async (file) => {
+    const user = getCurrentUser()
+
+    if (!user?.maTK || !file) return
+
+    try {
+      setIsAvatarUploading(true)
+      setMessage({
+        type: "",
+        text: "",
+      })
+
+      const formDataUpload = new FormData()
+      formDataUpload.append("hoTen", profileData.fullName || "")
+      formDataUpload.append("sdt", profileData.phone || "")
+      formDataUpload.append("ngaySinh", profileData.birthDate || "")
+      formDataUpload.append("gioiTinh", profileData.gender || "")
+      formDataUpload.append("avatar", file)
+
+      const updatedProfile = await updateAccountProfileApi(
+        user.maTK,
+        formDataUpload
+      )
+
+      const nextProfile = {
+        avatar: updatedProfile.avatar,
+        fullName: updatedProfile.fullName,
+        email: updatedProfile.email,
+        phone: updatedProfile.phone || "",
+        birthDate: updatedProfile.birthDate || "",
+        gender: updatedProfile.gender || "",
+      }
+
+      setProfileData(nextProfile)
+      updateStoredUser(nextProfile)
+
+      setMessage({
+        type: "success",
+        text: "Cập nhật ảnh đại diện thành công.",
+      })
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error.message || "Không thể cập nhật ảnh đại diện.",
+      })
+    } finally {
+      setIsAvatarUploading(false)
+    }
+  }
 
   const handleInputChange = (event) => {
     const { name, value } = event.target
@@ -79,18 +231,10 @@ function ChangePasswordPage() {
   const validateForm = () => {
     const newErrors = {}
 
-    if (!formData.currentPassword.trim()) {
-      newErrors.currentPassword = "Vui lòng nhập mật khẩu hiện tại."
-    }
+    const passwordError = getStrongPasswordError(formData.newPassword)
 
-    if (!formData.newPassword.trim()) {
-      newErrors.newPassword = "Vui lòng nhập mật khẩu mới."
-    } else if (formData.newPassword.length < 8) {
-      newErrors.newPassword = "Mật khẩu mới phải có ít nhất 8 ký tự."
-    } else if (!/[A-Z]/.test(formData.newPassword)) {
-      newErrors.newPassword = "Mật khẩu mới nên có ít nhất 1 chữ hoa."
-    } else if (!/[0-9]/.test(formData.newPassword)) {
-      newErrors.newPassword = "Mật khẩu mới nên có ít nhất 1 chữ số."
+    if (passwordError) {
+      newErrors.newPassword = passwordError
     }
 
     if (!formData.confirmPassword.trim()) {
@@ -113,8 +257,10 @@ function ChangePasswordPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+
+    if (isSubmitting) return
 
     if (!validateForm()) {
       setMessage({
@@ -124,28 +270,58 @@ function ChangePasswordPage() {
       return
     }
 
-    setMessage({
-      type: "success",
-      text: "Đổi mật khẩu thành công.",
-    })
+    const currentUser = getCurrentUser()
 
-    setFormData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    })
-
-    /*
-      Khi nối backend, bạn thay đoạn trên bằng API:
-
-      await changePasswordApi({
-        currentPassword: formData.currentPassword,
-        newPassword: formData.newPassword,
+    if (!currentUser?.maTK) {
+      setMessage({
+        type: "error",
+        text: "Bạn cần đăng nhập để đổi mật khẩu.",
       })
 
-      Nếu backend trả lỗi sai mật khẩu hiện tại:
-      setErrors({ currentPassword: "Mật khẩu hiện tại không chính xác." })
-    */
+      setTimeout(() => {
+        navigate("/dang-nhap")
+      }, 900)
+
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+
+      const result = await changePasswordApi(currentUser.maTK, {
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
+      })
+
+      setMessage({
+        type: "success",
+        text: result.message || "Đổi mật khẩu thành công.",
+      })
+
+      setFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      })
+
+      setErrors({})
+    } catch (error) {
+      const errorText = error.message || "Đổi mật khẩu thất bại."
+
+      if (errorText.includes("Mật khẩu hiện tại")) {
+        setErrors({
+          currentPassword: errorText,
+        })
+      }
+
+      setMessage({
+        type: "error",
+        text: errorText,
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleCancel = () => {
@@ -168,11 +344,7 @@ function ChangePasswordPage() {
   }
 
   const confirmLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-
-    window.dispatchEvent(new Event("auth-changed"))
-
+    logout()
     setShowLogoutPopup(false)
     navigate("/trang-chu")
   }
@@ -190,8 +362,10 @@ function ChangePasswordPage() {
           <AccountSidebar
             activeMenu="password"
             profileData={profileData}
-            appointmentCount={3}
+            appointmentCount={appointmentCount}
+            onAvatarChange={handleAvatarChange}
             onLogout={handleLogout}
+            isAvatarUploading={isAvatarUploading || isProfileLoading}
           />
 
           <section className="change-password-content">
@@ -229,11 +403,13 @@ function ChangePasswordPage() {
                       value={formData.currentPassword}
                       onChange={handleInputChange}
                       placeholder="Nhập mật khẩu hiện tại"
+                      disabled={isSubmitting}
                     />
 
                     <button
                       type="button"
                       onClick={() => toggleShowPassword("currentPassword")}
+                      disabled={isSubmitting}
                     >
                       {showPassword.currentPassword ? (
                         <EyeOff size={18} />
@@ -261,11 +437,13 @@ function ChangePasswordPage() {
                       value={formData.newPassword}
                       onChange={handleInputChange}
                       placeholder="Nhập mật khẩu mới"
+                      disabled={isSubmitting}
                     />
 
                     <button
                       type="button"
                       onClick={() => toggleShowPassword("newPassword")}
+                      disabled={isSubmitting}
                     >
                       {showPassword.newPassword ? (
                         <EyeOff size={18} />
@@ -283,7 +461,9 @@ function ChangePasswordPage() {
                 </div>
 
                 <div className="change-password-form__group">
-                  <label htmlFor="confirmPassword">Xác nhận mật khẩu mới</label>
+                  <label htmlFor="confirmPassword">
+                    Xác nhận mật khẩu mới
+                  </label>
 
                   <div className="change-password-input-wrap">
                     <input
@@ -295,11 +475,13 @@ function ChangePasswordPage() {
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       placeholder="Nhập lại mật khẩu mới"
+                      disabled={isSubmitting}
                     />
 
                     <button
                       type="button"
                       onClick={() => toggleShowPassword("confirmPassword")}
+                      disabled={isSubmitting}
                     >
                       {showPassword.confirmPassword ? (
                         <EyeOff size={18} />
@@ -319,7 +501,7 @@ function ChangePasswordPage() {
                 <div className="change-password-note">
                   <ShieldCheck size={18} />
                   <span>
-                    Mật khẩu nên có tối thiểu 8 ký tự, gồm chữ hoa và chữ số.
+                    {PASSWORD_HINT}
                   </span>
                 </div>
 
@@ -328,6 +510,7 @@ function ChangePasswordPage() {
                     type="button"
                     className="change-password-btn change-password-btn--cancel"
                     onClick={handleCancel}
+                    disabled={isSubmitting}
                   >
                     <X size={18} />
                     <span>Hủy</span>
@@ -336,9 +519,20 @@ function ChangePasswordPage() {
                   <button
                     type="submit"
                     className="change-password-btn change-password-btn--save"
+                    disabled={isSubmitting}
                   >
-                    <Save size={18} />
-                    <span>Lưu thay đổi</span>
+                    {isSubmitting ? (
+                      <Loader2
+                        size={18}
+                        className="change-password-spin"
+                      />
+                    ) : (
+                      <Save size={18} />
+                    )}
+
+                    <span>
+                      {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+                    </span>
                   </button>
                 </div>
               </form>
@@ -358,7 +552,9 @@ function ChangePasswordPage() {
 
             <h3>Xác nhận đăng xuất</h3>
 
-            <p>Bạn có chắc chắn muốn đăng xuất khỏi tài khoản hiện tại không?</p>
+            <p>
+              Bạn có chắc chắn muốn đăng xuất khỏi tài khoản hiện tại không?
+            </p>
 
             <div className="change-password-logout-actions">
               <button

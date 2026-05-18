@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.security import create_access_token
 from app.crud.auth_crud import (
     authenticate_user,
+    change_password,
     create_or_login_social_user,
     resend_register_otp,
     send_register_otp,
@@ -15,6 +16,8 @@ from app.crud.auth_crud import (
 )
 from app.db.session import get_db
 from app.schemas.auth_schema import (
+    ChangePasswordRequest,
+    ChangePasswordResponse,
     LoginRequest,
     LoginResponse,
     RegisterResendOtpRequest,
@@ -75,6 +78,20 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         "user": user,
     }
 
+@router.put(
+    "/doi-mat-khau/{id_tai_khoan}",
+    response_model=ChangePasswordResponse,
+)
+def change_account_password(
+    id_tai_khoan: int,
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+):
+    return change_password(
+        db=db,
+        id_tai_khoan=id_tai_khoan,
+        payload=payload,
+    )
 
 @router.post("/dang-ky/gui-otp", response_model=RegisterSendOtpResponse)
 def register_send_otp(

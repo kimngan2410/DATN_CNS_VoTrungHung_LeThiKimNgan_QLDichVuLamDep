@@ -80,7 +80,7 @@
   border-radius: 999px;
   background: #f0f1f3;
   color: #344054;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -110,7 +110,7 @@
   background: #ffffff;
   border: 1px solid #edf0f4;
   border-radius: 24px;
-  padding: 46px 24px;
+  padding: 100px 24px;
   text-align: center;
   color: #667085;
   font-size: 16px;
@@ -146,14 +146,14 @@
 .history-code {
   margin: 0 0 6px;
   color: #98a2b3;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
 }
 
 .history-service-name {
-  margin: 0;
+  margin: 15px 0 0;
   color: #07142b;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.45;
   display: -webkit-box;
@@ -177,7 +177,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -236,14 +236,8 @@
 .history-card-bottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
-}
-
-.history-card-bottom > span {
-  color: #98a2b3;
-  font-size: 18px;
-  font-weight: 500;
 }
 
 .history-card-total-wrap {
@@ -255,8 +249,9 @@
 
 .history-card-total-wrap small {
   color: #98a2b3;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
+  margin-bottom: 10px;
 }
 
 .history-card-total-wrap strong {
@@ -422,7 +417,7 @@
 .history-detail-code {
   margin: 0;
   color: #98a2b3;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -441,8 +436,8 @@
   display: block;
   margin-bottom: 10px;
   color: #8b95a7;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .history-additional-box {
@@ -504,7 +499,7 @@
 .history-detail-service-row p {
   margin: 0;
   color: #07142b;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.4;
 }
@@ -513,15 +508,28 @@
   display: block;
   margin-top: 4px;
   color: #98a2b3;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
 }
 
-.history-detail-service-row strong {
-  color: #152238;
-  font-size: 18px;
-  font-weight: 800;
+.history-detail-service-price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
   white-space: nowrap;
+}
+
+.history-detail-service-price span {
+  color: #98a2b3;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.history-detail-service-price strong {
+  color: #152238;
+  font-size: 17px;
+  font-weight: 800;
 }
 
 .history-detail-service-name-row {
@@ -607,13 +615,13 @@
 
 .history-detail-total span {
   color: #07142b;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
 }
 
 .history-detail-total strong {
   color: #f03d3d;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 900;
   white-space: nowrap;
 }
@@ -1233,14 +1241,6 @@
     font-size: 17px;
   }
 
-  .history-card-bottom {
-    align-items: flex-start;
-  }
-
-  .history-card-bottom > span {
-    font-size: 16px;
-  }
-
   .history-card-total-wrap strong {
     font-size: 19px;
   }
@@ -1255,8 +1255,9 @@
     gap: 10px;
   }
 
-  .history-detail-service-row strong {
+  .history-detail-service-price {
     padding-left: 72px;
+    align-items: flex-start;
   }
 
   .logout-popup-actions {
@@ -1385,4 +1386,54 @@
   .review-modal-btn {
     width: 100%;
   }
+}
+
+.service-history-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.service-history-loading-icon {
+  color: #d4a62a;
+  animation: service-history-spin 0.8s linear infinite;
+}
+
+@keyframes service-history-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.history-status-no-show {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.history-rebook-btn {
+  min-width: 145px;
+  height: 44px;
+  border: none;
+  border-radius: 14px;
+  background: #4d4a4b;
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.history-rebook-btn:hover {
+  background: #3f3c3d;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(77, 74, 75, 0.18);
+}
+
+.history-rebook-btn svg {
+  flex-shrink: 0;
 }

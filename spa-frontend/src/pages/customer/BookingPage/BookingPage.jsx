@@ -72,6 +72,47 @@ function formatDateForApi(date) {
   return `${year}-${month}-${day}`
 }
 
+function getServiceTitle(service) {
+  return (
+    service?.title ||
+    service?.name ||
+    service?.tenDichVu ||
+    service?.tenDV ||
+    "Dịch vụ"
+  )
+}
+
+function normalizeRebookService(service) {
+  const serviceId = Number(service.idDichVu || service.id)
+
+  return {
+    ...service,
+    id: serviceId,
+    idDichVu: serviceId,
+    title: getServiceTitle(service),
+    name: getServiceTitle(service),
+    price: Number(service.price || service.donGia || 0),
+    duration: Number(service.duration || service.thoiLuongPhut || 0),
+    quantity: Math.max(1, Number(service.quantity || service.soLuong || 1)),
+    image: service.image || service.hinhAnh || "",
+    category: service.category || service.tenDanhMuc || "",
+    description: service.description || service.moTaNgan || "",
+    isActive: true,
+  }
+}
+
+function getRebookServicesFromStorage() {
+  try {
+    const data = JSON.parse(sessionStorage.getItem("rebook_services") || "[]")
+
+    if (!Array.isArray(data)) return []
+
+    return data.map(normalizeRebookService).filter((service) => service.id)
+  } catch {
+    return []
+  }
+}
+
 function BookingPage() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -79,12 +120,13 @@ function BookingPage() {
   const params = new URLSearchParams(location.search)
   const serviceSlug = params.get("service")
   const fromPage = params.get("from")
+  const isRebookMode = params.get("rebook") === "1" || fromPage === "history"
   const initialQuantity = Math.max(1, Number(params.get("quantity") || 1))
 
   const currentUser = getCurrentUser()
 
   const customerInfo = {
-    fullName: currentUser?.hoTen || "Khách hàng",
+    fullName: currentUser?.hoTen || currentUser?.fullName || "Khách hàng",
     phone: currentUser?.sdt || currentUser?.email || "",
   }
 
@@ -135,6 +177,10 @@ function BookingPage() {
   }
 
   const getBackPath = () => {
+    if (fromPage === "history") {
+      return "/lich-su-dich-vu"
+    }
+
     if (fromPage === "list") {
       return "/dich-vu"
     }
@@ -155,7 +201,7 @@ function BookingPage() {
   }
 
   const activeServices = useMemo(() => {
-    return services.filter((service) => service.isActive)
+    return services.filter((service) => service.isActive !== false)
   }, [services])
 
   const bookingCategories = useMemo(() => {
@@ -215,13 +261,57 @@ function BookingPage() {
           getServicesApi(),
         ])
 
+        const stateServices = Array.isArray(location.state?.rebookServices)
+          ? location.state.rebookServices
+          : []
+
+        const storageServices = getRebookServicesFromStorage()
+
+        const rebookServices =
+          stateServices.length > 0
+            ? stateServices.map(normalizeRebookService).filter((item) => item.id)
+            : storageServices
+
+        let nextServices = Array.isArray(serviceData) ? [...serviceData] : []
+
+        if (isRebookMode && rebookServices.length > 0) {
+          const serviceIdsInApi = nextServices.map((service) =>
+            String(service.id)
+          )
+
+          const missingRebookServices = rebookServices.filter(
+            (service) => !serviceIdsInApi.includes(String(service.id))
+          )
+
+          nextServices = [...nextServices, ...missingRebookServices]
+        }
+
         setCategories(categoryData)
-        setServices(serviceData)
+        setServices(nextServices)
+
+        if (isRebookMode && rebookServices.length > 0) {
+          const selectedIds = rebookServices.map((service) => service.id)
+
+          const quantityMap = rebookServices.reduce((result, service) => {
+            result[String(service.id)] = Math.max(
+              1,
+              Number(service.quantity || 1)
+            )
+            return result
+          }, {})
+
+          setSelectedServiceIds(selectedIds)
+          setServiceQuantities(quantityMap)
+          setActiveCategory(rebookServices[0]?.category || "Tất cả")
+
+          sessionStorage.removeItem("rebook_services")
+          return
+        }
 
         const selectedService =
-          serviceData.find(
+          nextServices.find(
             (service) => String(service.id) === String(serviceSlug)
-          ) || serviceData[0]
+          ) || nextServices[0]
 
         if (selectedService) {
           setSelectedServiceIds([selectedService.id])
@@ -246,7 +336,7 @@ function BookingPage() {
 
     fetchBookingData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceSlug, initialQuantity])
+  }, [serviceSlug, initialQuantity, isRebookMode, location.state])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -497,7 +587,8 @@ function BookingPage() {
       showNotice({
         type: "warning",
         title: "Đặt lịch thất bại",
-        message: error.message || "Có lỗi xảy ra khi đặt lịch. Vui lòng thử lại.",
+        message:
+          error.message || "Có lỗi xảy ra khi đặt lịch. Vui lòng thử lại.",
       })
     } finally {
       setIsSubmitting(false)
@@ -541,7 +632,7 @@ function BookingPage() {
                 <div className="success-service-list">
                   {selectedServices.map((service) => (
                     <div key={service.id} className="success-service-item">
-                      {service.title} x {getServiceQuantity(service.id)}
+                      {getServiceTitle(service)} x {getServiceQuantity(service.id)}
                     </div>
                   ))}
                 </div>
@@ -705,14 +796,17 @@ function BookingPage() {
                           <div className="service-info-left">
                             <div className="service-thumb">
                               {service.image ? (
-                                <img src={service.image} alt={service.title} />
+                                <img
+                                  src={service.image}
+                                  alt={getServiceTitle(service)}
+                                />
                               ) : (
                                 <ShoppingBag size={26} />
                               )}
                             </div>
 
                             <div>
-                              <h4>{service.title}</h4>
+                              <h4>{getServiceTitle(service)}</h4>
 
                               <p>
                                 {service.duration
@@ -912,7 +1006,8 @@ function BookingPage() {
                           key={service.id}
                         >
                           <span>
-                            {service.title} x {getServiceQuantity(service.id)}
+                            {getServiceTitle(service)} x{" "}
+                            {getServiceQuantity(service.id)}
                           </span>
 
                           <strong>
@@ -1037,7 +1132,10 @@ function BookingPage() {
                     >
                       <div className="service-picker-image">
                         {service.image ? (
-                          <img src={service.image} alt={service.title} />
+                          <img
+                            src={service.image}
+                            alt={getServiceTitle(service)}
+                          />
                         ) : (
                           <div className="service-picker-placeholder">
                             <ShoppingBag size={28} />
@@ -1047,7 +1145,7 @@ function BookingPage() {
 
                       <div className="service-picker-content">
                         <div className="service-picker-top">
-                          <h4>{service.title}</h4>
+                          <h4>{getServiceTitle(service)}</h4>
 
                           <span
                             className={`service-top-check ${
@@ -1064,11 +1162,11 @@ function BookingPage() {
 
                         <div className="service-picker-meta">
                           <span className="service-picker-chip">
-                            {service.category}
+                            {service.category || "Dịch vụ"}
                           </span>
 
                           <span className="service-picker-chip">
-                            {service.duration} phút
+                            {service.duration || 0} phút
                           </span>
                         </div>
 

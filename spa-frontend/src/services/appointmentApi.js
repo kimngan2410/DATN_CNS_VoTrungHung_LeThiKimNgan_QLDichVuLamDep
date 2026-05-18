@@ -24,6 +24,23 @@ function getFullImageUrl(image) {
   return image
 }
 
+function getServiceId(service) {
+  const rawId =
+    service?.idDichVu ??
+    service?.idDich_vu ??
+    service?.idDV ??
+    service?.id ??
+    service?.maDV
+
+  const serviceId = Number(rawId)
+
+  if (!Number.isFinite(serviceId) || serviceId <= 0) {
+    return null
+  }
+
+  return serviceId
+}
+
 async function handleResponse(response, defaultMessage) {
   let data = null
 
@@ -40,32 +57,100 @@ async function handleResponse(response, defaultMessage) {
   return data
 }
 
+function normalizeAppointmentService(service, appointmentId) {
+  const serviceId = getServiceId(service)
+
+  return {
+    idChiTietLH:
+      service.idChiTietLH ||
+      service.idChiTietLichHen ||
+      `${appointmentId || "LH"}-${serviceId || Date.now()}`,
+
+    idDichVu: serviceId,
+    id: serviceId,
+
+    name: service.tenDichVu || service.tenDV || service.name || "Dịch vụ",
+    title: service.tenDichVu || service.tenDV || service.name || "Dịch vụ",
+
+    price: Number(service.donGia || service.price || 0),
+    duration: Number(service.thoiLuongPhut || service.duration || 0),
+    quantity: Math.max(1, Number(service.soLuong || service.quantity || 1)),
+    total: Number(service.thanhTien || service.total || 0),
+
+    image: getFullImageUrl(service.hinhAnh || service.image || ""),
+    category: service.tenDanhMuc || service.category || "",
+
+    type: service.type || "booked",
+    reviewed: Boolean(service.reviewed || false),
+    review: service.review || null,
+  }
+}
+
 function normalizeAppointment(item) {
-  const services = (item.chiTietLichHen || []).map((service) => ({
-    id: service.idDichVu,
-    name: service.tenDichVu,
-    price: Number(service.donGia || 0),
-    duration: Number(service.thoiLuongPhut || 0),
-    quantity: Number(service.soLuong || 1),
-    total: Number(service.thanhTien || 0),
-    image: getFullImageUrl(service.hinhAnh || ""),
-  }))
+  const services = (item.chiTietLichHen || [])
+    .map((service) => normalizeAppointmentService(service, item.idLichHen))
+    .filter((service) => service.idDichVu)
 
   return {
     id: item.idLichHen,
+    appointmentId: item.idLichHen,
     code: item.maLH,
+
     date: item.ngayHen,
     time: item.gioHen,
     endTime: item.gioKetThuc,
     startDateTime: item.thoiGianBatDau,
     endDateTime: item.thoiGianKetThuc,
+
     status: item.trangThaiCode,
     statusLabel: item.trangThai,
+
     note: item.ghiChu || "",
     cancelReason: item.lyDoHuy || "",
+
     totalPrice: Number(item.tongTienDuKien || 0),
     totalDuration: Number(item.tongThoiLuong || 0),
     totalQuantity: Number(item.tongSoLuong || 0),
+    peopleCount: Number(item.tongSoLuong || 0),
+
+    services,
+  }
+}
+
+function normalizeHistoryAppointment(item) {
+  const services = (item.chiTietLichHen || [])
+    .map((service) => normalizeAppointmentService(service, item.idLichHen))
+    .filter((service) => service.idDichVu)
+
+  return {
+    id: item.maLH || item.idLichHen,
+    appointmentId: item.idLichHen,
+    code: item.maLH,
+    invoiceCode: item.maHD || item.invoiceCode || null,
+
+    date: item.ngayHen,
+    time: item.gioHen,
+    endTime: item.gioKetThuc,
+    startDateTime: item.thoiGianBatDau,
+    endDateTime: item.thoiGianKetThuc,
+
+    status: item.trangThaiCode,
+    statusLabel: item.trangThai,
+
+    cancelReason: item.lyDoHuy || "",
+    note: item.ghiChu || "",
+
+    peopleCount: Number(item.tongSoLuong || 0),
+    totalQuantity: Number(item.tongSoLuong || 0),
+    totalPrice: Number(item.tongTienDuKien || 0),
+    totalDuration: Number(item.tongThoiLuong || 0),
+
+    paymentMethod: item.phuongThucThanhToan || "",
+    paymentStatus:
+      item.trangThaiThanhToan ||
+      (item.trangThaiCode === "completed" ? "Đã thanh toán" : ""),
+    paidAt: item.ngayThanhToan || "",
+
     services,
   }
 }
@@ -125,4 +210,22 @@ export async function rescheduleMyAppointmentApi(appointmentId, payload) {
   )
 
   return handleResponse(response, "Không thể đổi lịch hẹn")
+}
+
+export async function getMyServiceHistoryApi(idTaiKhoan) {
+  const token = getAuthToken()
+
+  const response = await fetch(
+    `${API_BASE_URL}/lich-hen/tai-khoan/${idTaiKhoan}/lich-su-dich-vu`,
+    {
+      method: "GET",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }
+  )
+
+  const data = await handleResponse(response, "Không thể tải lịch sử dịch vụ")
+
+  return data.map(normalizeHistoryAppointment)
 }

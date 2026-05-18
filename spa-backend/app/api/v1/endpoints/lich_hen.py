@@ -6,6 +6,7 @@ from app.crud.lich_hen_crud import (
     create_booking,
     get_customer_appointment_detail,
     get_customer_appointments,
+    get_customer_service_history,
     reschedule_customer_appointment,
 )
 from app.db.session import get_db
@@ -31,6 +32,15 @@ def get_my_appointments(
 ):
     return get_customer_appointments(db, id_tai_khoan)
 
+@router.get(
+    "/tai-khoan/{id_tai_khoan}/lich-su-dich-vu",
+    response_model=list[LichHenCustomerOut],
+)
+def get_my_service_history(
+    id_tai_khoan: int,
+    db: Session = Depends(get_db),
+):
+    return get_customer_service_history(db, id_tai_khoan)
 
 @router.get(
     "/tai-khoan/{id_tai_khoan}/{appointment_id}",

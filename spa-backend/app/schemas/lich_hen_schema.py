@@ -43,6 +43,7 @@ class LichHenCreateResponse(BaseModel):
 
 
 class LichHenDichVuOut(BaseModel):
+    idChiTietLH: Optional[int] = None
     idDichVu: int
     tenDichVu: str
     donGia: float

@@ -25,6 +25,10 @@ import {
 } from "lucide-react"
 import { FcGoogle } from "react-icons/fc"
 import { FaFacebookF } from "react-icons/fa"
+import {
+  getStrongPasswordError,
+  PASSWORD_HINT,
+} from "../../../utils/passwordValidation"
 import "./LoginPage.css"
 
 function LoginPage() {
@@ -384,13 +388,10 @@ function LoginPage() {
     const email = forgotEmail.trim().toLowerCase()
     const otpCode = verifiedOtp || otpDigits.join("")
 
-    if (!newPassword.trim()) {
-      setForgotError("Vui lòng nhập mật khẩu mới.")
-      return
-    }
+    const passwordError = getStrongPasswordError(newPassword)
 
-    if (newPassword.length < 6) {
-      setForgotError("Mật khẩu mới phải có ít nhất 6 ký tự.")
+    if (passwordError) {
+      setForgotError(passwordError)
       return
     }
 
@@ -813,6 +814,10 @@ function LoginPage() {
                       )}
                     </button>
                   </div>
+                </div>
+
+                <div className="forgot-password-rule-note">
+                  {PASSWORD_HINT}
                 </div>
 
                 <div className="forgot-password-actions">

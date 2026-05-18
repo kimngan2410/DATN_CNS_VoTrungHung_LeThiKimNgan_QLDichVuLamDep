@@ -1,4 +1,5 @@
 import random
+import re
 from datetime import datetime, timedelta
 from typing import Optional
 from urllib.parse import quote_plus
@@ -12,6 +13,7 @@ from app.models.khach_hang import KhachHang
 from app.models.otp_xac_thuc import OTPXacThuc
 from app.models.tai_khoan import TaiKhoan
 from app.schemas.auth_schema import (
+    ChangePasswordRequest,
     ForgotPasswordResendOtpRequest,
     ForgotPasswordResetRequest,
     ForgotPasswordSendOtpRequest,
@@ -171,6 +173,48 @@ def authenticate_user(db: Session, email: str, password: str):
 
     return build_user_payload(tai_khoan, khach_hang)
 
+def validate_strong_password(password: str):
+    if not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Vui lòng nhập mật khẩu",
+        )
+
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu phải có ít nhất 8 ký tự",
+        )
+
+    if re.search(r"\s", password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu không được chứa khoảng trắng",
+        )
+
+    if not re.search(r"[A-Z]", password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu phải có ít nhất 1 chữ hoa",
+        )
+
+    if not re.search(r"[a-z]", password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu phải có ít nhất 1 chữ thường",
+        )
+
+    if not re.search(r"\d", password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu phải có ít nhất 1 chữ số",
+        )
+
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu phải có ít nhất 1 ký tự đặc biệt",
+        )
 
 def send_register_otp(db: Session, payload: RegisterSendOtpRequest):
     email = payload.email.strip().lower()
@@ -182,6 +226,8 @@ def send_register_otp(db: Session, payload: RegisterSendOtpRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Mật khẩu xác nhận không khớp",
         )
+    
+    validate_strong_password(payload.password)
 
     existing_account = db.query(TaiKhoan).filter(TaiKhoan.email == email).first()
 
@@ -757,6 +803,8 @@ def reset_password_by_otp(db: Session, payload: ForgotPasswordResetRequest):
             detail="Mật khẩu xác nhận không khớp",
         )
 
+    validate_strong_password(payload.newPassword)
+
     tai_khoan = validate_forgot_password_account(db, email)
 
     otp = get_latest_forgot_password_otp(db, tai_khoan.idTaiKhoan)
@@ -798,4 +846,80 @@ def reset_password_by_otp(db: Session, payload: ForgotPasswordResetRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi đặt lại mật khẩu: {str(error)}",
+        )
+    
+def change_password(
+    db: Session,
+    id_tai_khoan: int,
+    payload: ChangePasswordRequest,
+):
+    tai_khoan = (
+        db.query(TaiKhoan)
+        .filter(TaiKhoan.idTaiKhoan == id_tai_khoan)
+        .first()
+    )
+
+    if not tai_khoan:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy tài khoản",
+        )
+
+    if tai_khoan.trangThai == "KHOA":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản đã bị khóa",
+        )
+
+    if not tai_khoan.matKhau:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tài khoản này đăng nhập bằng Google/Facebook nên chưa có mật khẩu để đổi",
+        )
+
+    if payload.newPassword != payload.confirmPassword:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu xác nhận không khớp",
+        )
+
+    validate_strong_password(payload.newPassword)
+
+    if payload.currentPassword == payload.newPassword:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu mới không được trùng với mật khẩu hiện tại",
+        )
+
+    is_valid_current_password = verify_password(
+        payload.currentPassword,
+        tai_khoan.matKhau,
+    )
+
+    # Hỗ trợ nếu DB cũ từng lưu mật khẩu dạng text thường.
+    if not is_valid_current_password and payload.currentPassword == tai_khoan.matKhau:
+        is_valid_current_password = True
+
+    if not is_valid_current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu hiện tại không chính xác",
+        )
+
+    try:
+        tai_khoan.matKhau = hash_password(payload.newPassword)
+        tai_khoan.loaiDangNhap = "LOCAL"
+        tai_khoan.ngayCapNhat = datetime.now()
+
+        db.commit()
+
+        return {
+            "message": "Đổi mật khẩu thành công",
+        }
+
+    except Exception as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi đổi mật khẩu: {str(error)}",
         )

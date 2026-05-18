@@ -30,8 +30,8 @@ class RegisterSendOtpRequest(BaseModel):
     hoTen: str = Field(..., min_length=2, max_length=150)
     email: EmailStr
     sdt: str = Field(..., min_length=9, max_length=20)
-    password: str = Field(..., min_length=6, max_length=100)
-    confirmPassword: str = Field(..., min_length=6, max_length=100)
+    password: str = Field(..., min_length=8, max_length=100)
+    confirmPassword: str = Field(..., min_length=8, max_length=100)
 
 
 class RegisterSendOtpResponse(BaseModel):
@@ -71,5 +71,14 @@ class ForgotPasswordVerifyOtpRequest(BaseModel):
 class ForgotPasswordResetRequest(BaseModel):
     email: EmailStr
     otp: str = Field(..., min_length=6, max_length=6)
-    newPassword: str = Field(..., min_length=6)
-    confirmPassword: str = Field(..., min_length=6)
+    newPassword: str = Field(..., min_length=8)
+    confirmPassword: str = Field(..., min_length=8)
+
+class ChangePasswordRequest(BaseModel):
+    currentPassword: str = Field(..., min_length=1)
+    newPassword: str = Field(..., min_length=8)
+    confirmPassword: str = Field(..., min_length=8)
+
+
+class ChangePasswordResponse(BaseModel):
+    message: str

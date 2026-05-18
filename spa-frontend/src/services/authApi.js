@@ -171,3 +171,21 @@ export function logout() {
 
   window.dispatchEvent(new Event("auth-changed"))
 }
+
+export async function changePasswordApi(idTaiKhoan, payload) {
+  const token = getAuthToken()
+
+  const response = await fetch(
+    `${API_BASE_URL}/auth/doi-mat-khau/${idTaiKhoan}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    }
+  )
+
+  return handleResponse(response, "Không thể đổi mật khẩu")
+}

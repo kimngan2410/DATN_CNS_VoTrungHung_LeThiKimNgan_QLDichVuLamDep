@@ -888,3 +888,14 @@
   border-color: #d4a437;
   box-shadow: 0 0 0 3px rgba(212, 164, 55, 0.12);
 }
+
+.forgot-password-rule-note {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #faf8f4;
+  color: #6e6762;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid #eee7df;
+}

@@ -21,6 +21,10 @@ import {
   registerVerifyOtpApi,
   saveAuthData,
 } from "../../../services/authApi"
+import {
+  getStrongPasswordError,
+  PASSWORD_HINT,
+} from "../../../utils/passwordValidation"
 import "./RegisterPage.css"
 
 function RegisterPage() {
@@ -101,10 +105,10 @@ function RegisterPage() {
       newErrors.phone = "Số điện thoại không hợp lệ"
     }
 
-    if (!formData.password) {
-      newErrors.password = "Vui lòng nhập mật khẩu"
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự"
+    const passwordError = getStrongPasswordError(formData.password)
+
+    if (passwordError) {
+      newErrors.password = passwordError
     }
 
     if (!formData.confirmPassword) {
@@ -410,6 +414,10 @@ function RegisterPage() {
                       {errors.confirmPassword}
                     </p>
                   )}
+
+                  <div className="register-password-note">
+                    {PASSWORD_HINT}
+                  </div>
                 </div>
 
                 {errors.general && (
