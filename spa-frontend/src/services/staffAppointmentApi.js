@@ -127,3 +127,4 @@ export async function updateStaffAppointmentStatusApi(appointmentId, payload) {
 
   return normalizeStaffAppointment(data.appointment)
 }
+

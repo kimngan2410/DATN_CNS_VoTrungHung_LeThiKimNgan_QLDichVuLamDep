@@ -34,7 +34,10 @@ import {
   createStaffCustomerApi,
   getStaffCustomersApi,
 } from "../../../services/staffCustomerApi";
-import { getServicesApi } from "../../../services/serviceApi";
+import {
+  getServiceCategoriesApi,
+  getServicesApi,
+} from "../../../services/serviceApi";
 
 import "./StaffAppointments.css";
 
@@ -258,6 +261,7 @@ const normalizeStaffService = (service) => {
     category: service.category || service.tenDanhMuc || service.tenDM || "Dịch vụ",
     price: Number(service.gia || service.price || 0),
     thoiLuongPhut: Number(service.thoiLuongPhut || service.duration || 0),
+    isActive: service.isActive !== false,
   };
 };
 
@@ -268,6 +272,7 @@ function StaffAppointments() {
 
   const [customerOptions, setCustomerOptions] = useState([]);
   const [serviceOptions, setServiceOptions] = useState([]);
+  const [serviceCategoryOptions, setServiceCategoryOptions] = useState(["Tất cả"]);
   const [isLoadingCreateData, setIsLoadingCreateData] = useState(false);
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
@@ -334,13 +339,28 @@ function StaffAppointments() {
       try {
         setIsLoadingCreateData(true);
 
-        const [customers, services] = await Promise.all([
+        const [customers, categories, services] = await Promise.all([
           getStaffCustomersApi(),
+          getServiceCategoriesApi(),
           getServicesApi(),
         ]);
 
-        setCustomerOptions(customers);
-        setServiceOptions((services || []).map(normalizeStaffService));
+        const normalizedServices = (services || [])
+          .map(normalizeStaffService)
+          .filter((service) => service.isActive !== false);
+
+        const categoryNames = (categories || [])
+          .map((category) => category.tenDM || category.name || category.category)
+          .filter(Boolean);
+
+        setCustomerOptions(customers || []);
+        setServiceOptions(normalizedServices);
+        setServiceCategoryOptions([
+          "Tất cả",
+          ...(categoryNames.length > 0
+            ? categoryNames
+            : [...new Set(normalizedServices.map((service) => service.category || "Dịch vụ"))]),
+        ]);
       } catch (error) {
         console.error(error);
       } finally {
@@ -350,13 +370,6 @@ function StaffAppointments() {
 
     fetchCreateData();
   }, []);
-
-  const serviceCategoryOptions = useMemo(() => {
-    return [
-      "Tất cả",
-      ...new Set(serviceOptions.map((service) => service.category || "Dịch vụ")),
-    ];
-  }, [serviceOptions]);
 
   const extraServiceOptions = serviceOptions;
 

@@ -629,8 +629,8 @@
 
 .appointment-modal-section h3 {
   margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--staff-text);
 }
 
@@ -674,7 +674,7 @@
   align-items: center;
   justify-content: space-between;
   color: var(--staff-text);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -832,6 +832,15 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.invoice-payment-methods button {
+  background: #fffdf6;
+  border-radius: 20px;
+  border: 1px solid #cfa027;
+  padding: 8px 20px;
+  color: #8d6915;
+  font-size: 14px;
 }
 
 .invoice-payment-btn {
@@ -1252,6 +1261,10 @@
   background: rgba(215, 169, 63, 0.1);
 }
 
+.create-customer-card strong {
+  font-weight: 600;
+}
+
 .create-customer-card span {
   display: block;
   font-size: 13px;
@@ -1666,4 +1679,17 @@
   color: var(--staff-muted);
   font-size: 13px;
   text-align: center;
+}
+
+.create-search-box input{
+  width: 350px;
+  border-radius: 10px;
+}
+
+.create-quick-customer-btn {
+  border-radius: 30px;
+  padding: 8px 10px;
+  font-size: 14px;
+  background: #eeeeee;
+  margin-top: 20px;
 }

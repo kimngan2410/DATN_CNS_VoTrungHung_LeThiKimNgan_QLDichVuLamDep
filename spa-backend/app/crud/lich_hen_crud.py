@@ -654,7 +654,7 @@ def create_staff_appointment(db: Session, payload):
             trangThai="Đã xác nhận",
             ghiChu=payload.ghiChu or "Lịch hẹn được tạo tại quầy.",
             lyDoHuy=None,
-            nguonTao="Nhân viên",
+            nguonTao="Lễ tân",
         )
 
         db.add(lich_hen)
