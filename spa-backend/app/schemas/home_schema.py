@@ -1,27 +1,38 @@
 from pydantic import BaseModel
+from typing import Optional
 
 
 class HomeServiceOut(BaseModel):
     id: int
+    maDV: str
     title: str
     category: str
-    description: str | None = None
+    categoryId: int
+    description: str
+    detailDescription: Optional[str] = None
     price: float
     duration: int
-    image: str | None = None
+    image: str
+    isActive: bool
     isFeatured: bool = True
-    isActive: bool = True
+
+
+class HomeCategoryOut(BaseModel):
+    id: int
+    tenDM: str
+    moTa: Optional[str] = None
 
 
 class HomeTestimonialOut(BaseModel):
     id: int
-    name: str
-    role: str | None = None
-    content: str
+    customerName: str
+    avatar: Optional[str] = None
     rating: int
-    avatar: str | None = None
+    content: str
+    createdAt: str
 
 
 class HomeResponse(BaseModel):
-    featuredServices: list[HomeServiceOut]
+    newServices: list[HomeServiceOut]
+    categories: list[HomeCategoryOut]
     testimonials: list[HomeTestimonialOut]

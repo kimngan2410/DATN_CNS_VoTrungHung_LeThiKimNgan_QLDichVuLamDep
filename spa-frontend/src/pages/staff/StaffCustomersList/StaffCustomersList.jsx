@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
-  Bell,
   UserRound,
   Filter,
   Plus,
@@ -15,201 +14,17 @@ import {
   Wallet,
   RotateCcw,
 } from "lucide-react";
-import "./StaffCustomersList.css";
+
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
+import {
+  createStaffCustomerApi,
+  getStaffCustomersApi,
+} from "../../../services/staffCustomerApi";
 
-
-const initialCustomerList = [
-  {
-    id: "KH001",
-    fullName: "Nguyễn Thị Mai",
-    avatarText: "N",
-    phone: "0901234567",
-    email: "mai.nguyen@email.com",
-    gender: "Nữ",
-    birthday: "1990-05-15",
-    createdAt: "2023-01-10",
-    loaiKH: "VIP",
-    status: "Đang hoạt động",
-    totalAppointments: 8,
-    totalSpent: 5450000,
-    lastVisit: "2026-05-04",
-    appointments: [
-      {
-        id: "LH001",
-        date: "2026-05-04",
-        time: "09:00",
-        services: "Massage body, Gội đầu dưỡng sinh",
-        status: "Đã hoàn thành",
-      },
-      {
-        id: "LH006",
-        date: "2026-05-05",
-        time: "10:00",
-        services: "Tắm trắng",
-        status: "Đã xác nhận",
-      },
-    ],
-    serviceHistory: [
-      {
-        id: "LS001",
-        serviceName: "Massage body",
-        date: "2026-05-04",
-        amount: 500000,
-      },
-      {
-        id: "LS002",
-        serviceName: "Gội đầu dưỡng sinh",
-        date: "2026-05-04",
-        amount: 250000,
-      },
-    ],
-  },
-  {
-    id: "KH002",
-    fullName: "Trần Văn Hùng",
-    avatarText: "T",
-    phone: "0912345678",
-    email: "hung.tran@email.com",
-    gender: "Nam",
-    birthday: "1988-08-22",
-    createdAt: "2023-02-15",
-    loaiKH: "Thường",
-    status: "Đang hoạt động",
-    totalAppointments: 5,
-    totalSpent: 3200000,
-    lastVisit: "2026-05-04",
-    appointments: [
-      {
-        id: "LH002",
-        date: "2026-05-04",
-        time: "10:30",
-        services: "Gội đầu dưỡng sinh, Chăm sóc da mặt...",
-        status: "Đang thực hiện",
-      },
-    ],
-    serviceHistory: [
-      {
-        id: "LS003",
-        serviceName: "Massage body",
-        date: "2026-05-02",
-        amount: 500000,
-      },
-    ],
-  },
-  {
-    id: "KH003",
-    fullName: "Lê Thị Hoa",
-    avatarText: "L",
-    phone: "0923456789",
-    email: "hoa.le@email.com",
-    gender: "Nữ",
-    birthday: "1995-11-30",
-    createdAt: "2022-11-20",
-    loaiKH: "Thường",
-    status: "Đang hoạt động",
-    totalAppointments: 6,
-    totalSpent: 2860000,
-    lastVisit: "2026-05-03",
-    appointments: [
-      {
-        id: "LH003",
-        date: "2026-05-04",
-        time: "14:00",
-        services: "Chăm sóc da mặt",
-        status: "Đã check-in",
-      },
-      {
-        id: "LH007",
-        date: "2026-05-03",
-        time: "11:00",
-        services: "Waxing",
-        status: "Đã huỷ",
-      },
-    ],
-    serviceHistory: [
-      {
-        id: "LS004",
-        serviceName: "Chăm sóc da mặt",
-        date: "2026-05-03",
-        amount: 400000,
-      },
-    ],
-  },
-  {
-    id: "KH004",
-    fullName: "Phạm Minh Tuấn",
-    avatarText: "P",
-    phone: "0934567890",
-    email: "tuan.pham@email.com",
-    gender: "Nam",
-    birthday: "1992-04-12",
-    createdAt: "2021-04-05",
-    loaiKH: "Thường",
-    status: "Tạm khoá",
-    totalAppointments: 3,
-    totalSpent: 1500000,
-    lastVisit: "2026-05-04",
-    appointments: [
-      {
-        id: "LH004",
-        date: "2026-05-04",
-        time: "15:30",
-        services: "Massage body",
-        status: "Đã xác nhận",
-      },
-    ],
-    serviceHistory: [
-      {
-        id: "LS005",
-        serviceName: "Massage body",
-        date: "2026-04-29",
-        amount: 500000,
-      },
-    ],
-  },
-  {
-    id: "KH005",
-    fullName: "Hoàng Thu Trang",
-    avatarText: "H",
-    phone: "0945678901",
-    email: "trang.hoang@email.com",
-    gender: "Nữ",
-    birthday: "1998-09-08",
-    createdAt: "2020-09-18",
-    loaiKH: "VIP",
-    status: "Đang hoạt động",
-    totalAppointments: 4,
-    totalSpent: 4960000,
-    lastVisit: "2026-05-04",
-    appointments: [
-      {
-        id: "LH005",
-        date: "2026-05-04",
-        time: "16:00",
-        services: "Nail art, Sơn gel",
-        status: "Chờ xác nhận",
-      },
-    ],
-    serviceHistory: [
-      {
-        id: "LS006",
-        serviceName: "Nail art",
-        date: "2026-04-28",
-        amount: 300000,
-      },
-      {
-        id: "LS007",
-        serviceName: "Sơn gel",
-        date: "2026-04-28",
-        amount: 180000,
-      },
-    ],
-  },
-];
+import "./StaffCustomersList.css";
 
 const statusOptions = ["Tất cả", "Đang hoạt động", "Tạm khoá"];
-const genderOptions = ["Tất cả", "Nam", "Nữ"];
+const genderOptions = ["Tất cả", "Nam", "Nữ", "Khác", "Chưa cập nhật"];
 const customerTypeOptions = ["Tất cả", "VIP", "Thường"];
 
 const currentYear = new Date().getFullYear();
@@ -240,7 +55,7 @@ const createdMonthOptions = [
 ];
 
 const formatMoney = (value) => {
-  return `${value.toLocaleString("vi-VN")} đ`;
+  return `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 };
 
 const getCustomerStatusClass = (status) => {
@@ -286,17 +101,11 @@ const getAppointmentStatusClass = (status) => {
   }
 };
 
-const getTodayValue = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = `${today.getMonth() + 1}`.padStart(2, "0");
-  const day = `${today.getDate()}`.padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-};
-
 function StaffCustomers() {
-  const [customers, setCustomers] = useState(initialCustomerList);
+  const [customers, setCustomers] = useState([]);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(true);
+  const [customerError, setCustomerError] = useState("");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -309,6 +118,7 @@ function StaffCustomers() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formError, setFormError] = useState("");
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
 
   const [newCustomer, setNewCustomer] = useState({
     fullName: "",
@@ -320,16 +130,42 @@ function StaffCustomers() {
     status: "Đang hoạt động",
   });
 
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        setIsLoadingCustomers(true);
+        setCustomerError("");
+
+        const data = await getStaffCustomersApi();
+
+        setCustomers(data);
+      } catch (error) {
+        setCustomerError(
+          error.message || "Không thể tải danh sách khách hàng."
+        );
+      } finally {
+        setIsLoadingCustomers(false);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
+
   const filteredCustomers = useMemo(() => {
     return customers.filter((customer) => {
       const keyword = searchTerm.trim().toLowerCase();
 
+      const customerId = String(customer.id || "").toLowerCase();
+      const fullName = String(customer.fullName || "").toLowerCase();
+      const phone = String(customer.phone || "");
+      const email = String(customer.email || "").toLowerCase();
+
       const matchesKeyword =
         keyword === "" ||
-        customer.id.toLowerCase().includes(keyword) ||
-        customer.fullName.toLowerCase().includes(keyword) ||
-        customer.phone.includes(keyword) ||
-        customer.email.toLowerCase().includes(keyword);
+        customerId.includes(keyword) ||
+        fullName.includes(keyword) ||
+        phone.includes(keyword) ||
+        email.includes(keyword);
 
       const matchesStatus =
         statusFilter === "Tất cả" || customer.status === statusFilter;
@@ -341,8 +177,9 @@ function StaffCustomers() {
         customerTypeFilter === "Tất cả" ||
         customer.loaiKH === customerTypeFilter;
 
-      const createdYear = customer.createdAt.slice(0, 4);
-      const createdMonth = customer.createdAt.slice(5, 7);
+      const createdAt = String(customer.createdAt || "");
+      const createdYear = createdAt.slice(0, 4);
+      const createdMonth = createdAt.slice(5, 7);
 
       const matchesCreatedYear =
         createdYearFilter === "Tất cả" || createdYear === createdYearFilter;
@@ -385,6 +222,7 @@ function StaffCustomers() {
   const handleCloseAddModal = () => {
     setIsAddModalOpen(false);
     setFormError("");
+
     setNewCustomer({
       fullName: "",
       phone: "",
@@ -405,7 +243,9 @@ function StaffCustomers() {
     setFormError("");
   };
 
-  const handleAddCustomer = () => {
+  const handleAddCustomer = async () => {
+    if (isCreatingCustomer) return;
+
     const fullName = newCustomer.fullName.trim();
     const phone = newCustomer.phone.trim();
     const email = newCustomer.email.trim();
@@ -415,36 +255,28 @@ function StaffCustomers() {
       return;
     }
 
-    const phoneExisted = customers.some((customer) => customer.phone === phone);
+    try {
+      setIsCreatingCustomer(true);
+      setFormError("");
 
-    if (phoneExisted) {
-      setFormError("Số điện thoại này đã tồn tại trong danh sách khách hàng.");
-      return;
+      const result = await createStaffCustomerApi({
+        fullName,
+        phone,
+        email: email || null,
+        gender: newCustomer.gender,
+        birthday: newCustomer.birthday || null,
+        loaiKH: newCustomer.loaiKH,
+        status: newCustomer.status,
+      });
+
+      setCustomers((prev) => [result.customer, ...prev]);
+      setSelectedCustomer(result.customer);
+      handleCloseAddModal();
+    } catch (error) {
+      setFormError(error.message || "Không thể thêm khách hàng.");
+    } finally {
+      setIsCreatingCustomer(false);
     }
-
-    const nextIdNumber = customers.length + 1;
-
-    const nextCustomer = {
-      id: `KH${String(nextIdNumber).padStart(3, "0")}`,
-      fullName,
-      avatarText: fullName.charAt(0).toUpperCase(),
-      phone,
-      email: email || "Chưa cập nhật",
-      gender: newCustomer.gender,
-      birthday: newCustomer.birthday || "Chưa cập nhật",
-      createdAt: getTodayValue(),
-      loaiKH: newCustomer.loaiKH,
-      status: newCustomer.status,
-      totalAppointments: 0,
-      totalSpent: 0,
-      lastVisit: "Chưa sử dụng",
-      appointments: [],
-      serviceHistory: [],
-    };
-
-    setCustomers((prev) => [nextCustomer, ...prev]);
-    setSelectedCustomer(nextCustomer);
-    handleCloseAddModal();
   };
 
   return (
@@ -582,7 +414,19 @@ function StaffCustomers() {
             </p>
           </div>
 
-          {customers.length === 0 ? (
+          {isLoadingCustomers ? (
+            <div className="staff-customers-empty">
+              <UserRound size={34} />
+              <h3>Đang tải khách hàng</h3>
+              <p>Vui lòng chờ trong giây lát.</p>
+            </div>
+          ) : customerError ? (
+            <div className="staff-customers-empty">
+              <UserRound size={34} />
+              <h3>Không thể tải dữ liệu</h3>
+              <p>{customerError}</p>
+            </div>
+          ) : customers.length === 0 ? (
             <div className="staff-customers-empty">
               <UserRound size={34} />
               <h3>Hiện chưa có khách hàng nào</h3>
@@ -622,7 +466,15 @@ function StaffCustomers() {
                       <td>
                         <div className="staff-customers-name-cell">
                           <div className="staff-customers-name-avatar">
-                            {customer.avatarText}
+                            {customer.avatar ? (
+                              <img
+                                src={customer.avatar}
+                                alt={customer.fullName}
+                                className="staff-customers-avatar-img"
+                              />
+                            ) : (
+                              customer.avatarText
+                            )}
                           </div>
 
                           <div>
@@ -638,9 +490,9 @@ function StaffCustomers() {
                         </div>
                       </td>
 
-                      <td>{customer.phone}</td>
-                      <td>{customer.email}</td>
-                      <td>{customer.gender}</td>
+                      <td>{customer.phone || "Chưa cập nhật"}</td>
+                      <td>{customer.email || "Chưa cập nhật"}</td>
+                      <td>{customer.gender || "Chưa cập nhật"}</td>
 
                       <td>
                         <span
@@ -652,8 +504,8 @@ function StaffCustomers() {
                         </span>
                       </td>
 
-                      <td>{customer.birthday}</td>
-                      <td>{customer.createdAt}</td>
+                      <td>{customer.birthday || "Chưa cập nhật"}</td>
+                      <td>{customer.createdAt || "Chưa cập nhật"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -675,7 +527,15 @@ function StaffCustomers() {
             <div className="staff-customers-modal-header">
               <div className="staff-customers-detail-heading">
                 <div className="staff-customers-detail-avatar">
-                  {selectedCustomer.avatarText}
+                  {selectedCustomer.avatar ? (
+                    <img
+                      src={selectedCustomer.avatar}
+                      alt={selectedCustomer.fullName}
+                      className="staff-customers-avatar-img"
+                    />
+                  ) : (
+                    selectedCustomer.avatarText
+                  )}
                 </div>
 
                 <div>
@@ -734,7 +594,9 @@ function StaffCustomers() {
                   <Phone size={17} />
                   <div>
                     <p>Số điện thoại</p>
-                    <strong>{selectedCustomer.phone}</strong>
+                    <strong>
+                      {selectedCustomer.phone || "Chưa cập nhật"}
+                    </strong>
                   </div>
                 </div>
 
@@ -742,7 +604,9 @@ function StaffCustomers() {
                   <Mail size={17} />
                   <div>
                     <p>Email</p>
-                    <strong>{selectedCustomer.email}</strong>
+                    <strong>
+                      {selectedCustomer.email || "Chưa cập nhật"}
+                    </strong>
                   </div>
                 </div>
 
@@ -750,7 +614,9 @@ function StaffCustomers() {
                   <User size={17} />
                   <div>
                     <p>Giới tính</p>
-                    <strong>{selectedCustomer.gender}</strong>
+                    <strong>
+                      {selectedCustomer.gender || "Chưa cập nhật"}
+                    </strong>
                   </div>
                 </div>
 
@@ -774,7 +640,9 @@ function StaffCustomers() {
                   <CalendarDays size={17} />
                   <div>
                     <p>Ngày sinh</p>
-                    <strong>{selectedCustomer.birthday}</strong>
+                    <strong>
+                      {selectedCustomer.birthday || "Chưa cập nhật"}
+                    </strong>
                   </div>
                 </div>
 
@@ -782,7 +650,9 @@ function StaffCustomers() {
                   <CalendarDays size={17} />
                   <div>
                     <p>Ngày tạo tài khoản</p>
-                    <strong>{selectedCustomer.createdAt}</strong>
+                    <strong>
+                      {selectedCustomer.createdAt || "Chưa cập nhật"}
+                    </strong>
                   </div>
                 </div>
               </div>
@@ -791,7 +661,7 @@ function StaffCustomers() {
                 <div className="staff-customers-history-card">
                   <h3>Lịch hẹn gần đây</h3>
 
-                  {selectedCustomer.appointments.length === 0 ? (
+                  {(selectedCustomer.appointments || []).length === 0 ? (
                     <p className="staff-customers-empty-history">
                       Chưa có lịch hẹn nào.
                     </p>
@@ -828,7 +698,7 @@ function StaffCustomers() {
                 <div className="staff-customers-history-card">
                   <h3>Lịch sử sử dụng dịch vụ</h3>
 
-                  {selectedCustomer.serviceHistory.length === 0 ? (
+                  {(selectedCustomer.serviceHistory || []).length === 0 ? (
                     <p className="staff-customers-empty-history">
                       Chưa có lịch sử sử dụng dịch vụ.
                     </p>
@@ -907,6 +777,7 @@ function StaffCustomers() {
                     onChange={(event) =>
                       handleChangeNewCustomer("fullName", event.target.value)
                     }
+                    disabled={isCreatingCustomer}
                   />
                 </div>
 
@@ -919,6 +790,7 @@ function StaffCustomers() {
                     onChange={(event) =>
                       handleChangeNewCustomer("phone", event.target.value)
                     }
+                    disabled={isCreatingCustomer}
                   />
                 </div>
 
@@ -931,6 +803,7 @@ function StaffCustomers() {
                     onChange={(event) =>
                       handleChangeNewCustomer("email", event.target.value)
                     }
+                    disabled={isCreatingCustomer}
                   />
                 </div>
 
@@ -941,9 +814,11 @@ function StaffCustomers() {
                     onChange={(event) =>
                       handleChangeNewCustomer("gender", event.target.value)
                     }
+                    disabled={isCreatingCustomer}
                   >
                     <option value="Nữ">Nữ</option>
                     <option value="Nam">Nam</option>
+                    <option value="Khác">Khác</option>
                   </select>
                 </div>
 
@@ -955,6 +830,7 @@ function StaffCustomers() {
                     onChange={(event) =>
                       handleChangeNewCustomer("birthday", event.target.value)
                     }
+                    disabled={isCreatingCustomer}
                   />
                 </div>
 
@@ -965,6 +841,7 @@ function StaffCustomers() {
                     onChange={(event) =>
                       handleChangeNewCustomer("loaiKH", event.target.value)
                     }
+                    disabled={isCreatingCustomer}
                   >
                     <option value="Thường">Thường</option>
                     <option value="VIP">VIP</option>
@@ -978,6 +855,7 @@ function StaffCustomers() {
                     onChange={(event) =>
                       handleChangeNewCustomer("status", event.target.value)
                     }
+                    disabled={isCreatingCustomer}
                   >
                     <option value="Đang hoạt động">Đang hoạt động</option>
                     <option value="Tạm khoá">Tạm khoá</option>
@@ -991,6 +869,7 @@ function StaffCustomers() {
                 type="button"
                 className="staff-customers-secondary-btn"
                 onClick={handleCloseAddModal}
+                disabled={isCreatingCustomer}
               >
                 Huỷ
               </button>
@@ -999,8 +878,9 @@ function StaffCustomers() {
                 type="button"
                 className="staff-customers-primary-btn"
                 onClick={handleAddCustomer}
+                disabled={isCreatingCustomer}
               >
-                Lưu khách hàng
+                {isCreatingCustomer ? "Đang lưu..." : "Lưu khách hàng"}
               </button>
             </div>
           </div>

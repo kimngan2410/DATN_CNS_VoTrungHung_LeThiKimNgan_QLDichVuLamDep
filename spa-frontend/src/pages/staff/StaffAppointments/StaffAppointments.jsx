@@ -1,7 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
-  Bell,
   UserRound,
   Filter,
   Plus,
@@ -24,205 +23,22 @@ import {
   XCircle,
   UserX,
 } from "lucide-react";
-import "./StaffAppointments.css";
+
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
+import {
+  createStaffAppointmentApi,
+  getStaffAppointmentsApi,
+  updateStaffAppointmentStatusApi,
+} from "../../../services/staffAppointmentApi";
+import {
+  createStaffCustomerApi,
+  getStaffCustomersApi,
+} from "../../../services/staffCustomerApi";
+import { getServicesApi } from "../../../services/serviceApi";
 
+import "./StaffAppointments.css";
 
-const TODAY = new Date("2026-05-04");
-
-const initialAppointmentList = [
-  {
-    id: "LH001",
-    customer: "Nguyễn Thị Mai",
-    phone: "0901234567",
-    services: [
-      { id: "DV001", name: "Massage body", price: 500000, soLuong: 1, thoiLuongPhut: 60 },
-      { id: "DV002", name: "Gội đầu dưỡng sinh", price: 250000, soLuong: 1, thoiLuongPhut: 45 },
-    ],
-    date: "2026-05-04",
-    time: "09:00",
-    endTime: "10:45",
-    status: "Đã hoàn thành",
-    note: "Khách đã thanh toán sau khi hoàn thành dịch vụ.",
-  },
-  {
-    id: "LH002",
-    customer: "Trần Văn Hùng",
-    phone: "0912345678",
-    services: [
-      { id: "DV002", name: "Gội đầu dưỡng sinh", price: 250000, soLuong: 1, thoiLuongPhut: 45 },
-      { id: "DV003", name: "Chăm sóc da mặt", price: 400000, soLuong: 1, thoiLuongPhut: 60 },
-      { id: "DV004", name: "Massage cổ vai gáy", price: 200000, soLuong: 1, thoiLuongPhut: 30 },
-    ],
-    date: "2026-05-04",
-    time: "10:30",
-    endTime: "12:45",
-    status: "Đang thực hiện",
-    note: "Khách có thể phát sinh thêm dịch vụ trong quá trình làm.",
-  },
-  {
-    id: "LH003",
-    customer: "Lê Thị Hoa",
-    phone: "0923456789",
-    services: [
-      { id: "DV003", name: "Chăm sóc da mặt", price: 400000, soLuong: 1, thoiLuongPhut: 60 },
-    ],
-    date: "2026-05-04",
-    time: "14:00",
-    endTime: "15:00",
-    status: "Đã check-in",
-    note: "Khách đã đến spa, đang chờ bắt đầu dịch vụ.",
-  },
-  {
-    id: "LH004",
-    customer: "Phạm Minh Tuấn",
-    phone: "0934567890",
-    services: [
-      { id: "DV001", name: "Massage body", price: 500000, soLuong: 1, thoiLuongPhut: 60 },
-    ],
-    date: "2026-05-04",
-    time: "15:30",
-    endTime: "16:30",
-    status: "Đã xác nhận",
-    note: "Khách yêu cầu phòng yên tĩnh.",
-  },
-  {
-    id: "LH005",
-    customer: "Hoàng Thu Trang",
-    phone: "0945678901",
-    services: [
-      { id: "DV005", name: "Nail art", price: 300000, soLuong: 1, thoiLuongPhut: 45 },
-      { id: "DV006", name: "Sơn gel", price: 180000, soLuong: 2, thoiLuongPhut: 30 },
-    ],
-    date: "2026-05-04",
-    time: "16:00",
-    endTime: "17:45",
-    status: "Chờ xác nhận",
-    note: "Khách yêu cầu thợ làm móng tên Linh.",
-  },
-  {
-    id: "LH006",
-    customer: "Nguyễn Thị Mai",
-    phone: "0901234567",
-    services: [
-      { id: "DV007", name: "Tắm trắng", price: 700000, soLuong: 1, thoiLuongPhut: 90 },
-    ],
-    date: "2026-05-05",
-    time: "10:00",
-    endTime: "11:30",
-    status: "Đã xác nhận",
-    note: "Khách đặt lịch cho ngày tiếp theo.",
-  },
-  {
-    id: "LH007",
-    customer: "Lê Thị Hoa",
-    phone: "0923456789",
-    services: [
-      { id: "DV008", name: "Waxing", price: 300000, soLuong: 1, thoiLuongPhut: 45 },
-    ],
-    date: "2026-05-03",
-    time: "11:00",
-    endTime: "11:45",
-    status: "Đã huỷ",
-    note: "Khách báo bận và huỷ lịch.",
-    lyDoHuy: "Khách báo bận nên yêu cầu huỷ lịch.",
-    statusReason: "Khách báo bận nên yêu cầu huỷ lịch.",
-  },
-  {
-    id: "LH008",
-    customer: "Đặng Minh Anh",
-    phone: "0967891234",
-    services: [
-      { id: "DV002", name: "Gội đầu dưỡng sinh", price: 250000, soLuong: 1, thoiLuongPhut: 45 },
-    ],
-    date: "2026-05-04",
-    time: "17:00",
-    endTime: "17:45",
-    status: "Không đến",
-    note: "Khách không đến và không phản hồi.",
-    statusReason: "Khách không đến và không phản hồi.",
-  },
-];
-
-const customerOptions = [
-  { id: "KH001", name: "Nguyễn Thị Mai", phone: "0901234567" },
-  { id: "KH002", name: "Trần Văn Hùng", phone: "0912345678" },
-  { id: "KH003", name: "Lê Thị Hoa", phone: "0923456789" },
-  { id: "KH004", name: "Phạm Minh Tuấn", phone: "0934567890" },
-  { id: "KH005", name: "Hoàng Thu Trang", phone: "0945678901" },
-];
-
-const serviceOptions = [
-  {
-    id: "DV001",
-    name: "Massage body",
-    category: "Massage",
-    price: 500000,
-    thoiLuongPhut: 60,
-  },
-  {
-    id: "DV002",
-    name: "Gội đầu dưỡng sinh",
-    category: "Gội đầu",
-    price: 250000,
-    thoiLuongPhut: 45,
-  },
-  {
-    id: "DV003",
-    name: "Chăm sóc da mặt",
-    category: "Chăm sóc da",
-    price: 400000,
-    thoiLuongPhut: 60,
-  },
-  {
-    id: "DV004",
-    name: "Massage cổ vai gáy",
-    category: "Massage",
-    price: 200000,
-    thoiLuongPhut: 30,
-  },
-  {
-    id: "DV005",
-    name: "Nail art",
-    category: "Nail",
-    price: 300000,
-    thoiLuongPhut: 45,
-  },
-  {
-    id: "DV006",
-    name: "Sơn gel",
-    category: "Nail",
-    price: 180000,
-    thoiLuongPhut: 30,
-  },
-  {
-    id: "DV007",
-    name: "Tắm trắng",
-    category: "Tắm trắng",
-    price: 700000,
-    thoiLuongPhut: 90,
-  },
-  {
-    id: "DV008",
-    name: "Waxing",
-    category: "Waxing",
-    price: 300000,
-    thoiLuongPhut: 45,
-  },
-];
-
-const serviceCategoryOptions = [
-  "Tất cả",
-  ...new Set(serviceOptions.map((service) => service.category)),
-];
-
-const extraServiceOptions = [
-  { id: "DV004", name: "Massage cổ vai gáy", price: 200000, soLuong: 1, thoiLuongPhut: 30 },
-  { id: "DV009", name: "Xông hơi thư giãn", price: 180000, soLuong: 1, thoiLuongPhut: 30 },
-  { id: "DV006", name: "Sơn gel", price: 180000, soLuong: 1, thoiLuongPhut: 30 },
-  { id: "DV002", name: "Gội đầu dưỡng sinh", price: 250000, soLuong: 1, thoiLuongPhut: 45 },
-  { id: "DV005", name: "Nail art", price: 300000, soLuong: 1, thoiLuongPhut: 45 },
-];
+const TODAY = new Date();
 
 const statusOptions = [
   "Tất cả",
@@ -257,37 +73,20 @@ const monthNames = [
   "Tháng Mười Hai",
 ];
 
-const weekdayLabels = [
-  "Thứ 2",
-  "Thứ 3",
-  "Thứ 4",
-  "Thứ 5",
-  "Thứ 6",
-  "Thứ 7",
-  "CN",
-];
+const weekdayLabels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN"];
 
 const formatDateToValue = (date) => {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 };
 
 const formatDisplayDate = (date) => {
-  const weekdays = [
-    "Chủ nhật",
-    "Thứ 2",
-    "Thứ 3",
-    "Thứ 4",
-    "Thứ 5",
-    "Thứ 6",
-    "Thứ 7",
-  ];
+  const weekdays = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 
-  return `${weekdays[date.getDay()]} ${date.getDate()} thg ${
-    date.getMonth() + 1
-  }`;
+  return `${weekdays[date.getDay()]} ${date.getDate()} thg ${date.getMonth() + 1}`;
 };
 
 const formatMonthTitle = (date) => {
@@ -315,34 +114,36 @@ const isSameDate = (dateA, dateB) => {
 };
 
 const formatMoney = (value) => {
-  return `${value.toLocaleString("vi-VN")}đ`;
+  return `${Number(value || 0).toLocaleString("vi-VN")}đ`;
 };
 
 const getServiceQuantity = (service) => {
-  return Number(service.soLuong || 1);
+  return Number(service?.soLuong || 1);
 };
 
 const getServiceDuration = (service) => {
-  return Number(service.thoiLuongPhut || service.duration || 60);
+  return Number(service?.thoiLuongPhut || service?.duration || 0);
 };
 
 const getServiceSubtotal = (service) => {
-  return service.price * getServiceQuantity(service);
+  if (service?.thanhTien !== undefined) {
+    return Number(service.thanhTien || 0);
+  }
+
+  return Number(service?.price || 0) * getServiceQuantity(service);
 };
 
-const getTotalPrice = (services) => {
-  return services.reduce((total, service) => {
-    return total + getServiceSubtotal(service);
-  }, 0);
+const getTotalPrice = (services = []) => {
+  return services.reduce((total, service) => total + getServiceSubtotal(service), 0);
 };
 
-const getTotalDuration = (services) => {
-  return services.reduce((total, service) => {
-    return total + getServiceDuration(service) * getServiceQuantity(service);
-  }, 0);
+const getTotalDuration = (services = []) => {
+  return services.reduce((total, service) => total + getServiceDuration(service), 0);
 };
 
 const toMinutes = (time) => {
+  if (!time || !time.includes(":")) return 0;
+
   const [hour, minute] = time.split(":").map(Number);
   return hour * 60 + minute;
 };
@@ -355,18 +156,13 @@ const formatTimeFromMinutes = (minutes) => {
 };
 
 const getAppointmentEndTime = (appointment) => {
-  if (appointment.endTime) return appointment.endTime;
+  if (appointment?.endTime) return appointment.endTime;
 
-  const duration = getTotalDuration(appointment.services || []);
-  return formatTimeFromMinutes(toMinutes(appointment.time) + duration);
+  const duration = getTotalDuration(appointment?.services || []);
+  return formatTimeFromMinutes(toMinutes(appointment?.time) + duration);
 };
 
-const isTimeSlotAvailable = ({
-  selectedDate,
-  startTime,
-  totalDuration,
-  appointments,
-}) => {
+const isTimeSlotAvailable = ({ selectedDate, startTime, totalDuration, appointments }) => {
   const newStart = toMinutes(startTime);
   const newEnd = newStart + totalDuration;
 
@@ -396,14 +192,9 @@ const generateAvailableSlots = ({
 
   const openMinutes = toMinutes(openTime);
   const closeMinutes = toMinutes(closeTime);
-
   const slots = [];
 
-  for (
-    let current = openMinutes;
-    current + totalDuration <= closeMinutes;
-    current += 30
-  ) {
+  for (let current = openMinutes; current + totalDuration <= closeMinutes; current += 30) {
     const startTime = formatTimeFromMinutes(current);
     const endTime = formatTimeFromMinutes(current + totalDuration);
 
@@ -445,7 +236,7 @@ const getStatusClass = (status) => {
   }
 };
 
-const getServiceNamesText = (services) => {
+const getServiceNamesText = (services = []) => {
   if (!services || services.length === 0) return "";
 
   const serviceNames = services.map((service) => service.name);
@@ -457,8 +248,30 @@ const getServiceNamesText = (services) => {
   return `${serviceNames.slice(0, 2).join(", ")}...`;
 };
 
+const normalizeStaffService = (service) => {
+  const serviceId = Number(service.idDichVu || service.id);
+
+  return {
+    id: service.maDV || serviceId,
+    idDichVu: serviceId,
+    name: service.tenDV || service.title || service.name || "Dịch vụ",
+    category: service.category || service.tenDanhMuc || service.tenDM || "Dịch vụ",
+    price: Number(service.gia || service.price || 0),
+    thoiLuongPhut: Number(service.thoiLuongPhut || service.duration || 0),
+  };
+};
+
 function StaffAppointments() {
-  const [appointments, setAppointments] = useState(initialAppointmentList);
+  const [appointments, setAppointments] = useState([]);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
+  const [appointmentError, setAppointmentError] = useState("");
+
+  const [customerOptions, setCustomerOptions] = useState([]);
+  const [serviceOptions, setServiceOptions] = useState([]);
+  const [isLoadingCreateData, setIsLoadingCreateData] = useState(false);
+  const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tất cả");
   const [selectedDate, setSelectedDate] = useState(TODAY);
@@ -495,17 +308,69 @@ function StaffAppointments() {
 
   const selectedDateValue = formatDateToValue(selectedDate);
 
+  useEffect(() => {
+    const fetchStaffAppointments = async () => {
+      try {
+        setIsLoadingAppointments(true);
+        setAppointmentError("");
+
+        const data = await getStaffAppointmentsApi({
+          date: selectedDateValue,
+        });
+
+        setAppointments(data);
+      } catch (error) {
+        setAppointmentError(error.message || "Không thể tải danh sách lịch hẹn.");
+      } finally {
+        setIsLoadingAppointments(false);
+      }
+    };
+
+    fetchStaffAppointments();
+  }, [selectedDateValue]);
+
+  useEffect(() => {
+    const fetchCreateData = async () => {
+      try {
+        setIsLoadingCreateData(true);
+
+        const [customers, services] = await Promise.all([
+          getStaffCustomersApi(),
+          getServicesApi(),
+        ]);
+
+        setCustomerOptions(customers);
+        setServiceOptions((services || []).map(normalizeStaffService));
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsLoadingCreateData(false);
+      }
+    };
+
+    fetchCreateData();
+  }, []);
+
+  const serviceCategoryOptions = useMemo(() => {
+    return [
+      "Tất cả",
+      ...new Set(serviceOptions.map((service) => service.category || "Dịch vụ")),
+    ];
+  }, [serviceOptions]);
+
+  const extraServiceOptions = serviceOptions;
+
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
       const keyword = searchTerm.trim().toLowerCase();
 
       const matchesKeyword =
         keyword === "" ||
-        appointment.id.toLowerCase().includes(keyword) ||
-        appointment.customer.toLowerCase().includes(keyword) ||
-        appointment.phone.toLowerCase().includes(keyword) ||
-        appointment.services.some((service) =>
-          service.name.toLowerCase().includes(keyword)
+        String(appointment.id || "").toLowerCase().includes(keyword) ||
+        String(appointment.customer || "").toLowerCase().includes(keyword) ||
+        String(appointment.phone || "").toLowerCase().includes(keyword) ||
+        (appointment.services || []).some((service) =>
+          String(service.name || "").toLowerCase().includes(keyword)
         );
 
       const matchesStatus =
@@ -518,22 +383,22 @@ function StaffAppointments() {
   }, [appointments, searchTerm, statusFilter, selectedDateValue]);
 
   const appointmentsBySelectedDate = useMemo(() => {
-  const keyword = searchTerm.trim().toLowerCase();
+    const keyword = searchTerm.trim().toLowerCase();
 
-  return appointments.filter((appointment) => {
-    const matchesDate = appointment.date === selectedDateValue;
+    return appointments.filter((appointment) => {
+      const matchesDate = appointment.date === selectedDateValue;
 
-    const matchesKeyword =
-      keyword === "" ||
-      appointment.id.toLowerCase().includes(keyword) ||
-      appointment.customer.toLowerCase().includes(keyword) ||
-      appointment.phone.toLowerCase().includes(keyword) ||
-      appointment.services.some((service) =>
-        service.name.toLowerCase().includes(keyword)
-      );
+      const matchesKeyword =
+        keyword === "" ||
+        String(appointment.id || "").toLowerCase().includes(keyword) ||
+        String(appointment.customer || "").toLowerCase().includes(keyword) ||
+        String(appointment.phone || "").toLowerCase().includes(keyword) ||
+        (appointment.services || []).some((service) =>
+          String(service.name || "").toLowerCase().includes(keyword)
+        );
 
-    return matchesDate && matchesKeyword;
-  });
+      return matchesDate && matchesKeyword;
+    });
   }, [appointments, searchTerm, selectedDateValue]);
 
   const appointmentStatusCards = useMemo(() => {
@@ -603,37 +468,45 @@ function StaffAppointments() {
     ];
   }, [appointmentsBySelectedDate]);
 
-  const filteredCustomers = customerOptions.filter((customer) => {
-    const keyword = createSearchCustomer.trim().toLowerCase();
+  const filteredCustomers = useMemo(() => {
+    return customerOptions.filter((customer) => {
+      const keyword = createSearchCustomer.trim().toLowerCase();
 
-    if (!keyword) return true;
+      if (!keyword) return true;
 
-    return (
-      customer.name.toLowerCase().includes(keyword) ||
-      customer.phone.includes(keyword)
-    );
-  });
+      return (
+        String(customer.id || "").toLowerCase().includes(keyword) ||
+        String(customer.maKH || "").toLowerCase().includes(keyword) ||
+        String(customer.fullName || "").toLowerCase().includes(keyword) ||
+        String(customer.phone || "").includes(keyword) ||
+        String(customer.email || "").toLowerCase().includes(keyword)
+      );
+    });
+  }, [customerOptions, createSearchCustomer]);
 
-  const filteredServiceOptions = serviceOptions.filter((service) => {
-    const keyword = createServiceSearch.trim().toLowerCase();
+  const filteredServiceOptions = useMemo(() => {
+    return serviceOptions.filter((service) => {
+      const keyword = createServiceSearch.trim().toLowerCase();
 
-    const matchesSearch =
-      keyword === "" ||
-      service.name.toLowerCase().includes(keyword) ||
-      service.category.toLowerCase().includes(keyword);
+      const matchesSearch =
+        keyword === "" ||
+        service.name.toLowerCase().includes(keyword) ||
+        service.category.toLowerCase().includes(keyword);
 
-    const matchesCategory =
-      createServiceCategory === "Tất cả" ||
-      service.category === createServiceCategory;
+      const matchesCategory =
+        createServiceCategory === "Tất cả" || service.category === createServiceCategory;
 
-    return matchesSearch && matchesCategory;
-  });
+      return matchesSearch && matchesCategory;
+    });
+  }, [serviceOptions, createServiceSearch, createServiceCategory]);
 
-  const createAvailableSlots = generateAvailableSlots({
-    selectedDate: createDate,
-    services: createServices,
-    appointments,
-  });
+  const createAvailableSlots = useMemo(() => {
+    return generateAvailableSlots({
+      selectedDate: createDate,
+      services: createServices,
+      appointments,
+    });
+  }, [createDate, createServices, appointments]);
 
   const handleGoToday = () => {
     setSelectedDate(TODAY);
@@ -662,9 +535,7 @@ function StaffAppointments() {
   };
 
   const handleToggleCalendar = () => {
-    setCalendarMonth(
-      new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
-    );
+    setCalendarMonth(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
     setIsCalendarOpen((prev) => !prev);
   };
 
@@ -704,22 +575,28 @@ function StaffAppointments() {
   };
 
   const handleCloseCreateModal = () => {
+    if (isSubmittingCreate) return;
+
     setIsCreateModalOpen(false);
     resetCreateForm();
   };
 
   const handleSelectCustomer = (customer) => {
-    setSelectedCustomer(customer);
+    setSelectedCustomer({
+      ...customer,
+      name: customer.fullName,
+      phone: customer.phone,
+    });
     setIsQuickCustomerMode(false);
   };
 
   const handleAddServiceToCreate = (service) => {
     setCreateServices((prev) => {
-      const existed = prev.some((item) => item.id === service.id);
+      const existed = prev.some((item) => item.idDichVu === service.idDichVu);
 
       if (existed) {
         return prev.map((item) =>
-          item.id === service.id
+          item.idDichVu === service.idDichVu
             ? { ...item, soLuong: getServiceQuantity(item) + 1 }
             : item
         );
@@ -734,7 +611,7 @@ function StaffAppointments() {
   const handleIncreaseCreateService = (serviceId) => {
     setCreateServices((prev) =>
       prev.map((service) =>
-        service.id === serviceId
+        service.idDichVu === serviceId
           ? { ...service, soLuong: getServiceQuantity(service) + 1 }
           : service
       )
@@ -746,7 +623,7 @@ function StaffAppointments() {
   const handleDecreaseCreateService = (serviceId) => {
     setCreateServices((prev) =>
       prev.map((service) =>
-        service.id === serviceId
+        service.idDichVu === serviceId
           ? {
               ...service,
               soLuong: Math.max(1, getServiceQuantity(service) - 1),
@@ -760,16 +637,18 @@ function StaffAppointments() {
 
   const handleRemoveCreateService = (serviceId) => {
     setCreateServices((prev) =>
-      prev.filter((service) => service.id !== serviceId)
+      prev.filter((service) => service.idDichVu !== serviceId)
     );
 
     setCreateTimeSlot(null);
   };
 
-  const handleConfirmCreateAppointment = () => {
-    const customer = isQuickCustomerMode ? quickCustomer : selectedCustomer;
+  const handleConfirmCreateAppointment = async () => {
+    if (isSubmittingCreate) return;
 
-    if (!customer || !customer.name.trim() || !customer.phone.trim()) {
+    let customer = isQuickCustomerMode ? quickCustomer : selectedCustomer;
+
+    if (!customer || !customer.name?.trim() || !customer.phone?.trim()) {
       alert("Vui lòng chọn khách hàng hoặc nhập thông tin khách hàng mới.");
       return;
     }
@@ -784,25 +663,52 @@ function StaffAppointments() {
       return;
     }
 
-    const newAppointment = {
-      id: `LH${String(appointments.length + 1).padStart(3, "0")}`,
-      customer: customer.name,
-      phone: customer.phone,
-      services: createServices,
-      date: createDate,
-      time: createTimeSlot.startTime,
-      endTime: createTimeSlot.endTime,
-      status: "Đã xác nhận",
-      note: createNote || "Lịch hẹn được tạo tại quầy.",
-    };
+    try {
+      setIsSubmittingCreate(true);
 
-    setAppointments((prev) => [...prev, newAppointment]);
-    setSelectedDate(new Date(`${createDate}T00:00:00`));
-    setCalendarMonth(new Date(`${createDate}T00:00:00`));
-    setIsCreateModalOpen(false);
-    resetCreateForm();
+      if (isQuickCustomerMode) {
+        const result = await createStaffCustomerApi({
+          fullName: customer.name.trim(),
+          phone: customer.phone.trim(),
+          email: null,
+          gender: "Nữ",
+          birthday: null,
+          loaiKH: "Thường",
+          status: "Đang hoạt động",
+        });
 
-    alert("Tạo lịch hẹn thành công. Trạng thái lịch hẹn là Đã xác nhận.");
+        customer = {
+          ...result.customer,
+          name: result.customer.fullName,
+          phone: result.customer.phone,
+        };
+
+        setCustomerOptions((prev) => [result.customer, ...prev]);
+      }
+
+      const createdAppointment = await createStaffAppointmentApi({
+        idTaiKhoan: customer.idTaiKhoan,
+        ngayHen: createDate,
+        gioHen: createTimeSlot.startTime,
+        ghiChu: createNote || "Lịch hẹn được tạo tại quầy.",
+        dichVuItems: createServices.map((service) => ({
+          idDichVu: Number(service.idDichVu || service.id),
+          soLuong: getServiceQuantity(service),
+        })),
+      });
+
+      setAppointments((prev) => [createdAppointment, ...prev]);
+      setSelectedDate(new Date(`${createDate}T00:00:00`));
+      setCalendarMonth(new Date(`${createDate}T00:00:00`));
+      setIsCreateModalOpen(false);
+      resetCreateForm();
+
+      alert("Tạo lịch hẹn thành công. Trạng thái lịch hẹn là Đã xác nhận.");
+    } catch (error) {
+      alert(error.message || "Không thể tạo lịch hẹn.");
+    } finally {
+      setIsSubmittingCreate(false);
+    }
   };
 
   const handleOpenDetail = (appointment) => {
@@ -841,7 +747,7 @@ function StaffAppointments() {
     setReasonText("");
   };
 
-  const handleConfirmReason = () => {
+  const handleConfirmReason = async () => {
     if (!reasonModal) return;
 
     if (!reasonText.trim()) {
@@ -849,13 +755,13 @@ function StaffAppointments() {
       return;
     }
 
-    handleUpdateStatus(reasonModal.nextStatus, reasonText.trim());
+    await handleUpdateStatus(reasonModal.nextStatus, reasonText.trim());
     setReasonModal(null);
     setReasonText("");
   };
 
-  const handleUpdateStatus = (nextStatus, reason = "") => {
-    if (!selectedAppointment) return;
+  const handleUpdateStatus = async (nextStatus, reason = "") => {
+    if (!selectedAppointment || isUpdatingStatus) return;
 
     const currentStatus = selectedAppointment.status;
 
@@ -876,28 +782,32 @@ function StaffAppointments() {
       return;
     }
 
-    const updatedAppointment = {
-      ...selectedAppointment,
-      status: nextStatus,
-    };
+    try {
+      setIsUpdatingStatus(true);
 
-    if (nextStatus === "Đã huỷ") {
-      updatedAppointment.lyDoHuy = reason;
-      updatedAppointment.statusReason = reason;
+      const updatedAppointment = await updateStaffAppointmentStatusApi(
+        selectedAppointment.appointmentId,
+        {
+          trangThai: nextStatus,
+          lyDo: reason,
+        }
+      );
+
+      setAppointments((prev) =>
+        prev.map((item) =>
+          item.appointmentId === updatedAppointment.appointmentId
+            ? updatedAppointment
+            : item
+        )
+      );
+
+      setSelectedAppointment(updatedAppointment);
+      alert("Cập nhật trạng thái lịch hẹn thành công.");
+    } catch (error) {
+      alert(error.message || "Không thể cập nhật trạng thái lịch hẹn.");
+    } finally {
+      setIsUpdatingStatus(false);
     }
-
-    if (nextStatus === "Không đến") {
-      updatedAppointment.statusReason = reason;
-    }
-
-    setAppointments((prev) =>
-      prev.map((item) =>
-        item.id === selectedAppointment.id ? updatedAppointment : item
-      )
-    );
-
-    setSelectedAppointment(updatedAppointment);
-    alert("Cập nhật trạng thái lịch hẹn thành công.");
   };
 
   const handleOpenInvoice = () => {
@@ -929,17 +839,17 @@ function StaffAppointments() {
     }
 
     const selectedService = extraServiceOptions.find(
-      (service) => service.id === selectedExtraServiceId
+      (service) => String(service.idDichVu || service.id) === String(selectedExtraServiceId)
     );
 
     if (!selectedService) return;
 
     setExtraServices((prev) => {
-      const existed = prev.some((service) => service.id === selectedService.id);
+      const existed = prev.some((service) => service.idDichVu === selectedService.idDichVu);
 
       if (existed) {
         return prev.map((service) =>
-          service.id === selectedService.id
+          service.idDichVu === selectedService.idDichVu
             ? { ...service, soLuong: getServiceQuantity(service) + 1 }
             : service
         );
@@ -953,7 +863,7 @@ function StaffAppointments() {
 
   const handleRemoveExtraService = (serviceId) => {
     setExtraServices((prev) =>
-      prev.filter((service) => service.id !== serviceId)
+      prev.filter((service) => service.idDichVu !== serviceId)
     );
   };
 
@@ -972,7 +882,9 @@ function StaffAppointments() {
 
     setAppointments((prev) =>
       prev.map((item) =>
-        item.id === invoiceAppointment.id ? updatedAppointment : item
+        item.appointmentId === invoiceAppointment.appointmentId
+          ? updatedAppointment
+          : item
       )
     );
 
@@ -990,7 +902,6 @@ function StaffAppointments() {
 
     const firstDay = new Date(year, month, 1);
     const totalDays = new Date(year, month + 1, 0).getDate();
-
     const leadingBlankCount = (firstDay.getDay() + 6) % 7;
 
     const calendarCells = [
@@ -1013,12 +924,7 @@ function StaffAppointments() {
         <div className="staff-calendar-days">
           {calendarCells.map((date, index) => {
             if (!date) {
-              return (
-                <div
-                  key={`empty-${index}`}
-                  className="staff-calendar-empty"
-                ></div>
-              );
+              return <div key={`empty-${index}`} className="staff-calendar-empty"></div>;
             }
 
             const isSelected = isSameDate(date, selectedDate);
@@ -1055,14 +961,16 @@ function StaffAppointments() {
               type="button"
               className="appointment-modal-action-btn primary"
               onClick={() => handleUpdateStatus("Đã xác nhận")}
+              disabled={isUpdatingStatus}
             >
-              Xác nhận lịch
+              {isUpdatingStatus ? "Đang xử lý..." : "Xác nhận lịch"}
             </button>
 
             <button
               type="button"
               className="appointment-modal-action-btn danger"
               onClick={() => handleOpenReasonModal("Đã huỷ")}
+              disabled={isUpdatingStatus}
             >
               Huỷ lịch
             </button>
@@ -1076,14 +984,16 @@ function StaffAppointments() {
               type="button"
               className="appointment-modal-action-btn primary"
               onClick={() => handleUpdateStatus("Đã check-in")}
+              disabled={isUpdatingStatus}
             >
-              Check-in
+              {isUpdatingStatus ? "Đang xử lý..." : "Check-in"}
             </button>
 
             <button
               type="button"
               className="appointment-modal-action-btn warning"
               onClick={() => handleOpenReasonModal("Không đến")}
+              disabled={isUpdatingStatus}
             >
               Không đến
             </button>
@@ -1092,6 +1002,7 @@ function StaffAppointments() {
               type="button"
               className="appointment-modal-action-btn danger"
               onClick={() => handleOpenReasonModal("Đã huỷ")}
+              disabled={isUpdatingStatus}
             >
               Huỷ lịch
             </button>
@@ -1104,8 +1015,9 @@ function StaffAppointments() {
             type="button"
             className="appointment-modal-action-btn primary"
             onClick={() => handleUpdateStatus("Đang thực hiện")}
+            disabled={isUpdatingStatus}
           >
-            Bắt đầu dịch vụ
+            {isUpdatingStatus ? "Đang xử lý..." : "Bắt đầu dịch vụ"}
           </button>
         );
 
@@ -1123,16 +1035,6 @@ function StaffAppointments() {
       case "Đã hoàn thành":
       case "Đã huỷ":
       case "Không đến":
-        return (
-          <button
-            type="button"
-            className="appointment-modal-action-btn neutral"
-            onClick={handleCloseDetail}
-          >
-            Đóng
-          </button>
-        );
-
       default:
         return (
           <button
@@ -1152,31 +1054,31 @@ function StaffAppointments() {
 
       <section className="staff-appointments-content">
         <div className="staff-appointments-summary-grid">
-            {appointmentStatusCards.map((card) => {
-              const Icon = card.icon;
+          {appointmentStatusCards.map((card) => {
+            const Icon = card.icon;
 
-              return (
-                <button
-                  type="button"
-                  key={card.status}
-                  className={[
-                    "staff-appointments-summary-card",
-                    card.type,
-                    statusFilter === card.status ? "active" : "",
-                  ].join(" ")}
-                  onClick={() => setStatusFilter(card.status)}
-                >
-                  <div className="staff-appointments-summary-icon">
-                    <Icon size={20} />
-                  </div>
+            return (
+              <button
+                type="button"
+                key={card.status}
+                className={[
+                  "staff-appointments-summary-card",
+                  card.type,
+                  statusFilter === card.status ? "active" : "",
+                ].join(" ")}
+                onClick={() => setStatusFilter(card.status)}
+              >
+                <div className="staff-appointments-summary-icon">
+                  <Icon size={20} />
+                </div>
 
-                  <div>
-                    <span>{card.label}</span>
-                    <strong>{card.value}</strong>
-                  </div>
-                </button>
-              );
-            })}
+                <div>
+                  <span>{card.label}</span>
+                  <strong>{card.value}</strong>
+                </div>
+              </button>
+            );
+          })}
         </div>
 
         <div className="staff-appointments-card">
@@ -1287,7 +1189,19 @@ function StaffAppointments() {
               </thead>
 
               <tbody>
-                {filteredAppointments.length === 0 ? (
+                {isLoadingAppointments ? (
+                  <tr>
+                    <td colSpan="7" className="staff-appointments-empty">
+                      Đang tải danh sách lịch hẹn...
+                    </td>
+                  </tr>
+                ) : appointmentError ? (
+                  <tr>
+                    <td colSpan="7" className="staff-appointments-empty">
+                      {appointmentError}
+                    </td>
+                  </tr>
+                ) : filteredAppointments.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="staff-appointments-empty">
                       Hiện chưa có lịch hẹn nào
@@ -1301,9 +1215,7 @@ function StaffAppointments() {
                       onClick={() => handleOpenDetail(appointment)}
                       title="Nhấn để xem chi tiết lịch hẹn"
                     >
-                      <td className="staff-appointments-id">
-                        {appointment.id}
-                      </td>
+                      <td className="staff-appointments-id">{appointment.id}</td>
 
                       <td>
                         <strong>{appointment.customer}</strong>
@@ -1313,7 +1225,7 @@ function StaffAppointments() {
                       <td>
                         <div
                           className="staff-appointments-service"
-                          title={appointment.services
+                          title={(appointment.services || [])
                             .map((service) => service.name)
                             .join(", ")}
                         >
@@ -1322,7 +1234,6 @@ function StaffAppointments() {
                       </td>
 
                       <td>{appointment.date}</td>
-
                       <td>{appointment.time}</td>
 
                       <td>
@@ -1407,8 +1318,7 @@ function StaffAppointments() {
                 <div className="appointment-modal-info-item">
                   <Clock3 size={19} />
                   <span>
-                    {selectedAppointment.time} -{" "}
-                    {getAppointmentEndTime(selectedAppointment)}
+                    {selectedAppointment.time} - {getAppointmentEndTime(selectedAppointment)}
                   </span>
                 </div>
               </div>
@@ -1417,13 +1327,12 @@ function StaffAppointments() {
                 <h3>Dịch vụ đã đặt</h3>
 
                 <div className="appointment-modal-service-list">
-                  {selectedAppointment.services.map((service, index) => (
+                  {(selectedAppointment.services || []).map((service, index) => (
                     <div className="appointment-modal-service-item" key={index}>
                       <div>
                         <span>{service.name}</span>
                         <p>
-                          SL: {getServiceQuantity(service)} ×{" "}
-                          {formatMoney(service.price)}
+                          SL: {getServiceQuantity(service)} × {formatMoney(service.price)}
                         </p>
                       </div>
 
@@ -1434,9 +1343,7 @@ function StaffAppointments() {
 
                 <div className="appointment-modal-total">
                   <span>Tổng cộng</span>
-                  <strong>
-                    {formatMoney(getTotalPrice(selectedAppointment.services))}
-                  </strong>
+                  <strong>{formatMoney(getTotalPrice(selectedAppointment.services))}</strong>
                 </div>
               </div>
 
@@ -1466,9 +1373,7 @@ function StaffAppointments() {
               )}
             </div>
 
-            <div className="appointment-modal-footer">
-              {renderModalActions()}
-            </div>
+            <div className="appointment-modal-footer">{renderModalActions()}</div>
           </div>
         </div>
       )}
@@ -1523,7 +1428,7 @@ function StaffAppointments() {
                     <span></span>
                   </div>
 
-                  {invoiceAppointment.services.map((service, index) => (
+                  {(invoiceAppointment.services || []).map((service, index) => (
                     <div className="invoice-service-row" key={`main-${index}`}>
                       <span>{service.name}</span>
                       <span>{getServiceQuantity(service)}</span>
@@ -1534,7 +1439,7 @@ function StaffAppointments() {
                   ))}
 
                   {extraServices.map((service) => (
-                    <div className="invoice-service-row" key={service.id}>
+                    <div className="invoice-service-row" key={service.idDichVu || service.id}>
                       <span>{service.name}</span>
                       <span>{getServiceQuantity(service)}</span>
                       <span>{formatMoney(service.price)}</span>
@@ -1543,7 +1448,7 @@ function StaffAppointments() {
                       <button
                         type="button"
                         className="invoice-remove-service-btn"
-                        onClick={() => handleRemoveExtraService(service.id)}
+                        onClick={() => handleRemoveExtraService(service.idDichVu)}
                       >
                         Xoá
                       </button>
@@ -1558,14 +1463,12 @@ function StaffAppointments() {
                 <div className="invoice-extra-service-box">
                   <select
                     value={selectedExtraServiceId}
-                    onChange={(event) =>
-                      setSelectedExtraServiceId(event.target.value)
-                    }
+                    onChange={(event) => setSelectedExtraServiceId(event.target.value)}
                   >
                     <option value="">Chọn dịch vụ phát sinh</option>
 
                     {extraServiceOptions.map((service) => (
-                      <option key={service.id} value={service.id}>
+                      <option key={service.idDichVu || service.id} value={service.idDichVu || service.id}>
                         {service.name} - {formatMoney(service.price)}
                       </option>
                     ))}
@@ -1581,31 +1484,24 @@ function StaffAppointments() {
                 <h3>Phương thức thanh toán</h3>
 
                 <div className="invoice-payment-methods">
-                  {["Tiền mặt", "Chuyển khoản", "Thẻ ngân hàng"].map(
-                    (method) => (
-                      <button
-                        type="button"
-                        key={method}
-                        className={
-                          paymentMethod === method
-                            ? "invoice-payment-btn active"
-                            : "invoice-payment-btn"
-                        }
-                        onClick={() => setPaymentMethod(method)}
-                      >
-                        {method}
-                      </button>
-                    )
-                  )}
+                  {["Tiền mặt", "Chuyển khoản", "Thẻ ngân hàng"].map((method) => (
+                    <button
+                      type="button"
+                      key={method}
+                      className={paymentMethod === method ? "active" : ""}
+                      onClick={() => setPaymentMethod(method)}
+                    >
+                      {method}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="invoice-total-box">
-                <span>Tổng tiền thanh toán</span>
-
+              <div className="appointment-modal-total invoice-total">
+                <span>Tổng thanh toán</span>
                 <strong>
                   {formatMoney(
-                    getTotalPrice(invoiceAppointment.services) +
+                    getTotalPrice(invoiceAppointment.services || []) +
                       getTotalPrice(extraServices)
                   )}
                 </strong>
@@ -1634,45 +1530,50 @@ function StaffAppointments() {
       )}
 
       {reasonModal && (
-        <div className="reason-modal-overlay" onClick={handleCloseReasonModal}>
+        <div className="appointment-modal-overlay" onClick={handleCloseReasonModal}>
           <div
-            className="reason-modal"
+            className="appointment-reason-modal"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="reason-modal-header">
+            <div className="appointment-modal-header">
               <h2>{reasonModal.title}</h2>
 
-              <button type="button" onClick={handleCloseReasonModal}>
-                <X size={20} />
+              <button
+                type="button"
+                className="appointment-modal-close"
+                onClick={handleCloseReasonModal}
+              >
+                <X size={22} />
               </button>
             </div>
 
-            <div className="reason-modal-body">
+            <div className="appointment-reason-body">
               <label>{reasonModal.label}</label>
 
               <textarea
                 value={reasonText}
                 onChange={(event) => setReasonText(event.target.value)}
                 placeholder={reasonModal.placeholder}
-                rows={4}
               ></textarea>
             </div>
 
-            <div className="reason-modal-footer">
+            <div className="appointment-modal-footer">
               <button
                 type="button"
-                className="reason-cancel-btn"
+                className="appointment-modal-action-btn neutral"
                 onClick={handleCloseReasonModal}
+                disabled={isUpdatingStatus}
               >
-                Đóng
+                Huỷ
               </button>
 
               <button
                 type="button"
-                className="reason-confirm-btn"
+                className="appointment-modal-action-btn primary"
                 onClick={handleConfirmReason}
+                disabled={isUpdatingStatus}
               >
-                Xác nhận
+                {isUpdatingStatus ? "Đang lưu..." : "Xác nhận"}
               </button>
             </div>
           </div>
@@ -1680,10 +1581,7 @@ function StaffAppointments() {
       )}
 
       {isCreateModalOpen && (
-        <div
-          className="create-appointment-overlay"
-          onClick={handleCloseCreateModal}
-        >
+        <div className="create-appointment-overlay" onClick={handleCloseCreateModal}>
           <div
             className="create-appointment-modal"
             onClick={(event) => event.stopPropagation()}
@@ -1691,10 +1589,15 @@ function StaffAppointments() {
             <div className="create-appointment-header">
               <div>
                 <h2>Tạo lịch hẹn tại quầy</h2>
-                <p>Chọn khách hàng, dịch vụ và khung giờ còn trống</p>
+                <p>Chọn khách hàng, dịch vụ và khung giờ còn trống.</p>
               </div>
 
-              <button type="button" onClick={handleCloseCreateModal}>
+              <button
+                type="button"
+                className="appointment-modal-close"
+                onClick={handleCloseCreateModal}
+                disabled={isSubmittingCreate}
+              >
                 <X size={22} />
               </button>
             </div>
@@ -1703,45 +1606,27 @@ function StaffAppointments() {
               <div className="create-appointment-grid">
                 <div className="create-appointment-left">
                   <div className="create-section">
-                    <div className="create-section-title">
-                      <h3>1. Khách hàng</h3>
+                    <h3>1. Chọn khách hàng</h3>
 
-                      <button
-                        type="button"
-                        className="quick-customer-btn"
-                        onClick={() => {
-                          setIsQuickCustomerMode(true);
-                          setSelectedCustomer(null);
-                        }}
-                      >
-                        Thêm khách nhanh
-                      </button>
-                    </div>
-
-                    {!isQuickCustomerMode && (
+                    {!isQuickCustomerMode ? (
                       <>
-                        <div className="create-search-customer">
-                          <Search size={17} />
+                        <div className="create-search-box">
+                          <Search size={16} />
                           <input
                             type="text"
-                            placeholder="Tìm theo tên hoặc số điện thoại..."
+                            placeholder="Tìm theo tên, SĐT, mã KH..."
                             value={createSearchCustomer}
-                            onChange={(event) =>
-                              setCreateSearchCustomer(event.target.value)
-                            }
+                            onChange={(event) => setCreateSearchCustomer(event.target.value)}
                           />
                         </div>
 
                         <div className="create-customer-list">
-                          {filteredCustomers.length === 0 ? (
+                          {isLoadingCreateData ? (
+                            <div className="create-empty-text">Đang tải khách hàng...</div>
+                          ) : filteredCustomers.length === 0 ? (
                             <div className="create-empty-customer">
-                              Không tìm thấy khách hàng.
-                              <button
-                                type="button"
-                                onClick={() => setIsQuickCustomerMode(true)}
-                              >
-                                Thêm khách mới
-                              </button>
+                              <UserRound size={26} />
+                              <p>Không tìm thấy khách hàng phù hợp.</p>
                             </div>
                           ) : (
                             filteredCustomers.map((customer) => (
@@ -1755,22 +1640,31 @@ function StaffAppointments() {
                                 }
                                 onClick={() => handleSelectCustomer(customer)}
                               >
-                                <span>{customer.name}</span>
-                                <small>{customer.phone}</small>
+                                <strong>{customer.fullName}</strong>
+                                <span>{customer.phone || customer.email}</span>
                               </button>
                             ))
                           )}
                         </div>
-                      </>
-                    )}
 
-                    {isQuickCustomerMode && (
-                      <div className="quick-customer-form">
-                        <div>
-                          <label>Tên khách hàng</label>
+                        <button
+                          type="button"
+                          className="create-quick-customer-btn"
+                          onClick={() => {
+                            setIsQuickCustomerMode(true);
+                            setSelectedCustomer(null);
+                          }}
+                        >
+                          <Plus size={16} />
+                          <span>Thêm nhanh khách hàng mới</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div className="quick-customer-box">
+                        <div className="quick-customer-input">
+                          <label>Họ tên khách hàng</label>
                           <input
                             type="text"
-                            placeholder="Nhập tên khách hàng"
                             value={quickCustomer.name}
                             onChange={(event) =>
                               setQuickCustomer((prev) => ({
@@ -1781,11 +1675,10 @@ function StaffAppointments() {
                           />
                         </div>
 
-                        <div>
+                        <div className="quick-customer-input">
                           <label>Số điện thoại</label>
                           <input
                             type="text"
-                            placeholder="Nhập số điện thoại"
                             value={quickCustomer.phone}
                             onChange={(event) =>
                               setQuickCustomer((prev) => ({
@@ -1840,18 +1733,20 @@ function StaffAppointments() {
                     </div>
 
                     <div className="create-service-list">
-                      {filteredServiceOptions.length === 0 ? (
+                      {isLoadingCreateData ? (
+                        <div className="create-empty-service">Đang tải dịch vụ...</div>
+                      ) : filteredServiceOptions.length === 0 ? (
                         <div className="create-empty-service">
                           Không tìm thấy dịch vụ phù hợp.
                         </div>
                       ) : (
                         filteredServiceOptions.map((service) => {
                           const selected = createServices.find(
-                            (item) => item.id === service.id
+                            (item) => item.idDichVu === service.idDichVu
                           );
 
                           return (
-                            <div className="create-service-card" key={service.id}>
+                            <div className="create-service-card" key={service.idDichVu}>
                               <div>
                                 <strong>{service.name}</strong>
 
@@ -1866,7 +1761,7 @@ function StaffAppointments() {
                                 <div className="create-service-qty">
                                   <button
                                     type="button"
-                                    onClick={() => handleDecreaseCreateService(service.id)}
+                                    onClick={() => handleDecreaseCreateService(service.idDichVu)}
                                   >
                                     <Minus size={14} />
                                   </button>
@@ -1875,7 +1770,7 @@ function StaffAppointments() {
 
                                   <button
                                     type="button"
-                                    onClick={() => handleIncreaseCreateService(service.id)}
+                                    onClick={() => handleIncreaseCreateService(service.idDichVu)}
                                   >
                                     <Plus size={14} />
                                   </button>
@@ -1902,34 +1797,24 @@ function StaffAppointments() {
                     <h3>3. Dịch vụ đã chọn</h3>
 
                     {createServices.length === 0 ? (
-                      <p className="create-empty-text">
-                        Chưa chọn dịch vụ nào.
-                      </p>
+                      <p className="create-empty-text">Chưa chọn dịch vụ nào.</p>
                     ) : (
                       <div className="create-selected-services">
                         {createServices.map((service) => (
-                          <div
-                            className="create-selected-service"
-                            key={service.id}
-                          >
+                          <div className="create-selected-service" key={service.idDichVu}>
                             <div>
                               <strong>{service.name}</strong>
                               <p>
-                                SL: {getServiceQuantity(service)} ×{" "}
-                                {formatMoney(service.price)}
+                                SL: {getServiceQuantity(service)} × {formatMoney(service.price)}
                               </p>
                             </div>
 
                             <div className="create-selected-service-right">
-                              <strong>
-                                {formatMoney(getServiceSubtotal(service))}
-                              </strong>
+                              <strong>{formatMoney(getServiceSubtotal(service))}</strong>
 
                               <button
                                 type="button"
-                                onClick={() =>
-                                  handleRemoveCreateService(service.id)
-                                }
+                                onClick={() => handleRemoveCreateService(service.idDichVu)}
                               >
                                 <Trash2 size={15} />
                               </button>
@@ -1973,6 +1858,10 @@ function StaffAppointments() {
                       <p className="create-empty-text">
                         Vui lòng chọn dịch vụ để hệ thống tính thời lượng.
                       </p>
+                    ) : createAvailableSlots.length === 0 ? (
+                      <p className="create-empty-text">
+                        Không có khung giờ phù hợp trong ngày này.
+                      </p>
                     ) : (
                       <div className="create-slot-grid">
                         {createAvailableSlots.map((slot) => (
@@ -1982,9 +1871,7 @@ function StaffAppointments() {
                             className={[
                               "create-time-slot",
                               slot.available ? "available" : "disabled",
-                              createTimeSlot?.startTime === slot.startTime
-                                ? "active"
-                                : "",
+                              createTimeSlot?.startTime === slot.startTime ? "active" : "",
                             ].join(" ")}
                             disabled={!slot.available}
                             onClick={() => setCreateTimeSlot(slot)}
@@ -2016,6 +1903,7 @@ function StaffAppointments() {
                 type="button"
                 className="create-cancel-btn"
                 onClick={handleCloseCreateModal}
+                disabled={isSubmittingCreate}
               >
                 Huỷ
               </button>
@@ -2024,8 +1912,9 @@ function StaffAppointments() {
                 type="button"
                 className="create-confirm-btn"
                 onClick={handleConfirmCreateAppointment}
+                disabled={isSubmittingCreate || isLoadingCreateData}
               >
-                Xác nhận tạo lịch hẹn
+                {isSubmittingCreate ? "Đang tạo..." : "Xác nhận tạo lịch hẹn"}
               </button>
             </div>
           </div>

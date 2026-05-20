@@ -2,16 +2,30 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.orm import Session
 
 from app.crud.khach_hang_crud import (
+    create_staff_customer,
     get_customer_profile,
+    get_staff_customers,
     update_customer_profile,
 )
 from app.db.session import get_db
-from app.schemas.khach_hang_schema import AccountProfileResponse
+from app.schemas.khach_hang_schema import (
+    AccountProfileResponse,
+    StaffCustomerActionResponse,
+    StaffCustomerCreateRequest,
+    StaffCustomerOut,
+)
 
 router = APIRouter()
 
 
-@router.get("/profile/{id_tai_khoan}", response_model=AccountProfileResponse)
+# =========================
+# CUSTOMER ACCOUNT PROFILE
+# =========================
+
+@router.get(
+    "/profile/{id_tai_khoan}",
+    response_model=AccountProfileResponse,
+)
 def get_profile(
     id_tai_khoan: int,
     db: Session = Depends(get_db),
@@ -19,7 +33,10 @@ def get_profile(
     return get_customer_profile(db, id_tai_khoan)
 
 
-@router.put("/profile/{id_tai_khoan}", response_model=AccountProfileResponse)
+@router.put(
+    "/profile/{id_tai_khoan}",
+    response_model=AccountProfileResponse,
+)
 def update_profile(
     id_tai_khoan: int,
     fullName: str = Form(...),
@@ -40,15 +57,45 @@ def update_profile(
     )
 
 
-@router.get("/")
-def get_customers():
-    return {
-        "message": "API danh sách khách hàng đang hoạt động"
-    }
+# =========================
+# STAFF CUSTOMER MANAGEMENT
+# =========================
 
+@router.get(
+    "/",
+    response_model=list[StaffCustomerOut],
+)
+def get_customers(
+    db: Session = Depends(get_db),
+):
+    return get_staff_customers(db)
+
+
+@router.get(
+    "/staff/danh-sach",
+    response_model=list[StaffCustomerOut],
+)
+def get_staff_customers_api(
+    db: Session = Depends(get_db),
+):
+    return get_staff_customers(db)
+
+
+@router.post(
+    "/staff/tao",
+    response_model=StaffCustomerActionResponse,
+)
+def create_staff_customer_api(
+    payload: StaffCustomerCreateRequest,
+    db: Session = Depends(get_db),
+):
+    return create_staff_customer(db, payload)
 
 @router.get("/{customer_id}")
-def get_customer_detail(customer_id: int):
+def get_customer_detail(
+    customer_id: int,
+    db: Session = Depends(get_db),
+):
     return {
         "message": "API chi tiết khách hàng",
         "customer_id": customer_id,

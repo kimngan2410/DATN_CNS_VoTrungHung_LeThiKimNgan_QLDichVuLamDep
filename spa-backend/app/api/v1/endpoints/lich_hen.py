@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.crud.lich_hen_crud import (
@@ -7,7 +7,10 @@ from app.crud.lich_hen_crud import (
     get_customer_appointment_detail,
     get_customer_appointments,
     get_customer_service_history,
+    get_staff_appointments,
     reschedule_customer_appointment,
+    create_staff_appointment,
+    update_staff_appointment_status,
 )
 from app.db.session import get_db
 from app.schemas.lich_hen_schema import (
@@ -17,6 +20,10 @@ from app.schemas.lich_hen_schema import (
     LichHenCreateResponse,
     LichHenCustomerOut,
     LichHenRescheduleRequest,
+    StaffLichHenOut,
+    StaffLichHenActionResponse,
+    StaffLichHenCreateRequest,
+    StaffLichHenStatusRequest,
 )
 
 router = APIRouter()
@@ -96,6 +103,48 @@ def reschedule_appointment(
         gio_hen=payload.gioHen,
     )
 
+@router.get(
+    "/staff/danh-sach",
+    response_model=list[StaffLichHenOut],
+)
+def get_staff_appointments_api(
+    ngay: str | None = Query(default=None),
+    keyword: str | None = Query(default=None),
+    trang_thai: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    return get_staff_appointments(
+        db=db,
+        ngay=ngay,
+        keyword=keyword,
+        trang_thai=trang_thai,
+    )
+
+@router.post(
+    "/staff/tao",
+    response_model=StaffLichHenActionResponse,
+)
+def create_staff_appointment_api(
+    payload: StaffLichHenCreateRequest,
+    db: Session = Depends(get_db),
+):
+    return create_staff_appointment(db, payload)
+
+
+@router.patch(
+    "/staff/{appointment_id}/trang-thai",
+    response_model=StaffLichHenActionResponse,
+)
+def update_staff_appointment_status_api(
+    appointment_id: int,
+    payload: StaffLichHenStatusRequest,
+    db: Session = Depends(get_db),
+):
+    return update_staff_appointment_status(
+        db=db,
+        appointment_id=appointment_id,
+        payload=payload,
+    )
 
 @router.get("/")
 def get_appointments():
@@ -118,3 +167,4 @@ def update_appointment_status(appointment_id: int):
         "message": "API cập nhật trạng thái lịch hẹn",
         "appointment_id": appointment_id,
     }
+

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from fastapi import HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.models.chi_tiet_lich_hen import ChiTietLichHen
@@ -437,6 +437,309 @@ def build_appointment_response(db: Session, lich_hen: LichHen):
         "chiTietLichHen": chi_tiet_output,
     }
 
+def build_staff_appointment_response(db: Session, lich_hen: LichHen):
+    khach_hang = (
+        db.query(KhachHang)
+        .filter(KhachHang.idTaiKhoan == lich_hen.idTaiKhoan)
+        .first()
+    )
+
+    tai_khoan = (
+        db.query(TaiKhoan)
+        .filter(TaiKhoan.idTaiKhoan == lich_hen.idTaiKhoan)
+        .first()
+    )
+
+    customer_name = "Khách hàng"
+    customer_phone = ""
+
+    if khach_hang:
+        customer_name = khach_hang.hoTen or "Khách hàng"
+        customer_phone = khach_hang.sdt or ""
+    elif tai_khoan:
+        customer_name = tai_khoan.email.split("@")[0]
+        customer_phone = tai_khoan.email
+
+    rows = (
+        db.query(ChiTietLichHen, DichVu)
+        .join(DichVu, ChiTietLichHen.idDichVu == DichVu.idDichVu)
+        .filter(ChiTietLichHen.idLichHen == lich_hen.idLichHen)
+        .all()
+    )
+
+    services = []
+    total_price = 0
+    total_duration = 0
+    total_quantity = 0
+
+    for chi_tiet, dich_vu in rows:
+        service_id = int(dich_vu.idDichVu)
+        quantity = int(chi_tiet.soLuong or 1)
+        price = float(chi_tiet.donGia or dich_vu.gia or 0)
+        duration = int(chi_tiet.thoiLuongPhut or dich_vu.thoiLuongPhut or 0)
+        line_total = price * quantity
+
+        total_price += line_total
+        total_duration += duration * quantity
+        total_quantity += quantity
+
+        services.append(
+            {
+                "idChiTietLH": int(chi_tiet.idChiTietLH),
+                "idDichVu": service_id,
+                "maDV": dich_vu.maDV,
+                "name": dich_vu.tenDV,
+                "price": price,
+                "soLuong": quantity,
+                "thoiLuongPhut": duration,
+                "thanhTien": line_total,
+            }
+        )
+
+    status_reason = None
+
+    if lich_hen.trangThai in ["Đã huỷ", "Không đến"]:
+        status_reason = lich_hen.lyDoHuy
+
+    return {
+        "idLichHen": int(lich_hen.idLichHen),
+        "maLH": lich_hen.maLH,
+        "customer": customer_name,
+        "phone": customer_phone,
+        "date": lich_hen.thoiGianBatDau.strftime("%Y-%m-%d"),
+        "time": lich_hen.thoiGianBatDau.strftime("%H:%M"),
+        "endTime": lich_hen.thoiGianKetThuc.strftime("%H:%M"),
+        "status": lich_hen.trangThai,
+        "note": lich_hen.ghiChu,
+        "lyDoHuy": lich_hen.lyDoHuy,
+        "statusReason": status_reason,
+        "totalPrice": total_price,
+        "totalDuration": total_duration,
+        "totalQuantity": total_quantity,
+        "services": services,
+    }
+
+def get_staff_appointments(
+    db: Session,
+    ngay: str | None = None,
+    keyword: str | None = None,
+    trang_thai: str | None = None,
+):
+    query = db.query(LichHen)
+
+    if ngay:
+        try:
+            start_date = datetime.strptime(ngay, "%Y-%m-%d")
+            end_date = start_date + timedelta(days=1)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ngày lọc không đúng định dạng yyyy-mm-dd",
+            )
+
+        query = query.filter(
+            LichHen.thoiGianBatDau >= start_date,
+            LichHen.thoiGianBatDau < end_date,
+        )
+
+    if trang_thai and trang_thai != "Tất cả":
+        query = query.filter(LichHen.trangThai == trang_thai)
+
+    if keyword and keyword.strip():
+        keyword_like = f"%{keyword.strip()}%"
+
+        query = (
+            query.outerjoin(
+                KhachHang,
+                KhachHang.idTaiKhoan == LichHen.idTaiKhoan,
+            )
+            .filter(
+                or_(
+                    LichHen.maLH.ilike(keyword_like),
+                    KhachHang.hoTen.ilike(keyword_like),
+                    KhachHang.sdt.ilike(keyword_like),
+                )
+            )
+        )
+
+    appointments = (
+        query.order_by(
+            LichHen.thoiGianBatDau.asc(),
+            LichHen.idLichHen.desc(),
+        )
+        .all()
+    )
+
+    return [build_staff_appointment_response(db, item) for item in appointments]
+
+STAFF_ALLOWED_TRANSITIONS = {
+    "Chờ xác nhận": ["Đã xác nhận", "Đã huỷ"],
+    "Đã xác nhận": ["Đã check-in", "Không đến", "Đã huỷ"],
+    "Đã check-in": ["Đang thực hiện"],
+    "Đang thực hiện": [],
+    "Đã hoàn thành": [],
+    "Đã huỷ": [],
+    "Không đến": [],
+}
+
+
+def create_staff_appointment(db: Session, payload):
+    tai_khoan = validate_account(db, payload.idTaiKhoan)
+
+    start_time = parse_booking_datetime(payload.ngayHen, payload.gioHen)
+
+    if start_time < datetime.now():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không thể tạo lịch hẹn ở thời gian đã qua",
+        )
+
+    booking_items = payload.dichVuItems or []
+
+    if len(booking_items) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Vui lòng chọn ít nhất một dịch vụ",
+        )
+
+    service_ids = []
+    quantity_map = {}
+
+    for item in booking_items:
+        service_id = int(item.idDichVu)
+        so_luong = int(item.soLuong or 1)
+
+        if service_id <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Mã dịch vụ không hợp lệ",
+            )
+
+        if so_luong <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Số lượng dịch vụ không hợp lệ",
+            )
+
+        service_ids.append(service_id)
+        quantity_map[service_id] = so_luong
+
+    services = get_valid_services(db, service_ids)
+
+    # Thời lượng lịch hẹn tính theo mỗi dịch vụ một lần.
+    # Ví dụ 1 dịch vụ số lượng 3 người vẫn là cùng khung giờ, không nhân 3.
+    total_duration = sum(int(service.thoiLuongPhut or 0) for service in services)
+
+    if total_duration <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tổng thời lượng dịch vụ không hợp lệ",
+        )
+
+    end_time = start_time + timedelta(minutes=total_duration)
+
+    check_customer_time_conflict(
+        db=db,
+        id_tai_khoan=payload.idTaiKhoan,
+        start_time=start_time,
+        end_time=end_time,
+    )
+
+    try:
+        lich_hen = LichHen(
+            maLH=generate_appointment_code(db),
+            idTaiKhoan=payload.idTaiKhoan,
+            thoiGianBatDau=start_time,
+            thoiGianKetThuc=end_time,
+            trangThai="Đã xác nhận",
+            ghiChu=payload.ghiChu or "Lịch hẹn được tạo tại quầy.",
+            lyDoHuy=None,
+            nguonTao="Nhân viên",
+        )
+
+        db.add(lich_hen)
+        db.flush()
+
+        for service in services:
+            service_id = int(service.idDichVu)
+            don_gia = float(service.gia or 0)
+            thoi_luong = int(service.thoiLuongPhut or 0)
+            so_luong = quantity_map.get(service_id, 1)
+
+            chi_tiet = ChiTietLichHen(
+                idLichHen=lich_hen.idLichHen,
+                idDichVu=service_id,
+                soLuong=so_luong,
+                donGia=don_gia,
+                thoiLuongPhut=thoi_luong,
+            )
+
+            db.add(chi_tiet)
+
+        db.commit()
+        db.refresh(lich_hen)
+
+        return {
+            "message": "Tạo lịch hẹn thành công",
+            "appointment": build_staff_appointment_response(db, lich_hen),
+        }
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi tạo lịch hẹn: {str(error)}",
+        )
+
+
+def update_staff_appointment_status(db: Session, appointment_id: int, payload):
+    lich_hen = (
+        db.query(LichHen)
+        .filter(LichHen.idLichHen == appointment_id)
+        .first()
+    )
+
+    if not lich_hen:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy lịch hẹn",
+        )
+
+    current_status = lich_hen.trangThai
+    next_status = payload.trangThai
+
+    allowed_next_statuses = STAFF_ALLOWED_TRANSITIONS.get(current_status, [])
+
+    if next_status not in allowed_next_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không thể cập nhật trạng thái này theo quy trình hiện tại",
+        )
+
+    reason = (payload.lyDo or "").strip()
+
+    if next_status in ["Đã huỷ", "Không đến"] and not reason:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Vui lòng nhập lý do",
+        )
+
+    lich_hen.trangThai = next_status
+
+    if next_status in ["Đã huỷ", "Không đến"]:
+        lich_hen.lyDoHuy = reason
+
+    db.commit()
+    db.refresh(lich_hen)
+
+    return {
+        "message": "Cập nhật trạng thái lịch hẹn thành công",
+        "appointment": build_staff_appointment_response(db, lich_hen),
+    }
 
 def get_customer_appointments(db: Session, id_tai_khoan: int):
     validate_account(db, id_tai_khoan)

@@ -223,7 +223,7 @@
 }
 
 .staff-customers-id {
-  font-weight: 700;
+  font-weight: 600;
   color: #111827 !important;
 }
 
@@ -315,8 +315,8 @@
 .staff-customers-empty h3 {
   margin: 8px 0 0;
   color: #111827;
-  font-size: 18px;
-  font-weight: 900;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .staff-customers-empty p {
@@ -957,4 +957,12 @@
 
 .staff-customers-table-wrapper tbody td {
   border-bottom: 1px solid #f0ece6;
+}
+
+.staff-customers-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }

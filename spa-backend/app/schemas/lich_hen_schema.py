@@ -90,3 +90,58 @@ class LichHenRescheduleRequest(BaseModel):
 
 class LichHenActionResponse(BaseModel):
     message: str
+
+class StaffLichHenDichVuOut(BaseModel):
+    idChiTietLH: Optional[int] = None
+    idDichVu: int
+    maDV: Optional[str] = None
+    name: str
+    price: float
+    soLuong: int
+    thoiLuongPhut: int
+    thanhTien: float
+
+
+class StaffLichHenOut(BaseModel):
+    idLichHen: int
+    maLH: str
+
+    customer: str
+    phone: str
+
+    date: str
+    time: str
+    endTime: str
+
+    status: str
+    note: Optional[str] = None
+    lyDoHuy: Optional[str] = None
+    statusReason: Optional[str] = None
+
+    totalPrice: float
+    totalDuration: int
+    totalQuantity: int
+
+    services: list[StaffLichHenDichVuOut]
+
+class StaffLichHenCreateItem(BaseModel):
+    idDichVu: int
+    soLuong: int = 1
+
+
+class StaffLichHenCreateRequest(BaseModel):
+    idTaiKhoan: int
+    ngayHen: str
+    gioHen: str
+    ghiChu: Optional[str] = None
+    dichVuItems: list[StaffLichHenCreateItem]
+
+
+class StaffLichHenStatusRequest(BaseModel):
+    trangThai: str
+    lyDo: Optional[str] = None
+
+
+class StaffLichHenActionResponse(BaseModel):
+    message: str
+    appointment: StaffLichHenOut
