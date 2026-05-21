@@ -153,6 +153,29 @@
   background: #f3f4f6;
 }
 
+.booking-time-summary {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid #f0e1bb;
+  border-radius: 12px;
+  background: #fffaf0;
+  color: #5f5140;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 30px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.booking-time-help {
+  margin: 25px 0 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.55;
+  font-style: italic;
+}
+
 .booking-time-note {
   margin: 12px 0 0;
   color: #d33b3b;
@@ -1655,4 +1678,40 @@
   .success-info-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.booking-time {
+  min-height: 52px;
+  height: auto;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.booking-time span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.booking-time small {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.booking-time--full {
+  background: #fff5f5 !important;
+  border-color: #fecaca !important;
+  color: #c24141 !important;
+}
+
+.booking-time--full small {
+  color: #c24141;
+}
+
+.booking-time--disabled {
+  opacity: 0.7;
 }

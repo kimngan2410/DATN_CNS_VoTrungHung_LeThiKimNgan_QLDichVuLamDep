@@ -1,25 +1,52 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.crud.hoa_don_crud import (
+    create_staff_invoice,
+    get_staff_invoice_detail,
+    get_staff_invoices,
+)
+from app.schemas.hoa_don_schema import (
+    CreateStaffInvoiceRequest,
+)
+
 
 router = APIRouter()
 
+@router.post("/staff/lap-hoa-don")
+def create_staff_invoice_api(
+    payload: CreateStaffInvoiceRequest,
+    db: Session = Depends(get_db),
+):
+    return create_staff_invoice(
+        db=db,
+        payload=payload,
+    )
 
-@router.get("/")
-def get_invoices():
-    return {
-        "message": "API danh sách hóa đơn đang hoạt động"
-    }
+@router.get("/staff")
+def get_staff_invoice_list_api(
+    date: str | None = Query(default=None),
+    payment_method: str | None = Query(default=None),
+    status: str | None = Query(default=None),
+    keyword: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    return get_staff_invoices(
+        db=db,
+        date=date,
+        payment_method=payment_method,
+        invoice_status=status,
+        keyword=keyword,
+    )
 
 
-@router.get("/{invoice_id}")
-def get_invoice_detail(invoice_id: int):
-    return {
-        "message": "API chi tiết hóa đơn",
-        "invoice_id": invoice_id,
-    }
-
-
-@router.post("/")
-def create_invoice():
-    return {
-        "message": "API lập hóa đơn"
-    }
+@router.get("/staff/{invoice_id}")
+def get_staff_invoice_detail_api(
+    invoice_id: str,
+    db: Session = Depends(get_db),
+):
+    return get_staff_invoice_detail(
+        db=db,
+        invoice_id=invoice_id,
+    )

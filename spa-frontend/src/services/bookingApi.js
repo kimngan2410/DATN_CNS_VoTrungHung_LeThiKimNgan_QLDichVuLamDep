@@ -33,3 +33,24 @@ export async function createAppointmentApi(payload) {
 
   return handleResponse(response, "Không thể đặt lịch hẹn")
 }
+
+export async function getAvailableBookingSlotsApi({ ngay, thoiLuong }) {
+  const token = getAuthToken()
+
+  const params = new URLSearchParams({
+    ngay,
+    thoi_luong: String(thoiLuong),
+  })
+
+  const response = await fetch(
+    `${API_BASE_URL}/lich-hen/khung-gio-kha-dung?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    }
+  )
+
+  return handleResponse(response, "Không thể tải khung giờ khả dụng")
+}

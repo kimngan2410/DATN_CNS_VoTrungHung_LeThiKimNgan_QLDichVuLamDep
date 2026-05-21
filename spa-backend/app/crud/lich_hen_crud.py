@@ -10,6 +10,8 @@ from app.models.hinh_anh_dich_vu import HinhAnhDichVu
 from app.models.khach_hang import KhachHang
 from app.models.lich_hen import LichHen
 from app.models.tai_khoan import TaiKhoan
+from app.models.hoa_don import HoaDon
+from app.models.chi_tiet_hoa_don import ChiTietHoaDon
 from app.services.booking_email_service import send_booking_success_email
 
 
@@ -24,6 +26,22 @@ CANCELLED_APPOINTMENT_STATUSES = [
     "Đã huỷ",
     "Không đến",
 ]
+
+BLOCKING_APPOINTMENT_STATUSES = [
+    "Chờ xác nhận",
+    "Đã xác nhận",
+    "Đã check-in",
+    "Đang thực hiện",
+]
+
+# Spa mở cửa 09:00 - 21:00, chỉ nhận lịch theo mốc 00 hoặc 30 phút.
+SPA_OPEN_HOUR = 9
+SPA_CLOSE_HOUR = 21
+SPA_SLOT_MINUTES = {0, 30}
+
+# Số lịch tối đa spa có thể nhận trong cùng một khoảng thời gian.
+# Có thể đổi theo số nhân viên/phòng/giường thực tế.
+MAX_CONCURRENT_APPOINTMENTS = 5
 
 HISTORY_APPOINTMENT_STATUSES = [
     "Đã hoàn thành",
@@ -65,6 +83,33 @@ def parse_booking_datetime(ngay_hen: str, gio_hen: str) -> datetime:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ngày hoặc giờ hẹn không đúng định dạng",
+        )
+
+
+def validate_booking_business_time(start_time: datetime, end_time: datetime):
+    opening_time = start_time.replace(
+        hour=SPA_OPEN_HOUR,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    closing_time = start_time.replace(
+        hour=SPA_CLOSE_HOUR,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
+    if start_time.minute not in SPA_SLOT_MINUTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Giờ hẹn phải theo khung 30 phút, ví dụ 09:00, 09:30, 10:00",
+        )
+
+    if start_time < opening_time or end_time > closing_time:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Spa chỉ nhận lịch từ 09:00 đến 21:00. Vui lòng chọn khung giờ khác",
         )
 
 
@@ -178,6 +223,146 @@ def check_customer_time_conflict(
             detail="Bạn đã có lịch hẹn khác trong khoảng thời gian này",
         )
 
+def count_spa_overlapping_appointments(
+    db: Session,
+    start_time: datetime,
+    end_time: datetime,
+    exclude_appointment_id: int | None = None,
+) -> int:
+    query = db.query(func.count(LichHen.idLichHen)).filter(
+        LichHen.trangThai.in_(BLOCKING_APPOINTMENT_STATUSES),
+        LichHen.thoiGianBatDau < end_time,
+        LichHen.thoiGianKetThuc > start_time,
+    )
+
+    if exclude_appointment_id:
+        query = query.filter(LichHen.idLichHen != exclude_appointment_id)
+
+    return int(query.scalar() or 0)
+
+
+def check_spa_capacity(
+    db: Session,
+    start_time: datetime,
+    end_time: datetime,
+    exclude_appointment_id: int | None = None,
+):
+    overlap_count = count_spa_overlapping_appointments(
+        db=db,
+        start_time=start_time,
+        end_time=end_time,
+        exclude_appointment_id=exclude_appointment_id,
+    )
+
+    if overlap_count >= MAX_CONCURRENT_APPOINTMENTS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Khung giờ này đã có {overlap_count} lịch hẹn, "
+                f"đạt sức chứa tối đa {MAX_CONCURRENT_APPOINTMENTS} lịch. "
+                "Vui lòng chọn khung giờ khác."
+            ),
+        )
+
+    return overlap_count
+
+def format_time_from_minutes(total_minutes: int) -> str:
+    hour = total_minutes // 60
+    minute = total_minutes % 60
+
+    return f"{hour:02d}:{minute:02d}"
+
+
+def get_available_booking_slots(
+    db: Session,
+    ngay: str,
+    thoi_luong: int,
+):
+    try:
+        selected_date = datetime.strptime(ngay, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ngày không đúng định dạng yyyy-mm-dd",
+        )
+
+    try:
+        duration = int(thoi_luong)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Thời lượng dịch vụ không hợp lệ",
+        )
+
+    if duration <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Thời lượng dịch vụ phải lớn hơn 0",
+        )
+
+    open_minutes = SPA_OPEN_HOUR * 60
+    close_minutes = SPA_CLOSE_HOUR * 60
+    now = datetime.now()
+
+    slots = []
+
+    for current_minutes in range(open_minutes, close_minutes, 30):
+        end_minutes = current_minutes + duration
+
+        if end_minutes > close_minutes:
+            continue
+
+        start_time_text = format_time_from_minutes(current_minutes)
+        end_time_text = format_time_from_minutes(end_minutes)
+
+        slot_start = selected_date.replace(
+            hour=current_minutes // 60,
+            minute=current_minutes % 60,
+            second=0,
+            microsecond=0,
+        )
+
+        slot_end = selected_date.replace(
+            hour=end_minutes // 60,
+            minute=end_minutes % 60,
+            second=0,
+            microsecond=0,
+        )
+
+        overlap_count = count_spa_overlapping_appointments(
+            db=db,
+            start_time=slot_start,
+            end_time=slot_end,
+        )
+
+        is_past = slot_start <= now
+        is_full = overlap_count >= MAX_CONCURRENT_APPOINTMENTS
+
+        if is_past:
+            reason = "Đã qua"
+        elif is_full:
+            reason = "Hết chỗ"
+        else:
+            reason = "Còn chỗ"
+
+        slots.append(
+            {
+                "startTime": start_time_text,
+                "endTime": end_time_text,
+                "available": not is_past and not is_full,
+                "reason": reason,
+                "overlapCount": overlap_count,
+                "maxConcurrentAppointments": MAX_CONCURRENT_APPOINTMENTS,
+            }
+        )
+
+    return {
+        "ngay": ngay,
+        "thoiLuong": duration,
+        "maxConcurrentAppointments": MAX_CONCURRENT_APPOINTMENTS,
+        "slots": slots,
+    }
+
 
 def get_status_code(status_value: str) -> str:
     return STATUS_CODE_MAP.get(status_value, "pending")
@@ -260,9 +445,17 @@ def create_booking(db: Session, payload):
 
     end_time = start_time + timedelta(minutes=total_duration)
 
+    validate_booking_business_time(start_time, end_time)
+
     check_customer_time_conflict(
         db=db,
         id_tai_khoan=payload.idTaiKhoan,
+        start_time=start_time,
+        end_time=end_time,
+    )
+
+    check_spa_capacity(
+        db=db,
         start_time=start_time,
         end_time=end_time,
     )
@@ -377,11 +570,21 @@ def create_booking(db: Session, payload):
 
 
 def build_appointment_response(db: Session, lich_hen: LichHen):
-    rows = (
+    appointment_rows = (
         db.query(ChiTietLichHen, DichVu)
         .join(DichVu, ChiTietLichHen.idDichVu == DichVu.idDichVu)
         .filter(ChiTietLichHen.idLichHen == lich_hen.idLichHen)
         .all()
+    )
+
+    invoice = (
+        db.query(HoaDon)
+        .filter(
+            HoaDon.idLichHen == lich_hen.idLichHen,
+            HoaDon.trangThaiThanhToan != "Đã huỷ",
+        )
+        .order_by(HoaDon.idHoaDon.desc())
+        .first()
     )
 
     chi_tiet_output = []
@@ -389,34 +592,140 @@ def build_appointment_response(db: Session, lich_hen: LichHen):
     tong_thoi_luong = 0
     tong_so_luong = 0
 
-    for chi_tiet, dich_vu in rows:
-        id_chi_tiet = (
-            int(chi_tiet.idChiTietLH)
-            if chi_tiet.idChiTietLH is not None
-            else None
-        )
+    booked_remaining_by_service = {}
+    booked_detail_by_service = {}
+
+    for chi_tiet, dich_vu in appointment_rows:
         id_dich_vu = int(dich_vu.idDichVu)
-        so_luong = int(chi_tiet.soLuong or 1)
-        don_gia = float(chi_tiet.donGia or dich_vu.gia or 0)
-        thoi_luong = int(chi_tiet.thoiLuongPhut or dich_vu.thoiLuongPhut or 0)
-        thanh_tien = don_gia * so_luong
 
-        tong_tien += thanh_tien
-        tong_thoi_luong += thoi_luong
-        tong_so_luong += so_luong
-
-        chi_tiet_output.append(
-            {
-                "idChiTietLH": id_chi_tiet,
-                "idDichVu": id_dich_vu,
-                "tenDichVu": dich_vu.tenDV,
-                "donGia": don_gia,
-                "thoiLuongPhut": thoi_luong,
-                "soLuong": so_luong,
-                "thanhTien": thanh_tien,
-                "hinhAnh": get_service_image(db, id_dich_vu),
-            }
+        booked_remaining_by_service[id_dich_vu] = (
+            booked_remaining_by_service.get(id_dich_vu, 0)
+            + int(chi_tiet.soLuong or 1)
         )
+
+        booked_detail_by_service[id_dich_vu] = {
+            "idChiTietLH": int(chi_tiet.idChiTietLH)
+            if chi_tiet.idChiTietLH is not None
+            else None,
+            "idDichVu": id_dich_vu,
+            "tenDichVu": dich_vu.tenDV,
+            "donGia": float(chi_tiet.donGia or dich_vu.gia or 0),
+            "thoiLuongPhut": int(
+                chi_tiet.thoiLuongPhut or dich_vu.thoiLuongPhut or 0
+            ),
+            "hinhAnh": get_service_image(db, id_dich_vu),
+        }
+
+    if invoice and lich_hen.trangThai == "Đã hoàn thành":
+        invoice_rows = (
+            db.query(ChiTietHoaDon, DichVu)
+            .join(DichVu, ChiTietHoaDon.idDichVu == DichVu.idDichVu)
+            .filter(ChiTietHoaDon.idHoaDon == invoice.idHoaDon)
+            .all()
+        )
+
+        for chi_tiet_hd, dich_vu in invoice_rows:
+            id_dich_vu = int(dich_vu.idDichVu)
+            invoice_quantity = int(chi_tiet_hd.soLuong or 1)
+            invoice_price = float(chi_tiet_hd.donGia or dich_vu.gia or 0)
+            duration = int(dich_vu.thoiLuongPhut or 0)
+
+            booked_quantity = min(
+                invoice_quantity,
+                booked_remaining_by_service.get(id_dich_vu, 0),
+            )
+
+            if booked_quantity > 0:
+                base_detail = booked_detail_by_service.get(id_dich_vu, {})
+
+                thanh_tien = invoice_price * booked_quantity
+
+                tong_tien += thanh_tien
+                tong_thoi_luong += duration * booked_quantity
+                tong_so_luong += booked_quantity
+
+                chi_tiet_output.append(
+                    {
+                        "idChiTietLH": base_detail.get("idChiTietLH"),
+                        "idDichVu": id_dich_vu,
+                        "tenDichVu": dich_vu.tenDV,
+                        "donGia": invoice_price,
+                        "thoiLuongPhut": duration,
+                        "soLuong": booked_quantity,
+                        "thanhTien": thanh_tien,
+                        "hinhAnh": get_service_image(db, id_dich_vu),
+                        "type": "booked",
+                        "isAdditional": False,
+                    }
+                )
+
+                booked_remaining_by_service[id_dich_vu] = (
+                    booked_remaining_by_service.get(id_dich_vu, 0)
+                    - booked_quantity
+                )
+
+            additional_quantity = invoice_quantity - booked_quantity
+
+            if additional_quantity > 0:
+                thanh_tien = invoice_price * additional_quantity
+
+                tong_tien += thanh_tien
+                tong_thoi_luong += duration * additional_quantity
+                tong_so_luong += additional_quantity
+
+                chi_tiet_output.append(
+                    {
+                        # Dịch vụ phát sinh nằm trong ChiTietHoaDon,
+                        # không có idChiTietLH thật nên dùng id âm để frontend có key riêng.
+                        "idChiTietLH": -int(chi_tiet_hd.idChiTietHD),
+                        "idDichVu": id_dich_vu,
+                        "tenDichVu": dich_vu.tenDV,
+                        "donGia": invoice_price,
+                        "thoiLuongPhut": duration,
+                        "soLuong": additional_quantity,
+                        "thanhTien": thanh_tien,
+                        "hinhAnh": get_service_image(db, id_dich_vu),
+                        "type": "additional",
+                        "isAdditional": True,
+                    }
+                )
+
+        # Nếu muốn tổng tiền đúng theo hoá đơn đã thanh toán thì ưu tiên thanhTien
+        if invoice.thanhTien is not None:
+            tong_tien = float(invoice.thanhTien or 0)
+
+    else:
+        for chi_tiet, dich_vu in appointment_rows:
+            id_chi_tiet = (
+                int(chi_tiet.idChiTietLH)
+                if chi_tiet.idChiTietLH is not None
+                else None
+            )
+
+            id_dich_vu = int(dich_vu.idDichVu)
+            so_luong = int(chi_tiet.soLuong or 1)
+            don_gia = float(chi_tiet.donGia or dich_vu.gia or 0)
+            thoi_luong = int(chi_tiet.thoiLuongPhut or dich_vu.thoiLuongPhut or 0)
+            thanh_tien = don_gia * so_luong
+
+            tong_tien += thanh_tien
+            tong_thoi_luong += thoi_luong * so_luong
+            tong_so_luong += so_luong
+
+            chi_tiet_output.append(
+                {
+                    "idChiTietLH": id_chi_tiet,
+                    "idDichVu": id_dich_vu,
+                    "tenDichVu": dich_vu.tenDV,
+                    "donGia": don_gia,
+                    "thoiLuongPhut": thoi_luong,
+                    "soLuong": so_luong,
+                    "thanhTien": thanh_tien,
+                    "hinhAnh": get_service_image(db, id_dich_vu),
+                    "type": "booked",
+                    "isAdditional": False,
+                }
+            )
 
     return {
         "idLichHen": int(lich_hen.idLichHen),
@@ -434,6 +743,10 @@ def build_appointment_response(db: Session, lich_hen: LichHen):
         "tongTienDuKien": tong_tien,
         "tongThoiLuong": tong_thoi_luong,
         "tongSoLuong": tong_so_luong,
+        "invoiceCode": invoice.maHD if invoice else None,
+        "paymentMethod": invoice.phuongThucThanhToan if invoice else None,
+        "paymentStatus": invoice.trangThaiThanhToan if invoice else None,
+        "totalPayment": float(invoice.thanhTien or 0) if invoice else None,
         "chiTietLichHen": chi_tiet_output,
     }
 
@@ -638,9 +951,17 @@ def create_staff_appointment(db: Session, payload):
 
     end_time = start_time + timedelta(minutes=total_duration)
 
+    validate_booking_business_time(start_time, end_time)
+
     check_customer_time_conflict(
         db=db,
         id_tai_khoan=payload.idTaiKhoan,
+        start_time=start_time,
+        end_time=end_time,
+    )
+
+    overlap_count = check_spa_capacity(
+        db=db,
         start_time=start_time,
         end_time=end_time,
     )
@@ -652,7 +973,18 @@ def create_staff_appointment(db: Session, payload):
             thoiGianBatDau=start_time,
             thoiGianKetThuc=end_time,
             trangThai="Đã xác nhận",
-            ghiChu=payload.ghiChu or "Lịch hẹn được tạo tại quầy.",
+            ghiChu=(
+                payload.ghiChu
+                or (
+                    "Lịch hẹn được tạo tại quầy. "
+                    + (
+                        f"Khung giờ này đang có {overlap_count} lịch hẹn khác; "
+                        "lễ tân đã kiểm tra thủ công nhân viên/phòng."
+                        if overlap_count > 0
+                        else ""
+                    )
+                ).strip()
+            ),
             lyDoHuy=None,
             nguonTao="Lễ tân",
         )
@@ -883,6 +1215,8 @@ def reschedule_customer_appointment(
         )
 
     end_time = start_time + timedelta(minutes=total_duration)
+
+    validate_booking_business_time(start_time, end_time)
 
     check_customer_time_conflict(
         db=db,

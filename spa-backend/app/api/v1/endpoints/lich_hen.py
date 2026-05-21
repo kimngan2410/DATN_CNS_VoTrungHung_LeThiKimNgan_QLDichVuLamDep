@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.crud.lich_hen_crud import (
     cancel_customer_appointment,
     create_booking,
+    get_available_booking_slots,
     get_customer_appointment_detail,
     get_customer_appointments,
     get_customer_service_history,
@@ -152,6 +153,17 @@ def get_appointments():
         "message": "API danh sách lịch hẹn đang hoạt động"
     }
 
+@router.get("/khung-gio-kha-dung")
+def get_available_booking_slots_api(
+    ngay: str,
+    thoi_luong: int,
+    db: Session = Depends(get_db),
+):
+    return get_available_booking_slots(
+        db=db,
+        ngay=ngay,
+        thoi_luong=thoi_luong,
+    )
 
 @router.get("/{appointment_id}")
 def get_appointment_detail(appointment_id: int):

@@ -26,35 +26,55 @@ import {
   getServiceCategoriesApi,
   getServicesApi,
 } from "../../../services/serviceApi"
-import { createAppointmentApi } from "../../../services/bookingApi"
+import {
+  createAppointmentApi,
+  getAvailableBookingSlotsApi,
+} from "../../../services/bookingApi"
 import { getCurrentUser } from "../../../services/authApi"
 
 import "./BookingPage.css"
 
-function generateTimeSlots(start = "09:00", end = "21:00", stepMinutes = 30) {
-  const [startHour, startMinute] = start.split(":").map(Number)
-  const [endHour, endMinute] = end.split(":").map(Number)
+const SPA_OPEN_TIME = "09:00"
+const SPA_CLOSE_TIME = "21:00"
+const TIME_SLOT_STEP_MINUTES = 30
 
-  const startTotalMinutes = startHour * 60 + startMinute
-  const endTotalMinutes = endHour * 60 + endMinute
+function timeToMinutes(time) {
+  const [hour, minute] = time.split(":").map(Number)
+
+  return hour * 60 + minute
+}
+
+function minutesToTime(totalMinutes) {
+  const hour = String(Math.floor(totalMinutes / 60)).padStart(2, "0")
+  const minute = String(totalMinutes % 60).padStart(2, "0")
+
+  return `${hour}:${minute}`
+}
+
+function generateTimeSlots(
+  start = SPA_OPEN_TIME,
+  end = SPA_CLOSE_TIME,
+  stepMinutes = TIME_SLOT_STEP_MINUTES
+) {
+  const startTotalMinutes = timeToMinutes(start)
+  const endTotalMinutes = timeToMinutes(end)
 
   const slots = []
 
+  // Chỉ sinh giờ bắt đầu trước giờ đóng cửa.
+  // 21:00 là giờ kết thúc phục vụ, không phải giờ bắt đầu lịch hẹn.
   for (
     let totalMinutes = startTotalMinutes;
-    totalMinutes <= endTotalMinutes;
+    totalMinutes < endTotalMinutes;
     totalMinutes += stepMinutes
   ) {
-    const hour = String(Math.floor(totalMinutes / 60)).padStart(2, "0")
-    const minute = String(totalMinutes % 60).padStart(2, "0")
-
-    slots.push(`${hour}:${minute}`)
+    slots.push(minutesToTime(totalMinutes))
   }
 
   return slots
 }
 
-const timeSlots = generateTimeSlots("09:00", "21:00", 30)
+const timeSlots = generateTimeSlots()
 
 function formatPrice(value) {
   return new Intl.NumberFormat("vi-VN", {
@@ -153,6 +173,10 @@ function BookingPage() {
   const [note, setNote] = useState("")
   const [now, setNow] = useState(new Date())
 
+  const [bookingSlots, setBookingSlots] = useState([])
+  const [isLoadingBookingSlots, setIsLoadingBookingSlots] = useState(false)
+  const [bookingSlotError, setBookingSlotError] = useState("")
+
   const [notice, setNotice] = useState({
     open: false,
     type: "warning",
@@ -229,6 +253,11 @@ function BookingPage() {
   const totalDuration = selectedServices.reduce((sum, service) => {
     return sum + Number(service.duration || 0)
   }, 0)
+
+  const selectedTimeEndText =
+    selectedTime && totalDuration > 0
+      ? minutesToTime(timeToMinutes(selectedTime) + totalDuration)
+      : ""
 
   const filteredServicesForModal = useMemo(() => {
     const baseServices =
@@ -346,6 +375,50 @@ function BookingPage() {
     return () => clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    if (!selectedDate || selectedServices.length === 0 || totalDuration <= 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBookingSlots([])
+      setBookingSlotError("")
+      return
+    }
+
+    let ignore = false
+
+    const fetchAvailableSlots = async () => {
+      try {
+        setIsLoadingBookingSlots(true)
+        setBookingSlotError("")
+
+        const data = await getAvailableBookingSlotsApi({
+          ngay: formatDateForApi(selectedDate),
+          thoiLuong: totalDuration,
+        })
+
+        if (!ignore) {
+          setBookingSlots(Array.isArray(data?.slots) ? data.slots : [])
+        }
+      } catch (error) {
+        if (!ignore) {
+          setBookingSlots([])
+          setBookingSlotError(
+            error.message || "Không thể kiểm tra khung giờ khả dụng."
+          )
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoadingBookingSlots(false)
+        }
+      }
+    }
+
+    fetchAvailableSlots()
+
+    return () => {
+      ignore = true
+    }
+  }, [selectedDate, selectedServices.length, totalDuration])
+
   const formatDurationText = (minutes) => {
     const total = Number(minutes || 0)
     const hours = Math.floor(total / 60)
@@ -387,22 +460,88 @@ function BookingPage() {
     )
   }
 
+  const bookingSlotMap = useMemo(() => {
+    return bookingSlots.reduce((result, slot) => {
+      result[slot.startTime] = slot
+      return result
+    }, {})
+  }, [bookingSlots])
+
+  const getTimeSlotDisabledReason = (time) => {
+    if (!selectedDate) return "Vui lòng chọn ngày hẹn trước"
+
+    if (selectedServices.length === 0) {
+      return "Vui lòng chọn ít nhất một dịch vụ trước"
+    }
+
+    if (totalDuration <= 0) {
+      return "Dịch vụ chưa có thời lượng hợp lệ"
+    }
+
+    const startMinutes = timeToMinutes(time)
+    const endMinutes = startMinutes + totalDuration
+    const openMinutes = timeToMinutes(SPA_OPEN_TIME)
+    const closeMinutes = timeToMinutes(SPA_CLOSE_TIME)
+
+    if (startMinutes < openMinutes || endMinutes > closeMinutes) {
+      return `Dịch vụ kéo dài ${formatDurationText(
+        totalDuration
+      )}, nếu bắt đầu lúc ${time} sẽ kết thúc lúc ${minutesToTime(
+        endMinutes
+      )}, vượt quá giờ đóng cửa ${SPA_CLOSE_TIME}`
+    }
+
+    if (isSameDay(selectedDate, now)) {
+      const [hour, minute] = time.split(":").map(Number)
+
+      const slotDateTime = new Date(selectedDate)
+      slotDateTime.setHours(hour, minute, 0, 0)
+
+      if (slotDateTime <= now) {
+        return "Khung giờ này đã qua"
+      }
+    }
+
+    if (isLoadingBookingSlots) {
+      return "Đang kiểm tra khung giờ"
+    }
+
+    if (bookingSlotError) {
+      return bookingSlotError
+    }
+
+    const slotInfo = bookingSlotMap[time]
+
+    if (slotInfo && !slotInfo.available) {
+      return slotInfo.reason || "Khung giờ này đã hết chỗ"
+    }
+
+    return ""
+  }
+
   const isTimeSlotDisabled = (time) => {
-    if (!selectedDate) return true
-
-    if (!isSameDay(selectedDate, now)) return false
-
-    const [hour, minute] = time.split(":").map(Number)
-
-    const slotDateTime = new Date(selectedDate)
-    slotDateTime.setHours(hour, minute, 0, 0)
-
-    return slotDateTime <= now
+    return Boolean(getTimeSlotDisabledReason(time))
   }
 
   const hasAvailableTimeSlots = selectedDate
     ? timeSlots.some((time) => !isTimeSlotDisabled(time))
     : true
+
+  useEffect(() => {
+    if (selectedTime && isTimeSlotDisabled(selectedTime)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedTime("")
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    selectedTime,
+    selectedDate,
+    totalDuration,
+    now,
+    bookingSlots,
+    isLoadingBookingSlots,
+    bookingSlotError,
+  ])
 
   const openServiceSelector = () => {
     setActiveCategory(selectedServices[0]?.category || "Tất cả")
@@ -894,34 +1033,78 @@ function BookingPage() {
                     Chọn giờ <span>*</span>
                   </label>
 
+                  <div className="booking-time-summary">
+                    <span>
+                      Giờ phục vụ: {SPA_OPEN_TIME} - {SPA_CLOSE_TIME}
+                    </span>
+
+                    <span>
+                      Tổng thời lượng:{" "}
+                      {totalDuration > 0
+                        ? formatDurationText(totalDuration)
+                        : "Chưa xác định"}
+                    </span>
+
+                    {selectedTime && selectedTimeEndText && (
+                      <span>
+                        Dự kiến kết thúc: {selectedTimeEndText}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="booking-time-grid">
                     {timeSlots.map((time) => {
-                      const disabled = isTimeSlotDisabled(time)
+                      const disabledReason = getTimeSlotDisabledReason(time)
+                      const disabled = Boolean(disabledReason)
+                      const slotInfo = bookingSlotMap[time]
 
                       return (
                         <button
                           key={time}
                           type="button"
                           disabled={disabled}
-                          className={`booking-time ${
-                            selectedTime === time ? "active" : ""
-                          }`}
+                          title={disabledReason || "Còn chỗ"}
+                          className={[
+                            "booking-time",
+                            selectedTime === time ? "active" : "",
+                            disabled ? "booking-time--disabled" : "",
+                            slotInfo && !slotInfo.available ? "booking-time--full" : "",
+                          ].join(" ")}
                           onClick={() => {
                             if (!disabled) {
                               setSelectedTime(time)
                             }
                           }}
                         >
-                          {time}
+                          <span>{time}</span>
+
+                          {slotInfo && !slotInfo.available && (
+                            <small>{slotInfo.reason || "Hết chỗ"}</small>
+                          )}
                         </button>
                       )
                     })}
                   </div>
 
+                  {isLoadingBookingSlots && (
+                    <p className="booking-time-help">Đang kiểm tra khung giờ còn chỗ...</p>
+                  )}
+
+                  {bookingSlotError && (
+                    <p className="booking-time-note">{bookingSlotError}</p>
+                  )}
+
+                  <p className="booking-time-help">
+                    Hệ thống chỉ cho chọn khung giờ mà thời gian kết thúc không
+                    vượt quá {SPA_CLOSE_TIME}. Ví dụ dịch vụ 60 phút thì giờ
+                    cuối cùng có thể chọn là 20:00.
+                  </p>
+
                   {selectedDate && !hasAvailableTimeSlots && (
                     <p className="booking-time-note">
-                      Hôm nay đã hết khung giờ đặt lịch. Vui lòng chọn ngày
-                      khác.
+                      Không còn khung giờ phù hợp với tổng thời lượng dịch vụ
+                      trong ngày này. Vui lòng chọn ngày khác hoặc chọn dịch vụ
+                      có thời lượng ngắn hơn.
                     </p>
                   )}
                 </div>

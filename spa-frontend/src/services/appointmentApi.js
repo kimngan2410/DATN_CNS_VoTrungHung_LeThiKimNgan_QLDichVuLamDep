@@ -60,6 +60,11 @@ async function handleResponse(response, defaultMessage) {
 function normalizeAppointmentService(service, appointmentId) {
   const serviceId = getServiceId(service)
 
+  const isAdditional = Boolean(service.isAdditional)
+
+  const serviceType =
+    service.type || service.loaiDichVu || (isAdditional ? "additional" : "booked")
+
   return {
     idChiTietLH:
       service.idChiTietLH ||
@@ -80,7 +85,9 @@ function normalizeAppointmentService(service, appointmentId) {
     image: getFullImageUrl(service.hinhAnh || service.image || ""),
     category: service.tenDanhMuc || service.category || "",
 
-    type: service.type || "booked",
+    type: serviceType,
+    isAdditional: serviceType === "additional" || isAdditional,
+
     reviewed: Boolean(service.reviewed || false),
     review: service.review || null,
   }
@@ -142,14 +149,26 @@ function normalizeHistoryAppointment(item) {
 
     peopleCount: Number(item.tongSoLuong || 0),
     totalQuantity: Number(item.tongSoLuong || 0),
-    totalPrice: Number(item.tongTienDuKien || 0),
+
+    totalPrice: Number(
+      item.totalPayment ??
+        item.thanhTien ??
+        item.tongThanhToan ??
+        item.tongTienDuKien ??
+        0
+    ),
+
     totalDuration: Number(item.tongThoiLuong || 0),
 
-    paymentMethod: item.phuongThucThanhToan || "",
+    paymentMethod:
+      item.paymentMethod || item.phuongThucThanhToan || "Chưa cập nhật",
+
     paymentStatus:
+      item.paymentStatus ||
       item.trangThaiThanhToan ||
       (item.trangThaiCode === "completed" ? "Đã thanh toán" : ""),
-    paidAt: item.ngayThanhToan || "",
+
+    paidAt: item.ngayThanhToan || item.paymentTime || "",
 
     services,
   }

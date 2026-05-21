@@ -138,10 +138,10 @@ def get_account_status_label(status_value: str | None):
 
 
 def get_account_status_value(status_label: str | None):
-    if status_label in ["Tạm khoá", "Tạm khóa", "KHOA"]:
+    if status_label in ["Tạm khoá", "Tạm khóa", "KHOA", "LOCKED"]:
         return "KHOA"
 
-    return "Hoạt động"
+    return "HOAT_DONG"
 
 
 def get_customer_avatar_text(full_name: str):

@@ -394,7 +394,7 @@
 }
 
 .staff-transactions-id {
-  font-weight: 700;
+  font-weight: 600;
   color: #111827 !important;
 }
 
@@ -413,7 +413,7 @@
 }
 
 .staff-transactions-money {
-  font-weight: 800;
+  font-weight: 600;
   color: #111827 !important;
   white-space: nowrap;
 }
@@ -490,8 +490,7 @@
   font-size: 14px;
 }
 
-.staff-transaction-modal-overlay,
-.staff-transaction-cancel-overlay {
+.staff-transaction-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.35);
@@ -500,10 +499,6 @@
   justify-content: center;
   z-index: 3000;
   padding: 24px;
-}
-
-.staff-transaction-cancel-overlay {
-  z-index: 3600;
 }
 
 .staff-transaction-modal {
@@ -609,42 +604,6 @@
 .staff-transaction-paid-badge.paid {
   background: #dcfce7;
   color: #15803d !important;
-}
-
-.staff-transaction-paid-badge.cancelled {
-  background: #fee2e2;
-  color: #b91c1c !important;
-}
-
-.staff-transaction-cancel-warning {
-  margin-bottom: 18px;
-  padding: 13px 14px;
-  border: 1px solid #fecaca;
-  border-radius: 14px;
-  background: #fff1f2;
-  color: #b91c1c;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.staff-transaction-cancel-warning svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.staff-transaction-cancel-warning strong {
-  display: block;
-  margin-bottom: 3px;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.staff-transaction-cancel-warning p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.45;
-  font-weight: 600;
 }
 
 .staff-transaction-section {
@@ -759,7 +718,7 @@
   padding: 0 17px;
   border-radius: 11px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -814,7 +773,7 @@
   margin: 0;
   color: #2b2b2b;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .staff-transaction-cancel-header p {
@@ -862,13 +821,13 @@
   margin-bottom: 5px;
   color: #8a7f72;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .staff-transaction-cancel-info strong {
   color: #4d4a4b;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .staff-transaction-cancel-label {
@@ -876,7 +835,7 @@
   margin: 14px 0 8px;
   color: #4d4a4b;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .staff-transaction-cancel-body textarea {
@@ -916,7 +875,7 @@
   background: transparent;
   color: #4d4a4b;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .staff-transaction-confirm-code-box:focus-within {
@@ -942,7 +901,7 @@
   background: #fff1f2;
   color: #b91c1c;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.45;
 }
 

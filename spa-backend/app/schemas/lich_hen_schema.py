@@ -52,6 +52,10 @@ class LichHenDichVuOut(BaseModel):
     thanhTien: float
     hinhAnh: Optional[str] = ""
 
+    # Dùng cho trang lịch sử dịch vụ khách hàng
+    type: Optional[str] = "booked"
+    isAdditional: bool = False
+
 
 class LichHenCustomerOut(BaseModel):
     idLichHen: int
@@ -73,6 +77,12 @@ class LichHenCustomerOut(BaseModel):
     tongTienDuKien: float
     tongThoiLuong: int
     tongSoLuong: int
+
+    # Thông tin hoá đơn nếu lịch đã thanh toán
+    invoiceCode: Optional[str] = None
+    paymentMethod: Optional[str] = None
+    paymentStatus: Optional[str] = None
+    totalPayment: Optional[float] = None
 
     chiTietLichHen: list[LichHenDichVuOut]
 

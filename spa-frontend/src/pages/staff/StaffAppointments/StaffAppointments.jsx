@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
   UserRound,
-  Filter,
   Plus,
   Minus,
   Trash2,
@@ -38,21 +37,11 @@ import {
   getServiceCategoriesApi,
   getServicesApi,
 } from "../../../services/serviceApi";
+import { createStaffInvoiceApi } from "../../../services/staffInvoiceApi";
 
 import "./StaffAppointments.css";
 
 const TODAY = new Date();
-
-const statusOptions = [
-  "Tất cả",
-  "Chờ xác nhận",
-  "Đã xác nhận",
-  "Đã check-in",
-  "Đang thực hiện",
-  "Đã hoàn thành",
-  "Đã huỷ",
-  "Không đến",
-];
 
 const blockedStatuses = [
   "Chờ xác nhận",
@@ -144,6 +133,31 @@ const getTotalDuration = (services = []) => {
   return services.reduce((total, service) => total + getServiceDuration(service), 0);
 };
 
+const SPA_OPEN_TIME = "09:00";
+const SPA_CLOSE_TIME = "21:00";
+const SLOT_STEP_MINUTES = 30;
+
+const generateTimeFilterOptions = () => {
+  const openMinutes = 9 * 60;
+  const closeMinutes = 21 * 60;
+  const options = ["Tất cả giờ"];
+
+  for (let current = openMinutes; current < closeMinutes; current += 30) {
+    const hour = Math.floor(current / 60);
+    const minute = current % 60;
+
+    options.push(
+      `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+    );
+  }
+
+  return options;
+};
+
+const timeFilterOptions = generateTimeFilterOptions();
+
+const MAX_CONCURRENT_APPOINTMENTS = 5;
+
 const toMinutes = (time) => {
   if (!time || !time.includes(":")) return 0;
 
@@ -165,15 +179,34 @@ const getAppointmentEndTime = (appointment) => {
   return formatTimeFromMinutes(toMinutes(appointment?.time) + duration);
 };
 
-const isTimeSlotAvailable = ({ selectedDate, startTime, totalDuration, appointments }) => {
+const getSlotDateTime = (dateValue, timeValue) => {
+  if (!dateValue || !timeValue) return null;
+
+  return new Date(`${dateValue}T${timeValue}:00`);
+};
+
+const isSlotInPast = ({ selectedDate, startTime, now }) => {
+  const slotDateTime = getSlotDateTime(selectedDate, startTime);
+
+  if (!slotDateTime) return true;
+
+  return slotDateTime <= now;
+};
+
+const getOverlappingAppointments = ({
+  selectedDate,
+  startTime,
+  totalDuration,
+  appointments,
+}) => {
   const newStart = toMinutes(startTime);
   const newEnd = newStart + totalDuration;
 
-  return !appointments.some((appointment) => {
+  return appointments.filter((appointment) => {
     const isSameAppointmentDate = appointment.date === selectedDate;
-    const isBlocked = blockedStatuses.includes(appointment.status);
+    const isBlockingStatus = blockedStatuses.includes(appointment.status);
 
-    if (!isSameAppointmentDate || !isBlocked) return false;
+    if (!isSameAppointmentDate || !isBlockingStatus) return false;
 
     const oldStart = toMinutes(appointment.time);
     const oldEnd = toMinutes(getAppointmentEndTime(appointment));
@@ -186,32 +219,68 @@ const generateAvailableSlots = ({
   selectedDate,
   services,
   appointments,
-  openTime = "08:00",
-  closeTime = "20:00",
+  now = new Date(),
+  openTime = SPA_OPEN_TIME,
+  closeTime = SPA_CLOSE_TIME,
+  stepMinutes = SLOT_STEP_MINUTES,
+  maxConcurrentAppointments = MAX_CONCURRENT_APPOINTMENTS,
 }) => {
   const totalDuration = getTotalDuration(services);
 
-  if (totalDuration <= 0) return [];
+  if (!selectedDate || totalDuration <= 0) return [];
 
   const openMinutes = toMinutes(openTime);
   const closeMinutes = toMinutes(closeTime);
   const slots = [];
 
-  for (let current = openMinutes; current + totalDuration <= closeMinutes; current += 30) {
+  for (
+    let current = openMinutes;
+    current + totalDuration <= closeMinutes;
+    current += stepMinutes
+  ) {
     const startTime = formatTimeFromMinutes(current);
     const endTime = formatTimeFromMinutes(current + totalDuration);
 
-    const available = isTimeSlotAvailable({
+    const past = isSlotInPast({
+      selectedDate,
+      startTime,
+      now,
+    });
+
+    const overlappingAppointments = getOverlappingAppointments({
       selectedDate,
       startTime,
       totalDuration,
       appointments,
     });
 
+    const overlapCount = overlappingAppointments.length;
+    const full = overlapCount >= maxConcurrentAppointments;
+    const selectable = !past && !full;
+
+    let reason = "Trống";
+    let reasonCode = "available";
+
+    if (past) {
+      reason = "Đã qua";
+      reasonCode = "past";
+    } else if (full) {
+      reason = "Hết chỗ";
+      reasonCode = "full";
+    } else if (overlapCount > 0) {
+      reason = `Đang có ${overlapCount} lịch - kiểm tra`;
+      reasonCode = "manual_check";
+    }
+
     slots.push({
       startTime,
       endTime,
-      available,
+      selectable,
+      available: selectable,
+      overlapCount,
+      reason,
+      reasonCode,
+      overlappingAppointments,
     });
   }
 
@@ -276,10 +345,13 @@ function StaffAppointments() {
   const [isLoadingCreateData, setIsLoadingCreateData] = useState(false);
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isSubmittingInvoice, setIsSubmittingInvoice] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("Tất cả");
+  const [timeFilter, setTimeFilter] = useState("Tất cả giờ");
   const [selectedDate, setSelectedDate] = useState(TODAY);
+  const [isTimeFilterOpen, setIsTimeFilterOpen] = useState(false);
 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(
@@ -290,8 +362,9 @@ function StaffAppointments() {
   const [invoiceAppointment, setInvoiceAppointment] = useState(null);
 
   const [paymentMethod, setPaymentMethod] = useState("Tiền mặt");
-  const [selectedExtraServiceId, setSelectedExtraServiceId] = useState("");
   const [extraServices, setExtraServices] = useState([]);
+  const [invoiceExtraServiceSearch, setInvoiceExtraServiceSearch] = useState("");
+  const [invoiceExtraServiceCategory, setInvoiceExtraServiceCategory] = useState("Tất cả");
 
   const [reasonModal, setReasonModal] = useState(null);
   const [reasonText, setReasonText] = useState("");
@@ -310,6 +383,11 @@ function StaffAppointments() {
   const [createNote, setCreateNote] = useState("");
   const [createServiceSearch, setCreateServiceSearch] = useState("");
   const [createServiceCategory, setCreateServiceCategory] = useState("Tất cả");
+
+  const [createDateAppointments, setCreateDateAppointments] = useState([]);
+  const [isLoadingCreateSlots, setIsLoadingCreateSlots] = useState(false);
+  const [createSlotError, setCreateSlotError] = useState("");
+  const [createNow, setCreateNow] = useState(new Date());
 
   const selectedDateValue = formatDateToValue(selectedDate);
 
@@ -371,7 +449,89 @@ function StaffAppointments() {
     fetchCreateData();
   }, []);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCreateNow(new Date());
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!isCreateModalOpen || !createDate) return;
+
+    let ignore = false;
+
+    const fetchCreateDateAppointments = async () => {
+      try {
+        setIsLoadingCreateSlots(true);
+        setCreateSlotError("");
+
+        const data = await getStaffAppointmentsApi({
+          date: createDate,
+        });
+
+        if (!ignore) {
+          setCreateDateAppointments(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        if (!ignore) {
+          setCreateDateAppointments([]);
+          setCreateSlotError(
+            error.message || "Không thể tải lịch hẹn của ngày đã chọn."
+          );
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoadingCreateSlots(false);
+        }
+      }
+    };
+
+    fetchCreateDateAppointments();
+
+    return () => {
+      ignore = true;
+    };
+  }, [isCreateModalOpen, createDate]);
+
   const extraServiceOptions = serviceOptions;
+
+  const invoiceBookedServiceIds = useMemo(() => {
+    return new Set(
+      (invoiceAppointment?.services || []).map((service) =>
+        Number(service.idDichVu || service.id)
+      )
+    );
+  }, [invoiceAppointment]);
+
+  const filteredInvoiceExtraServiceOptions = useMemo(() => {
+    return extraServiceOptions.filter((service) => {
+      const serviceId = Number(service.idDichVu || service.id);
+
+      if (invoiceBookedServiceIds.has(serviceId)) {
+        return false;
+      }
+
+      const keyword = invoiceExtraServiceSearch.trim().toLowerCase();
+
+      const matchesSearch =
+        keyword === "" ||
+        String(service.name || "").toLowerCase().includes(keyword) ||
+        String(service.category || "").toLowerCase().includes(keyword);
+
+      const matchesCategory =
+        invoiceExtraServiceCategory === "Tất cả" ||
+        service.category === invoiceExtraServiceCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [
+    extraServiceOptions,
+    invoiceBookedServiceIds,
+    invoiceExtraServiceSearch,
+    invoiceExtraServiceCategory,
+  ]);
 
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
@@ -391,9 +551,18 @@ function StaffAppointments() {
 
       const matchesDate = appointment.date === selectedDateValue;
 
-      return matchesKeyword && matchesStatus && matchesDate;
+      const matchesTime =
+        timeFilter === "Tất cả giờ" || appointment.time === timeFilter;
+
+      return matchesKeyword && matchesStatus && matchesDate && matchesTime;
     });
-  }, [appointments, searchTerm, statusFilter, selectedDateValue]);
+  }, [
+    appointments,
+    searchTerm,
+    statusFilter,
+    timeFilter,
+    selectedDateValue,
+  ]);
 
   const appointmentsBySelectedDate = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -410,9 +579,12 @@ function StaffAppointments() {
           String(service.name || "").toLowerCase().includes(keyword)
         );
 
-      return matchesDate && matchesKeyword;
+      const matchesTime =
+        timeFilter === "Tất cả giờ" || appointment.time === timeFilter;
+
+      return matchesDate && matchesKeyword && matchesTime;
     });
-  }, [appointments, searchTerm, selectedDateValue]);
+  }, [appointments, searchTerm, timeFilter, selectedDateValue]);
 
   const appointmentStatusCards = useMemo(() => {
     const countByStatus = (status) => {
@@ -513,13 +685,28 @@ function StaffAppointments() {
     });
   }, [serviceOptions, createServiceSearch, createServiceCategory]);
 
+  const createTotalDuration = useMemo(() => {
+    return getTotalDuration(createServices);
+  }, [createServices]);
+
   const createAvailableSlots = useMemo(() => {
     return generateAvailableSlots({
       selectedDate: createDate,
       services: createServices,
-      appointments,
+      appointments: createDateAppointments,
+      now: createNow,
     });
-  }, [createDate, createServices, appointments]);
+  }, [createDate, createServices, createDateAppointments, createNow]);
+
+  const hasSelectableCreateSlots = useMemo(() => {
+    return createAvailableSlots.some((slot) => slot.selectable);
+  }, [createAvailableSlots]);
+
+  const manualCheckSlotCount = useMemo(() => {
+    return createAvailableSlots.filter(
+      (slot) => slot.reasonCode === "manual_check"
+    ).length;
+  }, [createAvailableSlots]);
 
   const handleGoToday = () => {
     setSelectedDate(TODAY);
@@ -580,6 +767,9 @@ function StaffAppointments() {
     setCreateNote("");
     setCreateServiceSearch("");
     setCreateServiceCategory("Tất cả");
+    setCreateDateAppointments([]);
+    setCreateSlotError("");
+    setCreateNow(new Date());
   };
 
   const handleCreateAppointment = () => {
@@ -671,10 +861,30 @@ function StaffAppointments() {
       return;
     }
 
-    if (!createTimeSlot) {
-      alert("Vui lòng chọn khung giờ còn trống.");
+    const selectedSlotStillSelectable = createAvailableSlots.some(
+      (slot) => slot.startTime === createTimeSlot?.startTime && slot.selectable
+    );
+
+    if (!createTimeSlot || !selectedSlotStillSelectable) {
+      alert("Vui lòng chọn khung giờ còn có thể nhận khách.");
+      setCreateTimeSlot(null);
       return;
     }
+
+    if (createTimeSlot.reasonCode === "manual_check") {
+      const shouldContinue = window.confirm(
+        `Khung giờ ${createTimeSlot.startTime} - ${createTimeSlot.endTime} đang có ${createTimeSlot.overlapCount} lịch hẹn.\n\nBạn cần kiểm tra thủ công nhân viên/phòng/giường và xác nhận khách có thể chờ nếu cần.\n\nBạn vẫn muốn tạo lịch hẹn này chứ?`
+      );
+
+      if (!shouldContinue) return;
+    }
+
+    const baseNote = createNote.trim() || "Lịch hẹn được tạo tại quầy.";
+
+    const finalCreateNote =
+      createTimeSlot.reasonCode === "manual_check"
+        ? `${baseNote}\n[Lưu ý] Khung giờ này đang có ${createTimeSlot.overlapCount} lịch hẹn. Lễ tân cần kiểm tra nhân viên/phòng/giường; khách có thể chờ nếu cần.`
+        : baseNote;
 
     try {
       setIsSubmittingCreate(true);
@@ -703,7 +913,7 @@ function StaffAppointments() {
         idTaiKhoan: customer.idTaiKhoan,
         ngayHen: createDate,
         gioHen: createTimeSlot.startTime,
-        ghiChu: createNote || "Lịch hẹn được tạo tại quầy.",
+        ghiChu: finalCreateNote,
         dichVuItems: createServices.map((service) => ({
           idDichVu: Number(service.idDichVu || service.id),
           soLuong: getServiceQuantity(service),
@@ -834,35 +1044,33 @@ function StaffAppointments() {
     setInvoiceAppointment(selectedAppointment);
     setSelectedAppointment(null);
     setPaymentMethod("Tiền mặt");
-    setSelectedExtraServiceId("");
     setExtraServices([]);
+    setInvoiceExtraServiceSearch("");
+    setInvoiceExtraServiceCategory("Tất cả");
   };
 
   const handleCloseInvoice = () => {
     setInvoiceAppointment(null);
     setPaymentMethod("Tiền mặt");
-    setSelectedExtraServiceId("");
     setExtraServices([]);
+    setInvoiceExtraServiceSearch("");
+    setInvoiceExtraServiceCategory("Tất cả");
   };
 
-  const handleAddExtraService = () => {
-    if (!selectedExtraServiceId) {
-      alert("Vui lòng chọn dịch vụ phát sinh.");
-      return;
-    }
-
-    const selectedService = extraServiceOptions.find(
-      (service) => String(service.idDichVu || service.id) === String(selectedExtraServiceId)
-    );
-
+  const handleAddExtraService = (selectedService) => {
     if (!selectedService) return;
 
     setExtraServices((prev) => {
-      const existed = prev.some((service) => service.idDichVu === selectedService.idDichVu);
+      const existed = prev.some(
+        (service) =>
+          Number(service.idDichVu || service.id) ===
+          Number(selectedService.idDichVu || selectedService.id)
+      );
 
       if (existed) {
         return prev.map((service) =>
-          service.idDichVu === selectedService.idDichVu
+          Number(service.idDichVu || service.id) ===
+          Number(selectedService.idDichVu || selectedService.id)
             ? { ...service, soLuong: getServiceQuantity(service) + 1 }
             : service
         );
@@ -870,43 +1078,84 @@ function StaffAppointments() {
 
       return [...prev, { ...selectedService, soLuong: 1 }];
     });
+  };
 
-    setSelectedExtraServiceId("");
+  const handleIncreaseExtraService = (serviceId) => {
+    setExtraServices((prev) =>
+      prev.map((service) =>
+        Number(service.idDichVu || service.id) === Number(serviceId)
+          ? { ...service, soLuong: getServiceQuantity(service) + 1 }
+          : service
+      )
+    );
+  };
+
+  const handleDecreaseExtraService = (serviceId) => {
+    setExtraServices((prev) =>
+      prev.map((service) =>
+        Number(service.idDichVu || service.id) === Number(serviceId)
+          ? {
+              ...service,
+              soLuong: Math.max(1, getServiceQuantity(service) - 1),
+            }
+          : service
+      )
+    );
   };
 
   const handleRemoveExtraService = (serviceId) => {
     setExtraServices((prev) =>
-      prev.filter((service) => service.idDichVu !== serviceId)
+      prev.filter(
+        (service) =>
+          Number(service.idDichVu || service.id) !== Number(serviceId)
+      )
     );
   };
 
-  const handleConfirmPayment = () => {
-    if (!invoiceAppointment) return;
+  const handleConfirmPayment = async () => {
+    if (!invoiceAppointment || isSubmittingInvoice) return;
 
     if (!paymentMethod) {
       alert("Vui lòng chọn phương thức thanh toán.");
       return;
     }
 
-    const updatedAppointment = {
-      ...invoiceAppointment,
-      status: "Đã hoàn thành",
-    };
+    try {
+      setIsSubmittingInvoice(true);
 
-    setAppointments((prev) =>
-      prev.map((item) =>
-        item.appointmentId === invoiceAppointment.appointmentId
-          ? updatedAppointment
-          : item
-      )
-    );
+      const result = await createStaffInvoiceApi({
+        idLichHen: Number(invoiceAppointment.appointmentId),
+        phuongThucThanhToan: paymentMethod,
+        dichVuPhatSinh: extraServices.map((service) => ({
+          idDichVu: Number(service.idDichVu || service.id),
+          soLuong: getServiceQuantity(service),
+        })),
+        giamGia: 0,
+        ghiChu: `Hoá đơn được lập tại quầy. Phương thức thanh toán: ${paymentMethod}`,
+      });
 
-    setInvoiceAppointment(null);
-    setPaymentMethod("Tiền mặt");
-    setSelectedExtraServiceId("");
-    setExtraServices([]);
+      const updatedAppointment = result.appointment;
 
-    alert("Thanh toán thành công. Lịch hẹn đã được cập nhật thành Đã hoàn thành.");
+      setAppointments((prev) =>
+        prev.map((item) =>
+          item.appointmentId === updatedAppointment.appointmentId
+            ? updatedAppointment
+            : item
+        )
+      );
+
+      setInvoiceAppointment(null);
+      setPaymentMethod("Tiền mặt");
+      setExtraServices([]);
+      setInvoiceExtraServiceSearch("");
+      setInvoiceExtraServiceCategory("Tất cả");
+
+      alert("Thanh toán thành công. Lịch hẹn đã được cập nhật thành Đã hoàn thành.");
+    } catch (error) {
+      alert(error.message || "Không thể lập hoá đơn thanh toán.");
+    } finally {
+      setIsSubmittingInvoice(false);
+    }
   };
 
   const renderCalendarMonth = (monthDate) => {
@@ -1107,18 +1356,37 @@ function StaffAppointments() {
                 />
               </div>
 
-              <div className="staff-appointments-filter-box">
-                <Filter size={18} />
-                <select
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value)}
+              <div className="staff-time-filter">
+                <button
+                  type="button"
+                  className="staff-time-filter-trigger"
+                  onClick={() => setIsTimeFilterOpen((prev) => !prev)}
                 >
-                  {statusOptions.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
+                  <Clock3 size={18} />
+                  <span>{timeFilter}</span>
+                  <span className="staff-time-filter-caret">▾</span>
+                </button>
+
+                {isTimeFilterOpen && (
+                  <div className="staff-time-filter-menu">
+                    {timeFilterOptions.map((time) => (
+                      <button
+                        type="button"
+                        key={time}
+                        className={[
+                          "staff-time-filter-option",
+                          timeFilter === time ? "active" : "",
+                        ].join(" ")}
+                        onClick={() => {
+                          setTimeFilter(time);
+                          setIsTimeFilterOpen(false);
+                        }}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="staff-appointments-date-group">
@@ -1434,37 +1702,57 @@ function StaffAppointments() {
 
                 <div className="invoice-service-table">
                   <div className="invoice-service-row invoice-service-head">
-                    <span>Dịch vụ</span>
-                    <span>SL</span>
-                    <span>Đơn giá</span>
-                    <span>Thành tiền</span>
-                    <span></span>
+                    <div className="invoice-service-col service">Dịch vụ</div>
+                    <div className="invoice-service-col qty">SL</div>
+                    <div className="invoice-service-col price">Đơn giá</div>
+                    <div className="invoice-service-col total">Thành tiền</div>
+                    <div className="invoice-service-col action"></div>
                   </div>
 
                   {(invoiceAppointment.services || []).map((service, index) => (
                     <div className="invoice-service-row" key={`main-${index}`}>
-                      <span>{service.name}</span>
-                      <span>{getServiceQuantity(service)}</span>
-                      <span>{formatMoney(service.price)}</span>
-                      <strong>{formatMoney(getServiceSubtotal(service))}</strong>
-                      <span></span>
+                      <div className="invoice-service-col service">{service.name}</div>
+                      <div className="invoice-service-col qty">
+                        {getServiceQuantity(service)}
+                      </div>
+                      <div className="invoice-service-col price">
+                        {formatMoney(service.price)}
+                      </div>
+                      <div className="invoice-service-col total">
+                        <strong>{formatMoney(getServiceSubtotal(service))}</strong>
+                      </div>
+                      <div className="invoice-service-col action"></div>
                     </div>
                   ))}
 
                   {extraServices.map((service) => (
-                    <div className="invoice-service-row" key={service.idDichVu || service.id}>
-                      <span>{service.name}</span>
-                      <span>{getServiceQuantity(service)}</span>
-                      <span>{formatMoney(service.price)}</span>
-                      <strong>{formatMoney(getServiceSubtotal(service))}</strong>
+                    <div
+                      className="invoice-service-row invoice-service-row-extra"
+                      key={service.idDichVu || service.id}
+                    >
+                      <div className="invoice-service-col service">{service.name}</div>
+                      <div className="invoice-service-col qty">
+                        {getServiceQuantity(service)}
+                      </div>
+                      <div className="invoice-service-col price">
+                        {formatMoney(service.price)}
+                      </div>
+                      <div className="invoice-service-col total">
+                        <strong>{formatMoney(getServiceSubtotal(service))}</strong>
+                      </div>
 
-                      <button
-                        type="button"
-                        className="invoice-remove-service-btn"
-                        onClick={() => handleRemoveExtraService(service.idDichVu)}
-                      >
-                        Xoá
-                      </button>
+                      <div className="invoice-service-col action">
+                        <button
+                          type="button"
+                          className="invoice-remove-service-btn"
+                          onClick={() =>
+                            handleRemoveExtraService(service.idDichVu || service.id)
+                          }
+                          title="Xoá dịch vụ phát sinh"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1473,23 +1761,99 @@ function StaffAppointments() {
               <div className="appointment-modal-section">
                 <h3>Thêm dịch vụ phát sinh</h3>
 
-                <div className="invoice-extra-service-box">
-                  <select
-                    value={selectedExtraServiceId}
-                    onChange={(event) => setSelectedExtraServiceId(event.target.value)}
-                  >
-                    <option value="">Chọn dịch vụ phát sinh</option>
+                <div className="invoice-extra-service-panel">
+                  <div className="create-service-tools invoice-extra-service-tools">
+                    <div className="create-service-search invoice-extra-service-search">
+                      <Search size={18} />
+                      <input
+                        type="text"
+                        placeholder="Tìm dịch vụ phát sinh theo tên..."
+                        value={invoiceExtraServiceSearch}
+                        onChange={(event) =>
+                          setInvoiceExtraServiceSearch(event.target.value)
+                        }
+                      />
+                    </div>
 
-                    {extraServiceOptions.map((service) => (
-                      <option key={service.idDichVu || service.id} value={service.idDichVu || service.id}>
-                        {service.name} - {formatMoney(service.price)}
-                      </option>
-                    ))}
-                  </select>
+                    <div className="create-service-category-tabs invoice-extra-category-tabs">
+                      {serviceCategoryOptions.map((category) => (
+                        <button
+                          type="button"
+                          key={category}
+                          className={[
+                            "create-category-tab",
+                            invoiceExtraServiceCategory === category ? "active" : "",
+                          ].join(" ")}
+                          onClick={() => setInvoiceExtraServiceCategory(category)}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-                  <button type="button" onClick={handleAddExtraService}>
-                    Thêm dịch vụ
-                  </button>
+                  <div className="create-service-list invoice-extra-service-list">
+                    {filteredInvoiceExtraServiceOptions.length === 0 ? (
+                      <div className="create-empty-service">
+                        Không tìm thấy dịch vụ phát sinh phù hợp.
+                      </div>
+                    ) : (
+                      filteredInvoiceExtraServiceOptions.map((service) => {
+                        const serviceId = Number(service.idDichVu || service.id);
+
+                        const selectedExtraService = extraServices.find(
+                          (item) => Number(item.idDichVu || item.id) === serviceId
+                        );
+
+                        return (
+                          <div
+                            className={[
+                              "create-service-card",
+                              "invoice-extra-service-card",
+                              selectedExtraService ? "active" : "",
+                            ].join(" ")}
+                            key={serviceId}
+                          >
+                            <div>
+                              <strong>{service.name}</strong>
+                              <p>
+                                {service.category} · {service.thoiLuongPhut || 0} phút ·{" "}
+                                {formatMoney(service.price)}
+                              </p>
+                            </div>
+
+                            {selectedExtraService ? (
+                              <div className="create-service-qty">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDecreaseExtraService(serviceId)}
+                                >
+                                  <Minus size={15} />
+                                </button>
+
+                                <span>{getServiceQuantity(selectedExtraService)}</span>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleIncreaseExtraService(serviceId)}
+                                >
+                                  <Plus size={15} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                className="add-create-service-btn"
+                                onClick={() => handleAddExtraService(service)}
+                              >
+                                Thêm
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1534,8 +1898,9 @@ function StaffAppointments() {
                 type="button"
                 className="appointment-modal-action-btn primary"
                 onClick={handleConfirmPayment}
+                disabled={isSubmittingInvoice}
               >
-                Xác nhận thanh toán
+                {isSubmittingInvoice ? "Đang lập hoá đơn..." : "Xác nhận thanh toán"}
               </button>
             </div>
           </div>
@@ -1865,35 +2230,87 @@ function StaffAppointments() {
                   </div>
 
                   <div className="create-section">
-                    <h3>5. Khung giờ khả dụng</h3>
+                    <div className="create-section-title create-section-title--slots">
+                      <h3>5. Khung giờ khả dụng</h3>
+
+                      {createServices.length > 0 && (
+                        <span className="create-slot-duration">
+                          Tổng thời lượng: {createTotalDuration} phút
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="create-slot-note">
+                      Spa nhận lịch từ {SPA_OPEN_TIME} đến {SPA_CLOSE_TIME}. Hệ thống cho phép nhận tối đa{" "}
+                      {MAX_CONCURRENT_APPOINTMENTS} lịch hẹn trong cùng một khoảng thời gian. Nếu slot đang có lịch
+                      nhưng chưa hết chỗ, lễ tân vẫn có thể chọn sau khi kiểm tra nhân viên/phòng.
+                    </p>
 
                     {createServices.length === 0 ? (
                       <p className="create-empty-text">
                         Vui lòng chọn dịch vụ để hệ thống tính thời lượng.
                       </p>
-                    ) : createAvailableSlots.length === 0 ? (
+                    ) : isLoadingCreateSlots ? (
                       <p className="create-empty-text">
-                        Không có khung giờ phù hợp trong ngày này.
+                        Đang kiểm tra lịch hẹn của ngày đã chọn...
+                      </p>
+                    ) : createSlotError ? (
+                      <p className="create-empty-text create-empty-text--danger">
+                        {createSlotError}
+                      </p>
+                    ) : createAvailableSlots.length === 0 ? (
+                      <p className="create-empty-text create-empty-text--danger">
+                        Tổng thời lượng dịch vụ quá dài, không còn khung giờ phù hợp trong ngày này.
                       </p>
                     ) : (
-                      <div className="create-slot-grid">
-                        {createAvailableSlots.map((slot) => (
-                          <button
-                            type="button"
-                            key={`${slot.startTime}-${slot.endTime}`}
-                            className={[
-                              "create-time-slot",
-                              slot.available ? "available" : "disabled",
-                              createTimeSlot?.startTime === slot.startTime ? "active" : "",
-                            ].join(" ")}
-                            disabled={!slot.available}
-                            onClick={() => setCreateTimeSlot(slot)}
-                          >
-                            <strong>{slot.startTime}</strong>
-                            <span>{slot.endTime}</span>
-                          </button>
-                        ))}
-                      </div>
+                      <>
+                        <div className="create-slot-legend">
+                          <span className="legend-dot available"></span>
+                          Trống
+
+                          <span className="legend-dot manual"></span>
+                          Cần kiểm tra
+
+                          <span className="legend-dot full"></span>
+                          Hết chỗ/đã qua
+                        </div>
+
+                        <div className="create-slot-grid">
+                          {createAvailableSlots.map((slot) => (
+                            <button
+                              type="button"
+                              key={`${slot.startTime}-${slot.endTime}`}
+                              title={slot.reason}
+                              className={[
+                                "create-time-slot",
+                                slot.selectable ? "available" : "disabled",
+                                slot.reasonCode,
+                                createTimeSlot?.startTime === slot.startTime ? "active" : "",
+                              ].join(" ")}
+                              disabled={!slot.selectable}
+                              onClick={() => setCreateTimeSlot(slot)}
+                            >
+                              <strong>{slot.startTime}</strong>
+                              <span>{slot.endTime}</span>
+                              <small className="create-slot-status">{slot.reason}</small>
+                            </button>
+                          ))}
+                        </div>
+
+                        {manualCheckSlotCount > 0 && (
+                          <p className="create-slot-warning create-slot-warning--manual">
+                            Có {manualCheckSlotCount} khung giờ đang có lịch nhưng chưa vượt quá sức chứa.
+                            Nếu chọn các khung này, lễ tân cần kiểm tra nhân viên/phòng và ghi chú cho khách chờ nếu cần.
+                          </p>
+                        )}
+
+                        {!hasSelectableCreateSlots && (
+                          <p className="create-slot-warning">
+                            Tất cả khung giờ trong ngày này đã qua hoặc đã đủ số lịch tối đa.
+                            Vui lòng chọn ngày khác hoặc đổi dịch vụ/thời lượng.
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
 
