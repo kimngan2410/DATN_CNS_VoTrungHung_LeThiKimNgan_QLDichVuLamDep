@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.khach_hang import KhachHang
+from app.models.nhan_vien import NhanVien
 from app.models.otp_xac_thuc import OTPXacThuc
 from app.models.tai_khoan import TaiKhoan
 from app.schemas.auth_schema import (
@@ -130,6 +131,143 @@ def build_login_response(
         "user": user,
     }
 
+def is_receptionist_position(chuc_vu: str | None) -> bool:
+    if not chuc_vu:
+        return False
+
+    value = chuc_vu.strip().lower()
+
+    return value in [
+        "lễ tân",
+        "le tan",
+        "nhân viên lễ tân",
+        "nhan vien le tan",
+        "staff lễ tân",
+        "staff le tan",
+        "LE_TAN",
+        "le_tan",
+    ]
+
+
+def is_working_staff_status(status_value: str | None) -> bool:
+    if not status_value:
+        return False
+
+    value = status_value.strip().lower()
+
+    return value in [
+        "đang làm",
+        "dang lam",
+        "đang làm việc",
+        "dang lam viec",
+        "active",
+        "hoat_dong",
+        "hoạt động",
+    ]
+
+
+def get_safe_staff_avatar(
+    nhan_vien: NhanVien | None,
+    tai_khoan: TaiKhoan,
+) -> str:
+    ho_ten = nhan_vien.hoTen if nhan_vien else None
+    avatar = nhan_vien.anhDaiDien if nhan_vien else None
+
+    if is_valid_avatar_url(avatar):
+        return avatar.strip()
+
+    return make_default_avatar(ho_ten, tai_khoan.email)
+
+
+def build_staff_user_payload(
+    tai_khoan: TaiKhoan,
+    nhan_vien: NhanVien,
+):
+    return {
+        "maTK": tai_khoan.idTaiKhoan,
+        "email": tai_khoan.email,
+        "vaiTro": "NhanVien",
+
+        "maKH": None,
+
+        # id nhân viên trong DB
+        "maNV": int(nhan_vien.idNhanVien),
+
+        # mã nhân viên dạng NV001
+        "maNVCode": nhan_vien.maNV,
+
+        "hoTen": nhan_vien.hoTen,
+        "avatar": get_safe_staff_avatar(nhan_vien, tai_khoan),
+        "chucVu": nhan_vien.chucVu,
+        "sdt": nhan_vien.sdt,
+    }
+
+
+def authenticate_receptionist_user(db: Session, email: str, password: str):
+    email = email.strip().lower()
+
+    tai_khoan = db.query(TaiKhoan).filter(TaiKhoan.email == email).first()
+
+    if not tai_khoan:
+        return None
+
+    if tai_khoan.trangThai == "KHOA":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản đã bị khóa",
+        )
+
+    if tai_khoan.loaiTK != "NHAN_VIEN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản này không phải tài khoản nhân viên",
+        )
+
+    if not tai_khoan.matKhau:
+        return None
+
+    nhan_vien = (
+        db.query(NhanVien)
+        .filter(NhanVien.idTaiKhoan == tai_khoan.idTaiKhoan)
+        .first()
+    )
+
+    if not nhan_vien:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy thông tin nhân viên",
+        )
+
+    if not is_working_staff_status(nhan_vien.trangThaiLamViec):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nhân viên không còn ở trạng thái đang làm",
+        )
+
+    if not is_receptionist_position(nhan_vien.chucVu):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản này không thuộc actor nhân viên lễ tân",
+        )
+
+    is_valid_password = verify_password(password, tai_khoan.matKhau)
+
+    # Hỗ trợ tạm nếu DB cũ từng lưu mật khẩu dạng text thường.
+    if not is_valid_password and password == tai_khoan.matKhau:
+        tai_khoan.matKhau = hash_password(password)
+        db.commit()
+        db.refresh(tai_khoan)
+        is_valid_password = True
+
+    if not is_valid_password:
+        return None
+
+    tai_khoan.lanDangNhapCuoi = datetime.now()
+
+    db.commit()
+    db.refresh(tai_khoan)
+
+    return build_staff_user_payload(tai_khoan, nhan_vien)
 
 def authenticate_user(db: Session, email: str, password: str):
     email = email.strip().lower()

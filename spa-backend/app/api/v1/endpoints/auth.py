@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.security import create_access_token
 from app.crud.auth_crud import (
     authenticate_user,
+    authenticate_receptionist_user,
     change_password,
     create_or_login_social_user,
     resend_register_otp,
@@ -69,6 +70,36 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             "sub": str(user["maTK"]),
             "email": user["email"],
             "vaiTro": user["vaiTro"],
+        }
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user,
+    }
+
+@router.post("/le-tan/dang-nhap", response_model=LoginResponse)
+def receptionist_login(payload: LoginRequest, db: Session = Depends(get_db)):
+    user = authenticate_receptionist_user(
+        db=db,
+        email=payload.email,
+        password=payload.password,
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email hoặc mật khẩu không đúng",
+        )
+
+    access_token = create_access_token(
+        data={
+            "sub": str(user["maTK"]),
+            "email": user["email"],
+            "vaiTro": user["vaiTro"],
+            "chucVu": user.get("chucVu"),
+            "maNV": str(user.get("maNV") or ""),
         }
     )
 

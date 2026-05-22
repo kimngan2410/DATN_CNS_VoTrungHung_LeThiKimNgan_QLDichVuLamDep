@@ -26,6 +26,7 @@ from app.schemas.lich_hen_schema import (
     StaffLichHenCreateRequest,
     StaffLichHenStatusRequest,
 )
+from app.api.deps.auth_deps import require_receptionist
 
 router = APIRouter()
 
@@ -112,6 +113,7 @@ def get_staff_appointments_api(
     ngay: str | None = Query(default=None),
     keyword: str | None = Query(default=None),
     trang_thai: str | None = Query(default=None),
+    current_staff: dict = Depends(require_receptionist),
     db: Session = Depends(get_db),
 ):
     return get_staff_appointments(
@@ -127,6 +129,7 @@ def get_staff_appointments_api(
 )
 def create_staff_appointment_api(
     payload: StaffLichHenCreateRequest,
+    current_staff: dict = Depends(require_receptionist),
     db: Session = Depends(get_db),
 ):
     return create_staff_appointment(db, payload)
@@ -139,6 +142,7 @@ def create_staff_appointment_api(
 def update_staff_appointment_status_api(
     appointment_id: int,
     payload: StaffLichHenStatusRequest,
+    current_staff: dict = Depends(require_receptionist),
     db: Session = Depends(get_db),
 ):
     return update_staff_appointment_status(

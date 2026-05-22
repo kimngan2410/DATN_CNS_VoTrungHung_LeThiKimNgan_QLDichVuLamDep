@@ -14,6 +14,7 @@ import OAuthCallbackPage from "./pages/auth/OAuthCallbackPage/OAuthCallbackPage"
 
 /* STAFF */
 import StaffLayout from "./components/StaffLayout/StaffLayout"
+import StaffLogin from "./pages/staff/StaffLogin/StaffLogin"
 import StaffOverview from "./pages/staff/StaffOverview/StaffOverview"
 import StaffAppointments from "./pages/staff/StaffAppointments/StaffAppointments"
 import StaffTransactions from "./pages/staff/StaffTransactions/StaffTransactions"
@@ -54,15 +55,16 @@ function App() {
       <Route path="/doi-mat-khau" element={<ChangePasswordPage />} />
 
       {/* STAFF ROUTES */}
-      <Route path="/staff" element={<StaffLayout />}>
-        <Route index element={<Navigate to="/staff/tong-quan" replace />} />
-        <Route path="tong-quan" element={<StaffOverview />} />
-        <Route path="lich-hen" element={<StaffAppointments />} />
-        <Route path="giao-dich" element={<StaffTransactions />} />
-        <Route path="hoi-thoai" element={<StaffConversations />} />
-        <Route path="khach-hang" element={<StaffCustomersList />} />
-        <Route path="cai-dat" element={<StaffSettings />} />
-      </Route>
+        <Route path="/staff/dang-nhap" element={<StaffLogin />} />
+        <Route path="/staff" element={<StaffLayout />}>
+          <Route index element={<Navigate to="/staff/tong-quan" replace />} />
+          <Route path="tong-quan" element={<StaffOverview />} />
+          <Route path="lich-hen" element={<StaffAppointments />} />
+          <Route path="giao-dich" element={<StaffTransactions />} />
+          <Route path="hoi-thoai" element={<StaffConversations />} />
+          <Route path="khach-hang" element={<StaffCustomersList />} />
+          <Route path="cai-dat" element={<StaffSettings />} />
+        </Route>
 
       {/* ADMIN ROUTES */}
       <Route path="/admin" element={<AdminLayout />}>

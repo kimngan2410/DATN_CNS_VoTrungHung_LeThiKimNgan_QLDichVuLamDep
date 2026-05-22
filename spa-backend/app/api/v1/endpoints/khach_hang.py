@@ -14,6 +14,7 @@ from app.schemas.khach_hang_schema import (
     StaffCustomerCreateRequest,
     StaffCustomerOut,
 )
+from app.api.deps.auth_deps import require_receptionist
 
 router = APIRouter()
 
@@ -76,6 +77,7 @@ def get_customers(
     response_model=list[StaffCustomerOut],
 )
 def get_staff_customers_api(
+    current_staff: dict = Depends(require_receptionist),
     db: Session = Depends(get_db),
 ):
     return get_staff_customers(db)
@@ -87,6 +89,7 @@ def get_staff_customers_api(
 )
 def create_staff_customer_api(
     payload: StaffCustomerCreateRequest,
+    current_staff: dict = Depends(require_receptionist),
     db: Session = Depends(get_db),
 ):
     return create_staff_customer(db, payload)

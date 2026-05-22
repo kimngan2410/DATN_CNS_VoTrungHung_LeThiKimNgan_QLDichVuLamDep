@@ -10,6 +10,7 @@ from app.crud.hoa_don_crud import (
 from app.schemas.hoa_don_schema import (
     CreateStaffInvoiceRequest,
 )
+from app.api.deps.auth_deps import require_receptionist
 
 
 router = APIRouter()
@@ -17,6 +18,7 @@ router = APIRouter()
 @router.post("/staff/lap-hoa-don")
 def create_staff_invoice_api(
     payload: CreateStaffInvoiceRequest,
+    current_staff: dict = Depends(require_receptionist),
     db: Session = Depends(get_db),
 ):
     return create_staff_invoice(
@@ -30,6 +32,7 @@ def get_staff_invoice_list_api(
     payment_method: str | None = Query(default=None),
     status: str | None = Query(default=None),
     keyword: str | None = Query(default=None),
+    current_staff: dict = Depends(require_receptionist),
     db: Session = Depends(get_db),
 ):
     return get_staff_invoices(
@@ -44,6 +47,7 @@ def get_staff_invoice_list_api(
 @router.get("/staff/{invoice_id}")
 def get_staff_invoice_detail_api(
     invoice_id: str,
+    current_staff: dict = Depends(require_receptionist),
     db: Session = Depends(get_db),
 ):
     return get_staff_invoice_detail(

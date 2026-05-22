@@ -39,8 +39,10 @@ export async function getStaffTransactionsApi({
     params.set("keyword", keyword.trim())
   }
 
+  const queryString = params.toString()
+
   const response = await fetch(
-    `${API_BASE_URL}/hoa-don/staff?${params.toString()}`,
+    `${API_BASE_URL}/hoa-don/staff${queryString ? `?${queryString}` : ""}`,
     {
       method: "GET",
       headers: {

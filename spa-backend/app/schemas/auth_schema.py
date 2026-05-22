@@ -14,10 +14,16 @@ class LoginUserResponse(BaseModel):
     vaiTro: str
 
     maKH: Optional[int] = None
+
     maNV: Optional[int] = None
+
+    maNVCode: Optional[str] = None
 
     hoTen: Optional[str] = None
     avatar: Optional[str] = None
+
+    chucVu: Optional[str] = None
+    sdt: Optional[str] = None
 
 
 class LoginResponse(BaseModel):

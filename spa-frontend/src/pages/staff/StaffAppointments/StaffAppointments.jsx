@@ -21,6 +21,7 @@ import {
   PlayCircle,
   XCircle,
   UserX,
+  AlertTriangle,
 } from "lucide-react";
 
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
@@ -157,6 +158,7 @@ const generateTimeFilterOptions = () => {
 const timeFilterOptions = generateTimeFilterOptions();
 
 const MAX_CONCURRENT_APPOINTMENTS = 5;
+const CHECKIN_REMINDER_MINUTES = 30;
 
 const toMinutes = (time) => {
   if (!time || !time.includes(":")) return 0;
@@ -183,6 +185,48 @@ const getSlotDateTime = (dateValue, timeValue) => {
   if (!dateValue || !timeValue) return null;
 
   return new Date(`${dateValue}T${timeValue}:00`);
+};
+
+const getCheckInReminderStatus = (appointment, now = new Date()) => {
+  if (!appointment) return null;
+
+  if (appointment.status !== "Đã xác nhận") {
+    return null;
+  }
+
+  const appointmentStartTime = getSlotDateTime(
+    appointment.date,
+    appointment.time
+  );
+
+  if (!appointmentStartTime) return null;
+
+  const minutesUntilStart =
+    (appointmentStartTime.getTime() - now.getTime()) / 60000;
+
+  if (minutesUntilStart < 0) {
+    return {
+      type: "overdue",
+      label: "Quá giờ check-in",
+      message: "Lịch đã qua giờ hẹn nhưng khách chưa check-in.",
+    };
+  }
+
+  if (minutesUntilStart <= CHECKIN_REMINDER_MINUTES) {
+    return {
+      type: "upcoming",
+      label: "Sắp đến giờ",
+      message: `Còn khoảng ${Math.ceil(
+        minutesUntilStart
+      )} phút đến giờ hẹn, cần gọi khách xác nhận lại.`,
+    };
+  }
+
+  return null;
+};
+
+const shouldShowCheckInReminder = (appointment, now = new Date()) => {
+  return Boolean(getCheckInReminderStatus(appointment, now));
 };
 
 const isSlotInPast = ({ selectedDate, startTime, now }) => {
@@ -652,6 +696,22 @@ function StaffAppointments() {
       },
     ];
   }, [appointmentsBySelectedDate]);
+
+  const checkInReminderAppointments = useMemo(() => {
+    return appointmentsBySelectedDate.filter((appointment) =>
+      shouldShowCheckInReminder(appointment, createNow)
+    );
+  }, [appointmentsBySelectedDate, createNow]);
+
+  const overdueCheckInCount = useMemo(() => {
+    return checkInReminderAppointments.filter(
+      (appointment) =>
+        getCheckInReminderStatus(appointment, createNow)?.type === "overdue"
+    ).length;
+  }, [checkInReminderAppointments, createNow]);
+
+  const upcomingCheckInCount =
+    checkInReminderAppointments.length - overdueCheckInCount;
 
   const filteredCustomers = useMemo(() => {
     return customerOptions.filter((customer) => {
@@ -1310,6 +1370,117 @@ function StaffAppointments() {
     }
   };
 
+  const renderAppointmentRows = () => {
+    if (isLoadingAppointments) {
+      return (
+        <tr>
+          <td colSpan="7" className="staff-appointments-empty">
+            Đang tải danh sách lịch hẹn...
+          </td>
+        </tr>
+      );
+    }
+
+    if (appointmentError) {
+      return (
+        <tr>
+          <td colSpan="7" className="staff-appointments-empty">
+            {appointmentError}
+          </td>
+        </tr>
+      );
+    }
+
+    if (filteredAppointments.length === 0) {
+      return (
+        <tr>
+          <td colSpan="7" className="staff-appointments-empty">
+            Hiện chưa có lịch hẹn nào
+          </td>
+        </tr>
+      );
+    }
+
+    return filteredAppointments.map((appointment) => {
+      const reminderInfo = getCheckInReminderStatus(appointment, createNow);
+
+      return (
+        <tr
+          key={appointment.id}
+          className={[
+            "staff-appointments-row",
+            reminderInfo ? "checkin-reminder" : "",
+            reminderInfo?.type === "overdue" ? "checkin-overdue" : "",
+          ].join(" ")}
+          onClick={() => handleOpenDetail(appointment)}
+        >
+          <td className="staff-appointments-id">{appointment.id}</td>
+
+          <td>
+            <strong>{appointment.customer}</strong>
+            <p>{appointment.phone}</p>
+          </td>
+
+          <td>
+            <div
+              className="staff-appointments-service"
+              title={(appointment.services || [])
+                .map((service) => service.name)
+                .join(", ")}
+            >
+              {getServiceNamesText(appointment.services)}
+            </div>
+          </td>
+
+          <td>{appointment.date}</td>
+          <td>{appointment.time}</td>
+
+          <td>
+            <div className="staff-appointments-status-wrap">
+              <span
+                className={`staff-appointments-status ${getStatusClass(
+                  appointment.status
+                )}`}
+              >
+                {appointment.status}
+              </span>
+
+              {reminderInfo && (
+                <button
+                  type="button"
+                  className={`staff-appointments-reminder-icon ${reminderInfo.type}`}
+                  aria-label={reminderInfo.label}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <AlertTriangle size={15} />
+
+                  <span className="staff-appointments-reminder-tooltip">
+                    <strong>{reminderInfo.label}</strong>
+                    <span>{reminderInfo.message}</span>
+                  </span>
+                </button>
+              )}
+            </div>
+          </td>
+
+          <td>
+            <button
+              type="button"
+              className="staff-appointments-view-btn"
+              onClick={(event) => {
+                event.stopPropagation();
+                handleOpenDetail(appointment);
+              }}
+              title="Xem chi tiết"
+            >
+              <Eye size={16} />
+            </button>
+          </td>
+        </tr>
+      );
+    });
+  };
+
   return (
     <div className="staff-appointments-page">
       <StaffPageHeader title="Quản lý lịch hẹn" />
@@ -1455,6 +1626,35 @@ function StaffAppointments() {
             </button>
           </div>
 
+          {checkInReminderAppointments.length > 0 && (
+            <div className="staff-appointments-checkin-alert">
+              <AlertTriangle size={20} />
+
+              <div>
+                <strong>
+                  Có {checkInReminderAppointments.length} lịch đã xác nhận cần kiểm tra
+                  check-in
+                </strong>
+
+                <p>
+                  {overdueCheckInCount > 0 &&
+                    `${overdueCheckInCount} lịch đã quá giờ hẹn. `}
+                  {upcomingCheckInCount > 0 &&
+                    `${upcomingCheckInCount} lịch sắp đến giờ hẹn. `}
+                  Lễ tân nên gọi khách xác nhận lại hoặc cập nhật trạng thái check-in khi
+                  khách đến.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setStatusFilter("Đã xác nhận")}
+              >
+                Xem lịch đã xác nhận
+              </button>
+            </div>
+          )}
+
           <div className="staff-appointments-table-wrapper">
             <table>
               <thead>
@@ -1469,81 +1669,7 @@ function StaffAppointments() {
                 </tr>
               </thead>
 
-              <tbody>
-                {isLoadingAppointments ? (
-                  <tr>
-                    <td colSpan="7" className="staff-appointments-empty">
-                      Đang tải danh sách lịch hẹn...
-                    </td>
-                  </tr>
-                ) : appointmentError ? (
-                  <tr>
-                    <td colSpan="7" className="staff-appointments-empty">
-                      {appointmentError}
-                    </td>
-                  </tr>
-                ) : filteredAppointments.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="staff-appointments-empty">
-                      Hiện chưa có lịch hẹn nào
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAppointments.map((appointment) => (
-                    <tr
-                      key={appointment.id}
-                      className="staff-appointments-row"
-                      onClick={() => handleOpenDetail(appointment)}
-                      title="Nhấn để xem chi tiết lịch hẹn"
-                    >
-                      <td className="staff-appointments-id">{appointment.id}</td>
-
-                      <td>
-                        <strong>{appointment.customer}</strong>
-                        <p>{appointment.phone}</p>
-                      </td>
-
-                      <td>
-                        <div
-                          className="staff-appointments-service"
-                          title={(appointment.services || [])
-                            .map((service) => service.name)
-                            .join(", ")}
-                        >
-                          {getServiceNamesText(appointment.services)}
-                        </div>
-                      </td>
-
-                      <td>{appointment.date}</td>
-                      <td>{appointment.time}</td>
-
-                      <td>
-                        <span
-                          className={`staff-appointments-status ${getStatusClass(
-                            appointment.status
-                          )}`}
-                        >
-                          {appointment.status}
-                        </span>
-                      </td>
-
-                      <td>
-                        <button
-                          type="button"
-                          className="staff-appointments-view-btn"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenDetail(appointment);
-                          }}
-                          title="Xem chi tiết"
-                        >
-                          <Eye size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
+              <tbody>{renderAppointmentRows()}</tbody>
             </table>
           </div>
         </div>

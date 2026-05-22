@@ -259,7 +259,7 @@
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: var(--staff-text);
+  color: #4d4a4b;
 }
 
 .staff-appointments-table-wrapper td p {
@@ -2026,4 +2026,245 @@
   .invoice-extra-service-list {
     max-height: 220px;
   }
+}
+
+/* =========================
+   CHECK-IN REMINDER WARNING
+========================= */
+
+.staff-appointments-checkin-alert {
+  margin: 28px 18px 28px 18px;
+  padding: 14px 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.staff-appointments-checkin-alert svg {
+  flex-shrink: 0;
+  color: #2563eb;
+}
+
+.staff-appointments-checkin-alert div {
+  flex: 1;
+}
+
+.staff-appointments-checkin-alert strong {
+  display: block;
+  color: #1e3a8a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.staff-appointments-checkin-alert p {
+  margin: 4px 0 0;
+  color: #1d4ed8;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.staff-appointments-checkin-alert button {
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.staff-appointments-checkin-alert button:hover {
+  background: #1d4ed8;
+}
+
+.staff-appointments-row.checkin-reminder td {
+  background: #f8fbff;
+}
+
+.staff-appointments-row.checkin-reminder:hover td {
+  background: #eff6ff;
+}
+
+.staff-appointments-row.checkin-overdue td {
+  background: #fff7ed;
+}
+
+.staff-appointments-row.checkin-overdue:hover td {
+  background: #ffedd5;
+}
+
+.staff-appointments-status-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+@media (max-width: 800px) {
+  .staff-appointments-checkin-alert {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .staff-appointments-checkin-alert button {
+    width: 100%;
+  }
+}
+
+/* =========================
+   STATUS REMINDER ICON TOOLTIP
+========================= */
+
+.staff-appointments-status-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  position: relative;
+}
+
+.staff-appointments-reminder-icon {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  cursor: help;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+  z-index: 10;
+}
+
+.staff-appointments-reminder-icon.upcoming {
+  background: #fff7e8;
+  color: #d97706;
+  border-color: #f6d39a;
+}
+
+.staff-appointments-reminder-icon.overdue {
+  background: #fff1f2;
+  color: #dc2626;
+  border-color: #fecdd3;
+}
+
+.staff-appointments-reminder-icon:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+/* =========================
+   STATUS REMINDER ICON TOOLTIP
+========================= */
+
+.staff-appointments-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 120px;
+}
+
+.staff-appointments-status-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  position: relative;
+}
+
+.staff-appointments-reminder-icon {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  cursor: help;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+  z-index: 50;
+}
+
+.staff-appointments-reminder-icon.upcoming {
+  background: #fff7e8;
+  color: #d97706;
+  border-color: #f6d39a;
+}
+
+.staff-appointments-reminder-icon.overdue {
+  background: #fff1f2;
+  color: #dc2626;
+  border-color: #fecdd3;
+}
+
+.staff-appointments-reminder-icon:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.staff-appointments-reminder-tooltip {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 300px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #1f2937;
+  color: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.18s ease;
+  z-index: 9999;
+  text-align: left;
+  white-space: normal;
+  transform: translateY(-6px);
+}
+
+.staff-appointments-reminder-tooltip::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  bottom: 100%;
+  border-width: 7px;
+  border-style: solid;
+  border-color: transparent transparent #1f2937 transparent;
+}
+
+.staff-appointments-reminder-icon:hover .staff-appointments-reminder-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.staff-appointments-reminder-tooltip strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.staff-appointments-reminder-tooltip span {
+  display: block;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
 }

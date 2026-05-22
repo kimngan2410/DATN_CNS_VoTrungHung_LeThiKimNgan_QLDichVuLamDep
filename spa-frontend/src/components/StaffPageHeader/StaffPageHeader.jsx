@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Search, Bell, UserRound } from "lucide-react";
+import { getCurrentUser } from "../../services/authApi";
 import "./StaffPageHeader.css";
 
 function StaffPageHeader({
@@ -7,9 +8,25 @@ function StaffPageHeader({
   searchPlaceholder = "Tìm kiếm nhanh...",
   searchValue = "",
   onSearchChange,
-  staffName = "Lễ tân 01",
-  shiftLabel = "Ca sáng",
+  staffName,
 }) {
+  const currentUser = getCurrentUser();
+
+  const displayName = useMemo(() => {
+    if (staffName) return staffName;
+
+    if (currentUser?.hoTen) return currentUser.hoTen;
+
+    if (currentUser?.email) {
+      return currentUser.email.split("@")[0];
+    }
+
+    return "Nhân viên lễ tân";
+  }, [currentUser, staffName]);
+
+  const staffRole = currentUser?.chucVu || "Lễ tân";
+  const avatarUrl = currentUser?.avatar || "";
+
   return (
     <header className="staff-page-header">
       <h1>{title}</h1>
@@ -34,12 +51,16 @@ function StaffPageHeader({
 
         <div className="staff-page-header-user-info">
           <div className="staff-page-header-avatar">
-            <UserRound size={18} />
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} />
+            ) : (
+              <UserRound size={18} />
+            )}
           </div>
 
           <div>
-            <strong>{staffName}</strong>
-            <p>{shiftLabel}</p>
+            <strong>{displayName}</strong>
+            <p>{staffRole}</p>
           </div>
         </div>
       </div>

@@ -29,6 +29,18 @@ export async function loginApi(payload) {
   return handleResponse(response, "Đăng nhập thất bại")
 }
 
+export async function loginReceptionistApi(payload) {
+  const response = await fetch(`${API_BASE_URL}/auth/le-tan/dang-nhap`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return handleResponse(response, "Đăng nhập nhân viên lễ tân thất bại")
+}
+
 export function loginWithGoogle() {
   window.location.href = `${API_BASE_URL}/auth/google`
 }

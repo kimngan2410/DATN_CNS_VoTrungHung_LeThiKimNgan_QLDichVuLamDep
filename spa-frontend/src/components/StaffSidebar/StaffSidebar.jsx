@@ -10,6 +10,7 @@ import {
   LogOut,
   X,
 } from "lucide-react";
+import { logout } from "../../services/authApi";
 import "./StaffSidebar.css";
 import spaLogo from "../../assets/images/logo_footer.png";
 
@@ -54,19 +55,14 @@ function StaffSidebar() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    localStorage.removeItem("role");
+    logout();
 
-    sessionStorage.removeItem("accessToken");
-    sessionStorage.removeItem("refreshToken");
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("role");
+    localStorage.removeItem("staffRememberMe");
+    localStorage.removeItem("staffRememberedEmail");
 
     setIsLogoutModalOpen(false);
 
-    navigate("/dang-nhap", {
+    navigate("/staff/dang-nhap", {
       replace: true,
     });
   };
