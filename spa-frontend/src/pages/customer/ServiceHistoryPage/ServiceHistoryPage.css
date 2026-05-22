@@ -672,7 +672,7 @@
 .review-modal-header h3 {
   margin: 0;
   color: #07142b;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
 }
 
@@ -704,12 +704,13 @@
 .service-review-picker-desc {
   margin: 0 0 18px;
   color: #667085;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
 .service-review-picker-desc strong {
   color: #07142b;
+  font-weight: 600;
 }
 
 .service-review-picker-list {
@@ -771,7 +772,7 @@
 .service-review-picker-name-row h4 {
   margin: 0;
   color: #07142b;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -800,7 +801,7 @@
 
 .service-review-picker-btn {
   min-width: 105px;
-  height: 40px;
+  height: 35px;
   border: none;
   border-radius: 12px;
   background: #d4a62a;
@@ -850,12 +851,12 @@
 .view-review-service p {
   margin: 0 0 6px;
   color: #667085;
-  font-size: 15px;
+  font-size: 16x;
 }
 
 .view-review-service strong {
   color: #07142b;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -881,7 +882,7 @@
   margin: 0;
   padding: 14px 16px;
   border-radius: 14px;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
@@ -898,13 +899,13 @@
 .view-review-image-grid {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
 }
 
 .view-review-image-grid img {
   width: 100%;
-  height: 86px;
+  height: 72px;
   object-fit: cover;
   border-radius: 12px;
   border: 1px solid #edf0f4;
@@ -923,7 +924,7 @@
 ========================= */
 
 .review-modal {
-  width: 500px;
+  width: 480px;
   max-width: calc(100vw - 48px);
   background: #ffffff;
   border-radius: 18px;
@@ -944,7 +945,7 @@
 .review-modal-intro p {
   margin: 0;
   color: #667085;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -952,7 +953,7 @@
   display: block;
   margin-top: 4px;
   color: #111827;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.4;
 }
@@ -1005,7 +1006,7 @@
   outline: none;
   resize: none;
   color: #344054;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   font-family: inherit;
 }
@@ -1054,13 +1055,13 @@
 .review-image-preview-grid {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 8px;
 }
 
 .review-image-preview {
   position: relative;
-  height: 72px;
+  height: 68px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #edf0f4;
@@ -1101,7 +1102,7 @@
   min-width: 0;
   height: 46px;
   border-radius: 13px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -1385,6 +1386,16 @@
 
   .review-modal-btn {
     width: 100%;
+  }
+
+  .review-image-preview-grid,
+  .view-review-image-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .review-image-preview,
+  .view-review-image-grid img {
+    height: 70px;
   }
 }
 

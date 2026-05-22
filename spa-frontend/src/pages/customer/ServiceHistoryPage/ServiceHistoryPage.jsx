@@ -22,8 +22,16 @@ import {
   getMyAppointmentsApi,
   getMyServiceHistoryApi,
 } from "../../../services/appointmentApi"
+import { createReviewApi, updateReviewApi } from "../../../services/reviewApi"
+import {
+  getActiveAppointmentCount,
+  getCachedAppointmentCount,
+  saveCachedAppointmentCount,
+} from "../../../utils/appointmentCountHelper"
 
 import "./ServiceHistoryPage.css"
+
+const MAX_REVIEW_IMAGES = 5
 
 function ServiceHistoryPage() {
   const navigate = useNavigate()
@@ -39,10 +47,12 @@ function ServiceHistoryPage() {
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewContent, setReviewContent] = useState("")
   const [reviewImages, setReviewImages] = useState([])
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false)
 
   const [historyAppointments, setHistoryAppointments] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState("")
+
 
   const [profileData, setProfileData] = useState(() => {
     const user = getCurrentUser()
@@ -54,7 +64,10 @@ function ServiceHistoryPage() {
     }
   })
 
-  const [appointmentCount, setAppointmentCount] = useState(0)
+  const [appointmentCount, setAppointmentCount] = useState(() => {
+    const user = getCurrentUser()
+    return getCachedAppointmentCount(user?.maTK)
+  })
 
   const historyTabs = [
     { value: "all", label: "Tất cả" },
@@ -106,9 +119,10 @@ function ServiceHistoryPage() {
         })
       }
 
-      const activeAppointmentCount = appointmentData.filter((item) =>
-        ["pending", "confirmed"].includes(item.status)
-      ).length
+      const activeAppointmentCount = getActiveAppointmentCount(appointmentData)
+
+      setAppointmentCount(activeAppointmentCount)
+      saveCachedAppointmentCount(user.maTK, activeAppointmentCount)
 
       setAppointmentCount(activeAppointmentCount)
     } catch (error) {
@@ -321,6 +335,7 @@ function ServiceHistoryPage() {
       idDichVu: service.idDichVu,
       serviceName: service.name,
       reviewed: Boolean(service.reviewed),
+      idDanhGia: service.review?.idDanhGia || null,
     })
 
     setReviewRating(service.review?.rating || 0)
@@ -340,7 +355,14 @@ function ServiceHistoryPage() {
 
     if (files.length === 0) return
 
-    const remainingSlots = 3 - reviewImages.length
+    const remainingSlots = MAX_REVIEW_IMAGES - reviewImages.length
+
+    if (remainingSlots <= 0) {
+      alert(`Bạn chỉ được tải tối đa ${MAX_REVIEW_IMAGES} ảnh đánh giá.`)
+      event.target.value = ""
+      return
+    }
+
     const selectedFiles = files.slice(0, remainingSlots)
 
     const newImages = selectedFiles.map((file) => ({
@@ -350,7 +372,10 @@ function ServiceHistoryPage() {
       name: file.name,
     }))
 
-    setReviewImages((prev) => [...prev, ...newImages].slice(0, 3))
+    setReviewImages((prev) =>
+      [...prev, ...newImages].slice(0, MAX_REVIEW_IMAGES)
+    )
+
     event.target.value = ""
   }
 
@@ -379,33 +404,77 @@ function ServiceHistoryPage() {
     }
   }
 
-  const handleSaveReview = () => {
+  const handleSaveReview = async () => {
     if (!reviewTarget) return
+
+    const user = getCurrentUser()
+
+    if (!user?.maTK) {
+      navigate("/dang-nhap", { replace: true })
+      return
+    }
 
     if (reviewRating === 0) {
       alert("Vui lòng chọn số sao đánh giá.")
       return
     }
 
-    const newReview = {
-      rating: reviewRating,
-      content: reviewContent.trim(),
-      images: reviewImages,
-      idChiTietLH: reviewTarget.idChiTietLH,
-      idDichVu: reviewTarget.idDichVu,
-    }
+    try {
+      setIsSubmittingReview(true)
 
-    setHistoryAppointments((prev) =>
-      prev.map((appointment) =>
-        updateServiceReviewInAppointment(appointment, newReview)
+      const savedReview =
+        reviewTarget.reviewed && reviewTarget.idDanhGia
+          ? await updateReviewApi({
+              idDanhGia: reviewTarget.idDanhGia,
+              idTaiKhoan: user.maTK,
+              soSao: reviewRating,
+              noiDung: reviewContent.trim(),
+              images: reviewImages,
+            })
+          : await createReviewApi({
+              idTaiKhoan: user.maTK,
+              idChiTietLH: reviewTarget.idChiTietLH,
+              soSao: reviewRating,
+              noiDung: reviewContent.trim(),
+              images: reviewImages,
+            })
+
+      const newReview = {
+        idDanhGia: savedReview.idDanhGia,
+        rating: savedReview.rating,
+        content: savedReview.content,
+        images: savedReview.images || [],
+        idChiTietLH: savedReview.idChiTietLH,
+        idDichVu: reviewTarget.idDichVu,
+      }
+
+      setHistoryAppointments((prev) =>
+        prev.map((appointment) =>
+          updateServiceReviewInAppointment(appointment, newReview)
+        )
       )
-    )
 
-    setDetailHistory((prev) =>
-      updateServiceReviewInAppointment(prev, newReview)
-    )
+      setDetailHistory((prev) =>
+        updateServiceReviewInAppointment(prev, newReview)
+      )
 
-    closeReviewModal()
+      setServiceReviewPicker((prev) =>
+        updateServiceReviewInAppointment(prev, newReview)
+      )
+
+      setViewReviewTarget(null)
+      closeReviewModal()
+
+      alert(
+        reviewTarget.reviewed
+          ? "Cập nhật đánh giá thành công."
+          : "Gửi đánh giá dịch vụ thành công."
+      )
+    } catch (error) {
+      alert(error.message || "Không thể lưu đánh giá dịch vụ.")
+    } finally {
+      setIsSubmittingReview(false)
+    }
   }
 
   const renderStars = (rating, size = 18) => {
@@ -419,9 +488,28 @@ function ServiceHistoryPage() {
     ))
   }
 
+  const API_ROOT_URL = (
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1"
+  ).replace("/api/v1", "")
+
   const getReviewImageSrc = (image) => {
-    if (typeof image === "string") return image
-    return image.url
+    const rawUrl = typeof image === "string" ? image : image?.url
+
+    if (!rawUrl) return ""
+
+    if (
+      rawUrl.startsWith("http://") ||
+      rawUrl.startsWith("https://") ||
+      rawUrl.startsWith("blob:")
+    ) {
+      return rawUrl
+    }
+
+    if (rawUrl.startsWith("/")) {
+      return `${API_ROOT_URL}${rawUrl}`
+    }
+
+    return `${API_ROOT_URL}/${rawUrl}`
   }
 
   const canRebookAppointment = (appointment) => {
@@ -1044,6 +1132,17 @@ function ServiceHistoryPage() {
               >
                 Đóng
               </button>
+
+              <button
+                type="button"
+                className="review-modal-btn primary"
+                onClick={() => {
+                  openReviewModal(viewReviewTarget.appointment, viewReviewTarget.service)
+                  closeViewReviewModal()
+                }}
+              >
+                Chỉnh sửa
+              </button>
             </div>
           </div>
         </div>
@@ -1115,7 +1214,7 @@ function ServiceHistoryPage() {
 
               <div className="review-field-block">
                 <label className="review-field-label">
-                  Hình ảnh minh họa (Tối đa 3 ảnh)
+                  Hình ảnh minh họa (Tối đa {MAX_REVIEW_IMAGES} ảnh)
                 </label>
 
                 <input
@@ -1131,10 +1230,14 @@ function ServiceHistoryPage() {
                   type="button"
                   className="review-upload-dropzone"
                   onClick={() => reviewFileInputRef.current?.click()}
-                  disabled={reviewImages.length >= 3}
+                  disabled={reviewImages.length >= MAX_REVIEW_IMAGES}
                 >
                   <Upload size={26} />
-                  <span>Nhấn để tải ảnh lên</span>
+                  <span>
+                    {reviewImages.length >= MAX_REVIEW_IMAGES
+                      ? `Đã đủ ${MAX_REVIEW_IMAGES} ảnh`
+                      : `Nhấn để tải ảnh lên (${reviewImages.length}/${MAX_REVIEW_IMAGES})`}
+                  </span>
                 </button>
 
                 {reviewImages.length > 0 && (
@@ -1169,8 +1272,15 @@ function ServiceHistoryPage() {
                 type="button"
                 className="review-modal-btn primary"
                 onClick={handleSaveReview}
+                disabled={isSubmittingReview}
               >
-                Gửi đánh giá
+                {isSubmittingReview
+                  ? reviewTarget.reviewed
+                    ? "Đang cập nhật..."
+                    : "Đang gửi..."
+                  : reviewTarget.reviewed
+                    ? "Cập nhật đánh giá"
+                    : "Gửi đánh giá"}
               </button>
             </div>
           </div>

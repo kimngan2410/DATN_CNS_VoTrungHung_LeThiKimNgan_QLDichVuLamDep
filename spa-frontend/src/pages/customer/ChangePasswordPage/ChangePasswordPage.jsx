@@ -28,6 +28,11 @@ import {
   getStrongPasswordError,
   PASSWORD_HINT,
 } from "../../../utils/passwordValidation"
+import {
+  getActiveAppointmentCount,
+  getCachedAppointmentCount,
+  saveCachedAppointmentCount,
+} from "../../../utils/appointmentCountHelper"
 
 import "./ChangePasswordPage.css"
 
@@ -47,7 +52,10 @@ function ChangePasswordPage() {
     }
   })
 
-  const [appointmentCount, setAppointmentCount] = useState(0)
+  const [appointmentCount, setAppointmentCount] = useState(() => {
+    const user = getCurrentUser()
+    return getCachedAppointmentCount(user?.maTK)
+  })
   const [isProfileLoading, setIsProfileLoading] = useState(true)
   const [isAvatarUploading, setIsAvatarUploading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -120,9 +128,10 @@ function ChangePasswordPage() {
 
       setProfileData(nextProfile)
 
-      const activeAppointmentCount = appointmentData.filter((item) =>
-        ["pending", "confirmed"].includes(item.status)
-      ).length
+      const activeAppointmentCount = getActiveAppointmentCount(appointmentData)
+
+      setAppointmentCount(activeAppointmentCount)
+      saveCachedAppointmentCount(user.maTK, activeAppointmentCount)
 
       setAppointmentCount(activeAppointmentCount)
       updateStoredUser(nextProfile)

@@ -31,7 +31,6 @@ const paymentMethodOptions = [
   "Thẻ ngân hàng",
 ];
 
-const statusOptions = ["Tất cả", "Đã thanh toán"];
 
 const monthNames = [
   "Tháng Một",
@@ -122,7 +121,6 @@ function StaffTransactions() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("Tất cả");
-  const [statusFilter, setStatusFilter] = useState("Tất cả");
   const [selectedDate, setSelectedDate] = useState(TODAY);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
@@ -173,14 +171,11 @@ function StaffTransactions() {
         paymentMethodFilter === "Tất cả" ||
         transaction.paymentMethod === paymentMethodFilter;
 
-      const matchesStatus =
-        statusFilter === "Tất cả" || transaction.status === statusFilter;
-
       const matchesDate = transactionDate === selectedDateValue;
 
-      return matchesKeyword && matchesPaymentMethod && matchesStatus && matchesDate;
+      return matchesKeyword && matchesPaymentMethod && matchesDate;
     });
-  }, [transactions, searchTerm, paymentMethodFilter, statusFilter, selectedDateValue]);
+  }, [transactions, searchTerm, paymentMethodFilter, selectedDateValue]);
 
   const summary = useMemo(() => {
     return filteredTransactions.reduce(
@@ -616,19 +611,6 @@ function StaffTransactions() {
               </select>
             </div>
 
-            <div className="staff-transactions-method-select">
-              <Receipt size={18} />
-              <select
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
-              >
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             <button
               type="button"

@@ -22,6 +22,11 @@ import {
   getMyAppointmentsApi,
   rescheduleMyAppointmentApi,
 } from "../../../services/appointmentApi"
+import {
+  getActiveAppointmentCount,
+  getCachedAppointmentCount,
+  saveCachedAppointmentCount,
+} from "../../../utils/appointmentCountHelper"
 
 import "./MyAppointmentsPage.css"
 
@@ -99,6 +104,10 @@ function MyAppointmentsPage() {
   const actionNoticeTimerRef = useRef(null)
 
   const [appointments, setAppointments] = useState([])
+  const [appointmentCount, setAppointmentCount] = useState(() => {
+    const user = getCurrentUser()
+    return getCachedAppointmentCount(user?.maTK)
+  })
   const [profileData, setProfileData] = useState(() => {
     const user = getCurrentUser()
 
@@ -154,6 +163,10 @@ function MyAppointmentsPage() {
 
       setAppointments(appointmentData)
 
+      const activeAppointmentCount = getActiveAppointmentCount(appointmentData)
+      setAppointmentCount(activeAppointmentCount)
+      saveCachedAppointmentCount(user.maTK, activeAppointmentCount)
+
       if (profile) {
         setProfileData({
           avatar: profile.avatar,
@@ -186,16 +199,6 @@ function MyAppointmentsPage() {
       }
     }
   }, [])
-
-  const activeAppointments = useMemo(() => {
-    return appointments.filter((item) =>
-      ["pending", "confirmed"].includes(item.status)
-    )
-  }, [appointments])
-
-  const appointmentCount = useMemo(() => {
-    return activeAppointments.length
-  }, [activeAppointments])
 
   const filteredAppointments = useMemo(() => {
     const visibleStatuses = ["pending", "confirmed"]

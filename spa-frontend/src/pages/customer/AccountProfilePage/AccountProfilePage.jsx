@@ -12,6 +12,11 @@ import {
   updateAccountProfileApi,
 } from "../../../services/accountApi"
 import { getMyAppointmentsApi } from "../../../services/appointmentApi"
+import {
+  getActiveAppointmentCount,
+  getCachedAppointmentCount,
+  saveCachedAppointmentCount,
+} from "../../../utils/appointmentCountHelper"
 
 import "./AccountProfilePage.css"
 
@@ -67,7 +72,10 @@ function AccountProfilePage() {
   const [profile, setProfile] = useState(() => getInitialProfileFromStorage())
   const [formData, setFormData] = useState(() => getInitialProfileFromStorage())
 
-  const [appointmentCount, setAppointmentCount] = useState(0)
+  const [appointmentCount, setAppointmentCount] = useState(() => {
+    const currentUser = getCurrentUser()
+    return getCachedAppointmentCount(currentUser?.maTK)
+  })
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -124,9 +132,10 @@ function AccountProfilePage() {
         setProfile(profileResult)
         setFormData(profileResult)
 
-        const activeAppointmentCount = appointmentResult.filter((item) =>
-          ["pending", "confirmed", "checkedin", "doing"].includes(item.status)
-        ).length
+        const activeAppointmentCount = getActiveAppointmentCount(appointmentResult)
+
+        setAppointmentCount(activeAppointmentCount)
+        saveCachedAppointmentCount(currentUser.maTK, activeAppointmentCount)
 
         setAppointmentCount(activeAppointmentCount)
       } catch (error) {

@@ -13,6 +13,7 @@ from app.models.tai_khoan import TaiKhoan
 from app.models.hoa_don import HoaDon
 from app.models.chi_tiet_hoa_don import ChiTietHoaDon
 from app.services.booking_email_service import send_booking_success_email
+from app.crud.danh_gia_crud import get_review_by_detail
 
 
 ACTIVE_SERVICE_STATUSES = [
@@ -587,6 +588,14 @@ def build_appointment_response(db: Session, lich_hen: LichHen):
         .first()
     )
 
+    khach_hang = (
+        db.query(KhachHang)
+        .filter(KhachHang.idTaiKhoan == lich_hen.idTaiKhoan)
+        .first()
+    )
+
+    id_khach_hang = int(khach_hang.idKhachHang) if khach_hang else None
+
     chi_tiet_output = []
     tong_tien = 0
     tong_thoi_luong = 0
@@ -637,6 +646,17 @@ def build_appointment_response(db: Session, lich_hen: LichHen):
 
             if booked_quantity > 0:
                 base_detail = booked_detail_by_service.get(id_dich_vu, {})
+                base_id_chi_tiet = base_detail.get("idChiTietLH")
+
+                review_data = (
+                    get_review_by_detail(
+                        db=db,
+                        id_khach_hang=id_khach_hang,
+                        id_chi_tiet_lh=base_id_chi_tiet,
+                    )
+                    if base_id_chi_tiet
+                    else None
+                )
 
                 thanh_tien = invoice_price * booked_quantity
 
@@ -656,6 +676,8 @@ def build_appointment_response(db: Session, lich_hen: LichHen):
                         "hinhAnh": get_service_image(db, id_dich_vu),
                         "type": "booked",
                         "isAdditional": False,
+                        "reviewed": review_data is not None,
+                        "review": review_data,
                     }
                 )
 
@@ -687,6 +709,8 @@ def build_appointment_response(db: Session, lich_hen: LichHen):
                         "hinhAnh": get_service_image(db, id_dich_vu),
                         "type": "additional",
                         "isAdditional": True,
+                        "reviewed": False,
+                        "review": None,
                     }
                 )
 
@@ -699,6 +723,16 @@ def build_appointment_response(db: Session, lich_hen: LichHen):
             id_chi_tiet = (
                 int(chi_tiet.idChiTietLH)
                 if chi_tiet.idChiTietLH is not None
+                else None
+            )
+
+            review_data = (
+                get_review_by_detail(
+                    db=db,
+                    id_khach_hang=id_khach_hang,
+                    id_chi_tiet_lh=id_chi_tiet,
+                )
+                if id_chi_tiet
                 else None
             )
 
@@ -724,6 +758,8 @@ def build_appointment_response(db: Session, lich_hen: LichHen):
                     "hinhAnh": get_service_image(db, id_dich_vu),
                     "type": "booked",
                     "isAdditional": False,
+                    "reviewed": review_data is not None,
+                    "review": review_data,
                 }
             )
 

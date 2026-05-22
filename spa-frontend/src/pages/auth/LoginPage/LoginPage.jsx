@@ -82,8 +82,17 @@ function LoginPage() {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
   const [isResettingPassword, setIsResettingPassword] = useState(false)
 
-  const redirectByRole = useCallback(
-    (user, message = "Đăng nhập thành công. Đang chuyển trang...") => {
+  const clearSavedAuth = () => {
+    localStorage.removeItem("user")
+    localStorage.removeItem("token")
+    localStorage.removeItem("authStorageMode")
+
+    sessionStorage.removeItem("user")
+    sessionStorage.removeItem("token")
+  }
+
+  const redirectCustomerHome = useCallback(
+    (message = "Đăng nhập thành công. Đang chuyển trang...") => {
       setLoginSuccessMessage(message)
       setIsEnteringHome(true)
 
@@ -92,16 +101,6 @@ function LoginPage() {
       }
 
       redirectTimerRef.current = setTimeout(() => {
-        if (user?.vaiTro === "Admin") {
-          navigate("/admin/tong-quan", { replace: true })
-          return
-        }
-
-        if (user?.vaiTro === "NhanVien") {
-          navigate("/staff/tong-quan", { replace: true })
-          return
-        }
-
         navigate("/trang-chu", { replace: true })
       }, 1600)
     },
@@ -117,13 +116,19 @@ function LoginPage() {
     try {
       const user = JSON.parse(savedUser)
 
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      redirectByRole(user, "Bạn đã đăng nhập. Đang chuyển đến trang chủ...")
+      if (user?.vaiTro === "KhachHang") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        redirectCustomerHome("Bạn đã đăng nhập. Đang chuyển đến trang chủ...")
+        return
+      }
+
+      clearSavedAuth()
+
+      setLoginError(
+        "Trang này chỉ dành cho khách hàng. Vui lòng đăng nhập bằng tài khoản khách hàng."
+      )
     } catch {
-        localStorage.removeItem("user")
-        localStorage.removeItem("token")
-        sessionStorage.removeItem("user")
-        sessionStorage.removeItem("token")
+      clearSavedAuth()
     }
 
     return () => {
@@ -131,7 +136,7 @@ function LoginPage() {
         clearTimeout(redirectTimerRef.current)
       }
     }
-  }, [redirectByRole])
+  }, [redirectCustomerHome])
 
   useEffect(() => {
     if (!showForgotModal || forgotStep !== "otp" || resendCooldown <= 0) {
@@ -181,6 +186,15 @@ function LoginPage() {
         password: formData.password,
       })
 
+      if (data?.user?.vaiTro !== "KhachHang") {
+        setLoginError(
+          "Tài khoản này không phải tài khoản khách hàng. Vui lòng đăng nhập tại đúng khu vực hệ thống."
+        )
+        setIsLoggingIn(false)
+        setIsEnteringHome(false)
+        return
+      }
+
       if (rememberMe) {
         localStorage.setItem("rememberMe", "true")
         localStorage.setItem("rememberedEmail", loginEmail)
@@ -190,7 +204,7 @@ function LoginPage() {
       }
 
       saveAuthData(data, rememberMe)
-      redirectByRole(data.user, "Đăng nhập thành công. Đang chuyển trang...")
+      redirectCustomerHome("Đăng nhập thành công. Đang chuyển trang...")
     } catch (error) {
       setLoginError(error.message || "Đăng nhập thất bại.")
       setIsLoggingIn(false)
@@ -466,8 +480,10 @@ function LoginPage() {
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="login-form__group">
               <label>Email</label>
+
               <div className="login-form__input-wrap">
                 <Mail size={20} />
+
                 <input
                   type="email"
                   name="email"
@@ -496,6 +512,7 @@ function LoginPage() {
 
               <div className="login-form__input-wrap">
                 <Lock size={20} />
+
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
@@ -623,6 +640,7 @@ function LoginPage() {
 
                   <div className="forgot-password-input-wrap">
                     <Mail size={20} />
+
                     <input
                       type="email"
                       placeholder="Nhập email của bạn"

@@ -279,6 +279,12 @@ def authenticate_user(db: Session, email: str, password: str):
 
     if tai_khoan.trangThai == "KHOA":
         return None
+    
+    if tai_khoan.loaiTK != "KHACH_HANG":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Trang đăng nhập này chỉ dành cho khách hàng",
+    )
 
     if tai_khoan.loaiTK == "KHACH_HANG" and not tai_khoan.emailDaXacThuc:
         return None

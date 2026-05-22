@@ -2268,3 +2268,84 @@
   font-weight: 500;
   line-height: 1.45;
 }
+
+/* =========================
+   PENDING OVERDUE WARNING
+========================= */
+
+.staff-appointments-pending-alert {
+  margin: 28px 18px 18px;
+  padding: 14px 16px;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #9a3412;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.staff-appointments-pending-alert svg {
+  flex-shrink: 0;
+  color: #ea580c;
+}
+
+.staff-appointments-pending-alert div {
+  flex: 1;
+}
+
+.staff-appointments-pending-alert strong {
+  display: block;
+  color: #9a3412;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.staff-appointments-pending-alert p {
+  margin: 4px 0 0;
+  color: #b45309;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.staff-appointments-pending-alert button {
+  height: 36px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 10px;
+  background: #ea580c;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.staff-appointments-pending-alert button:hover {
+  background: #c2410c;
+}
+
+.staff-appointments-row.pending-overdue td {
+  background: #fff7ed;
+}
+
+.staff-appointments-row.pending-overdue:hover td {
+  background: #ffedd5;
+}
+
+.staff-appointments-reminder-icon.pending-overdue {
+  background: #fff7ed;
+  color: #ea580c;
+  border-color: #fed7aa;
+}
+
+@media (max-width: 800px) {
+  .staff-appointments-pending-alert {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .staff-appointments-pending-alert button {
+    width: 100%;
+  }
+}

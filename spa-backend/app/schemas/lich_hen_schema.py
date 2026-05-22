@@ -56,6 +56,10 @@ class LichHenDichVuOut(BaseModel):
     type: Optional[str] = "booked"
     isAdditional: bool = False
 
+    # Dùng cho chức năng đánh giá dịch vụ
+    reviewed: bool = False
+    review: Optional[dict] = None
+
 
 class LichHenCustomerOut(BaseModel):
     idLichHen: int

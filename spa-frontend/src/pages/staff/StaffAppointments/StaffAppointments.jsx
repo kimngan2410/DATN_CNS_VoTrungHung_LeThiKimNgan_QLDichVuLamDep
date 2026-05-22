@@ -229,6 +229,36 @@ const shouldShowCheckInReminder = (appointment, now = new Date()) => {
   return Boolean(getCheckInReminderStatus(appointment, now));
 };
 
+const getPendingOverdueStatus = (appointment, now = new Date()) => {
+  if (!appointment) return null;
+
+  if (appointment.status !== "Chờ xác nhận") {
+    return null;
+  }
+
+  const appointmentStartTime = getSlotDateTime(
+    appointment.date,
+    appointment.time
+  );
+
+  if (!appointmentStartTime) return null;
+
+  if (appointmentStartTime < now) {
+    return {
+      type: "pending-overdue",
+      label: "Chờ xác nhận quá giờ",
+      message:
+        "Lịch hẹn đang chờ xác nhận nhưng đã quá thời gian hẹn. Lễ tân cần liên hệ khách và cập nhật Đã xác nhận hoặc Đã huỷ kèm lý do.",
+    };
+  }
+
+  return null;
+};
+
+const shouldShowPendingOverdue = (appointment, now = new Date()) => {
+  return Boolean(getPendingOverdueStatus(appointment, now));
+};
+
 const isSlotInPast = ({ selectedDate, startTime, now }) => {
   const slotDateTime = getSlotDateTime(selectedDate, startTime);
 
@@ -712,6 +742,12 @@ function StaffAppointments() {
 
   const upcomingCheckInCount =
     checkInReminderAppointments.length - overdueCheckInCount;
+
+  const pendingOverdueAppointments = useMemo(() => {
+    return appointmentsBySelectedDate.filter((appointment) =>
+      shouldShowPendingOverdue(appointment, createNow)
+    );
+  }, [appointmentsBySelectedDate, createNow]);
 
   const filteredCustomers = useMemo(() => {
     return customerOptions.filter((customer) => {
@@ -1402,15 +1438,24 @@ function StaffAppointments() {
     }
 
     return filteredAppointments.map((appointment) => {
-      const reminderInfo = getCheckInReminderStatus(appointment, createNow);
+      const pendingReminderInfo = getPendingOverdueStatus(
+        appointment,
+        createNow
+      );
+      const checkInReminderInfo = getCheckInReminderStatus(
+        appointment,
+        createNow
+      );
+      const reminderInfo = pendingReminderInfo || checkInReminderInfo;
 
       return (
         <tr
           key={appointment.id}
           className={[
             "staff-appointments-row",
-            reminderInfo ? "checkin-reminder" : "",
-            reminderInfo?.type === "overdue" ? "checkin-overdue" : "",
+            pendingReminderInfo ? "pending-overdue" : "",
+            checkInReminderInfo ? "checkin-reminder" : "",
+            checkInReminderInfo?.type === "overdue" ? "checkin-overdue" : "",
           ].join(" ")}
           onClick={() => handleOpenDetail(appointment)}
         >
@@ -1625,6 +1670,30 @@ function StaffAppointments() {
               <span>Tạo lịch hẹn</span>
             </button>
           </div>
+
+          {pendingOverdueAppointments.length > 0 && (
+            <div className="staff-appointments-pending-alert">
+              <AlertTriangle size={20} />
+
+              <div>
+                <strong>
+                  Có {pendingOverdueAppointments.length} lịch chờ xác nhận đã quá giờ
+                </strong>
+
+                <p>
+                  Lễ tân cần kiểm tra, liên hệ khách hàng và cập nhật trạng thái
+                  phù hợp. Không nên tự động huỷ để tránh xử lý sai nghiệp vụ.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setStatusFilter("Chờ xác nhận")}
+              >
+                Xem lịch chờ xác nhận
+              </button>
+            </div>
+          )}
 
           {checkInReminderAppointments.length > 0 && (
             <div className="staff-appointments-checkin-alert">
