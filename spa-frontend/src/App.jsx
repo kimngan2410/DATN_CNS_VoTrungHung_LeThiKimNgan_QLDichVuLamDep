@@ -1,4 +1,67 @@
-import { Routes, Route, Navigate } from "react-router-dom"
+import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom"
+import {
+  getCurrentStaffUser,
+  getStaffAuthToken,
+  clearStaffAuthData,
+} from "./services/authApi"
+
+function isTokenExpired(token) {
+  if (!token) return true
+
+  try {
+    const payloadBase64 = token.split(".")[1]
+    if (!payloadBase64) return true
+
+    const fixedBase64 = payloadBase64
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(payloadBase64.length + ((4 - (payloadBase64.length % 4)) % 4), "=")
+
+    const payload = JSON.parse(window.atob(fixedBase64))
+
+    if (!payload.exp) return false
+
+    return Date.now() >= payload.exp * 1000
+  } catch {
+    return true
+  }
+}
+
+function isStaffAuthenticated() {
+  const token = getStaffAuthToken()
+  const user = getCurrentStaffUser()
+
+  if (!token || isTokenExpired(token)) {
+    clearStaffAuthData()
+    return false
+  }
+
+  return user?.vaiTro === "NhanVien"
+}
+
+function RequireStaffAuth() {
+  const location = useLocation()
+
+  if (!isStaffAuthenticated()) {
+    return (
+      <Navigate
+        to="/staff/dang-nhap"
+        replace
+        state={{ from: location.pathname }}
+      />
+    )
+  }
+
+  return <Outlet />
+}
+
+function StaffLoginGate() {
+  if (isStaffAuthenticated()) {
+    return <Navigate to="/staff/tong-quan" replace />
+  }
+
+  return <StaffLogin />
+}
 
 /* CUSTOMER */
 import HomePage from "./pages/customer/HomePage/HomePage"
@@ -55,9 +118,11 @@ function App() {
       <Route path="/doi-mat-khau" element={<ChangePasswordPage />} />
 
       {/* STAFF ROUTES */}
-        <Route path="/staff/dang-nhap" element={<StaffLogin />} />
+      <Route path="/staff/dang-nhap" element={<StaffLoginGate />} />
+
+      <Route element={<RequireStaffAuth />}>
         <Route path="/staff" element={<StaffLayout />}>
-          <Route index element={<Navigate to="/staff/tong-quan" replace />} />
+          <Route index element={<Navigate to="tong-quan" replace />} />
           <Route path="tong-quan" element={<StaffOverview />} />
           <Route path="lich-hen" element={<StaffAppointments />} />
           <Route path="giao-dich" element={<StaffTransactions />} />
@@ -65,6 +130,7 @@ function App() {
           <Route path="khach-hang" element={<StaffCustomersList />} />
           <Route path="cai-dat" element={<StaffSettings />} />
         </Route>
+      </Route>
 
       {/* ADMIN ROUTES */}
       <Route path="/admin" element={<AdminLayout />}>

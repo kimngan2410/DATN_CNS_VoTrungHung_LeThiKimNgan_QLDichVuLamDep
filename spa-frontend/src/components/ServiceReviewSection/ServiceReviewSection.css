@@ -95,8 +95,8 @@
 
 .service-review-item__header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 16px;
 }
 
@@ -123,26 +123,40 @@
 .service-review-item h3 {
   margin: 0 0 6px;
   color: #20233b;
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .service-review-item span {
   color: #7c736c;
-  font-size: 14px;
+  font-size: 12px;
+}
+
+.service-review-item__customer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
 }
 
 .service-review-item__stars {
   display: flex;
+  align-items: center;
   gap: 2px;
   color: #d4a437;
   flex-shrink: 0;
+  margin: 0 0 6px;
+}
+
+.service-review-item__date {
+  color: #7c736c;
+  font-size: 14px;
 }
 
 .service-review-item__content {
   margin: 22px 0 0;
   color: #20233b;
-  font-size: 16.5px;
+  font-size: 15px;
   line-height: 1.75;
 }
 

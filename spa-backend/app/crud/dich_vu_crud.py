@@ -41,6 +41,12 @@ def format_date(value):
 
     return value.strftime("%d/%m/%Y")
 
+def format_review_datetime(value):
+    if not value:
+        return ""
+
+    return value.strftime("%d/%m/%Y %H:%M")
+
 
 def generate_service_code(db: Session) -> str:
     max_id = db.query(func.max(DichVu.idDichVu)).scalar() or 0
@@ -265,7 +271,7 @@ def get_review_reply(db: Session, review_id: int):
     return {
         "adminName": admin_name,
         "content": reply.noiDungDanhGia,
-        "createdAt": format_date(reply.ngayTao),
+        "createdAt": format_review_datetime(reply.ngayTao),
     }
 
 
@@ -303,7 +309,7 @@ def get_service_reviews(db: Session, service_id: int):
                 "avatar": customer_avatar,
                 "rating": int(review.soSao),
                 "content": review.noiDung or "",
-                "createdAt": format_date(review.ngayDanhGia),
+                "createdAt": format_review_datetime(review.ngayDanhGia),
                 "images": get_review_images(db, review.idDanhGia),
                 "reply": get_review_reply(db, review.idDanhGia),
             }

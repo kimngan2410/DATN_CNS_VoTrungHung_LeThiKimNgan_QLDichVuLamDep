@@ -1,13 +1,12 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Search,
-  Bell,
-  UserRound,
+  AlertCircle,
   CalendarCheck2,
+  Clock3,
+  Loader2,
   UserCheck,
   Wallet,
-  Clock3,
 } from "lucide-react";
 
 import {
@@ -27,154 +26,7 @@ import {
 
 import "./StaffOverview.css";
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
-
-const revenueData = [
-  { day: "T2", revenue: 3000000 },
-  { day: "T3", revenue: 4500000 },
-  { day: "T4", revenue: 3800000 },
-  { day: "T5", revenue: 5200000 },
-  { day: "T6", revenue: 6100000 },
-  { day: "T7", revenue: 8700000 },
-  { day: "CN", revenue: 9200000 },
-];
-
-const appointmentData = [
-  { day: "T2", count: 15 },
-  { day: "T3", count: 20 },
-  { day: "T4", count: 18 },
-  { day: "T5", count: 22 },
-  { day: "T6", count: 28 },
-  { day: "T7", count: 35 },
-  { day: "CN", count: 41 },
-];
-
-const popularServicesData = [
-  {
-    name: "Massage thư giãn",
-    usage: 42,
-    revenue: 11200000,
-  },
-  {
-    name: "Chăm sóc da mặt",
-    usage: 45,
-    revenue: 12000000,
-  },
-  {
-    name: "Tắm trắng",
-    usage: 45,
-    revenue: 12000000,
-  },
-  {
-    name: "Gội đầu dưỡng sinh",
-    usage: 18,
-    revenue: 4200000,
-  },
-  {
-    name: "Nail art",
-    usage: 15,
-    revenue: 3600000,
-  },
-];
-
-const appointmentStatusData = [
-  {
-    name: "Chờ xác nhận",
-    value: 5,
-    color: "#d7a93f",
-  },
-  {
-    name: "Đã xác nhận",
-    value: 12,
-    color: "#ead6a0",
-  },
-  {
-    name: "Đã check-in",
-    value: 8,
-    color: "#8b7f73",
-  },
-  {
-    name: "Đang thực hiện",
-    value: 4,
-    color: "#6a6667",
-  },
-  {
-    name: "Đã hoàn thành",
-    value: 45,
-    color: "#4d4a4b",
-  },
-  {
-    name: "Đã huỷ",
-    value: 3,
-    color: "#ef6f6c",
-  },
-  {
-    name: "Không đến",
-    value: 2,
-    color: "#b45309",
-  },
-];
-
-const recentAppointments = [
-  {
-    id: "LH001",
-    customer: "Nguyễn Thị Mai",
-    phone: "0901234567",
-    services: [
-      { name: "Massage body", duration: 60, price: 500000 },
-      { name: "Gội đầu dưỡng sinh", duration: 45, price: 250000 },
-    ],
-    time: "09:00",
-    date: "2026-05-04",
-    status: "Đã hoàn thành",
-  },
-  {
-    id: "LH002",
-    customer: "Trần Văn Hùng",
-    phone: "0912345678",
-    services: [
-      { name: "Gội đầu dưỡng sinh", duration: 45, price: 250000 },
-      { name: "Chăm sóc da mặt", duration: 60, price: 400000 },
-      { name: "Massage cổ vai gáy", duration: 30, price: 200000 },
-    ],
-    time: "10:30",
-    date: "2026-05-04",
-    status: "Đang thực hiện",
-  },
-  {
-    id: "LH003",
-    customer: "Lê Thị Hoa",
-    phone: "0923456789",
-    services: [{ name: "Chăm sóc da mặt", duration: 60, price: 400000 }],
-    time: "14:00",
-    date: "2026-05-04",
-    status: "Đã check-in",
-  },
-  {
-    id: "LH004",
-    customer: "Phạm Minh Tuấn",
-    phone: "0934567890",
-    services: [
-      { name: "Massage body", duration: 60, price: 500000 },
-      { name: "Xông hơi thư giãn", duration: 30, price: 180000 },
-    ],
-    time: "15:30",
-    date: "2026-05-04",
-    status: "Đã xác nhận",
-  },
-  {
-    id: "LH005",
-    customer: "Hoàng Thu Trang",
-    phone: "0945678901",
-    services: [
-      { name: "Nail art", duration: 45, price: 300000 },
-      { name: "Sơn gel", duration: 30, price: 180000 },
-      { name: "Gội đầu dưỡng sinh", duration: 45, price: 250000 },
-    ],
-    time: "16:00",
-    date: "2026-05-04",
-    status: "Chờ xác nhận",
-  },
-];
+import { getStaffOverviewApi } from "../../../services/staffOverviewApi";
 
 const formatMoney = (value) => {
   return `${value.toLocaleString("vi-VN")} đ`;
@@ -189,6 +41,34 @@ const formatAxisMoney = (value) => {
 
   return value.toLocaleString("vi-VN");
 };
+
+const defaultOverviewData = {
+  period: {
+    key: "today",
+    label: "Hôm nay",
+    startDate: "",
+    endDate: "",
+  },
+  stats: {
+    totalAppointmentsToday: 0,
+    checkedInToday: 0,
+    doingToday: 0,
+    todayRevenue: 0,
+  },
+  revenueData: [],
+  appointmentData: [],
+  appointmentStatusData: [],
+  popularServicesData: [],
+  recentAppointments: [],
+}
+
+const OVERVIEW_PERIOD_OPTIONS = [
+  { value: "today", label: "Hôm nay" },
+  { value: "week", label: "Tuần này" },
+  { value: "month", label: "Tháng này" },
+  { value: "quarter", label: "Quý này" },
+  { value: "year", label: "Năm này" },
+]
 
 const getServiceNamesText = (services) => {
   if (!services || services.length === 0) return "";
@@ -279,14 +159,137 @@ const getStatusClass = (status) => {
 };
 
 function StaffOverview() {
-
   const navigate = useNavigate();
+
+  const [overviewData, setOverviewData] = useState(defaultOverviewData);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [selectedPeriod, setSelectedPeriod] = useState("today")
+
+  const fetchOverview = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      const data = await getStaffOverviewApi(selectedPeriod);
+
+      setOverviewData({
+        period: data?.period || defaultOverviewData.period,
+        stats: data?.stats || defaultOverviewData.stats,
+        revenueData: data?.revenueData || [],
+        appointmentData: data?.appointmentData || [],
+        appointmentStatusData: data?.appointmentStatusData || [],
+        popularServicesData: data?.popularServicesData || [],
+        recentAppointments: data?.recentAppointments || [],
+      });
+    } catch (error) {
+      setErrorMessage(error.message || "Không thể tải dữ liệu tổng quan.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedPeriod]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchOverview();
+  }, [fetchOverview]);
+
+  const {
+    period,
+    stats,
+    revenueData,
+    appointmentData,
+    appointmentStatusData,
+    popularServicesData,
+    recentAppointments,
+  } = overviewData;
+
+  if (isLoading) {
+    return (
+      <div className="staff-overview">
+        <StaffPageHeader title="Tổng quan" />
+
+        <section className="staff-dashboard-content">
+          <div className="staff-overview-filter-card">
+            <div className="staff-overview-filter-info">
+              <span>Bộ lọc thời gian</span>
+              <strong>{period?.label || "Hôm nay"}</strong>
+            </div>
+
+            <div className="staff-overview-filter-tabs">
+              {OVERVIEW_PERIOD_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`staff-overview-filter-btn ${
+                    selectedPeriod === option.value ? "active" : ""
+                  }`}
+                  onClick={() => setSelectedPeriod(option.value)}
+                  disabled={isLoading}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="staff-dashboard-card staff-overview-state-card">
+            <Loader2 className="staff-overview-loading-icon" size={34} />
+            <h3>Đang tải dữ liệu tổng quan</h3>
+            <p>Vui lòng chờ trong giây lát...</p>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="staff-overview">
+        <StaffPageHeader title="Tổng quan" />
+
+        <section className="staff-dashboard-content">
+          <div className="staff-dashboard-card staff-overview-state-card">
+            <AlertCircle size={36} />
+            <h3>Không thể tải dữ liệu</h3>
+            <p>{errorMessage}</p>
+
+            <button type="button" onClick={fetchOverview}>
+              Thử lại
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="staff-overview">
       <StaffPageHeader title="Tổng quan" />
 
       <section className="staff-dashboard-content">
+        <div className="staff-overview-filter-card">
+          <div className="staff-overview-filter-info">
+            <span>Bộ lọc thời gian</span>
+            <strong>{period?.label || "Hôm nay"}</strong>
+          </div>
+
+          <div className="staff-overview-filter-tabs">
+            {OVERVIEW_PERIOD_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`staff-overview-filter-btn ${
+                  selectedPeriod === option.value ? "active" : ""
+                }`}
+                onClick={() => setSelectedPeriod(option.value)}
+                disabled={isLoading}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
         <div className="staff-stat-grid">
           <div className="staff-stat-card">
             <div className="staff-stat-icon gold-soft">
@@ -294,8 +297,8 @@ function StaffOverview() {
             </div>
 
             <div>
-              <p>Tổng lịch hẹn hôm nay</p>
-              <h2>12</h2>
+              <p>Tổng lịch hẹn</p>
+              <h2>{stats.totalAppointmentsToday}</h2>
             </div>
           </div>
 
@@ -306,7 +309,7 @@ function StaffOverview() {
 
             <div>
               <p>Khách đã check-in</p>
-              <h2>5</h2>
+              <h2>{stats.checkedInToday}</h2>
             </div>
           </div>
 
@@ -317,7 +320,7 @@ function StaffOverview() {
 
             <div>
               <p>Đang thực hiện</p>
-              <h2>4</h2>
+              <h2>{stats.doingToday}</h2>
             </div>
           </div>
 
@@ -327,15 +330,15 @@ function StaffOverview() {
             </div>
 
             <div>
-              <p>Doanh thu hôm nay</p>
-              <h2>4.500.000 đ</h2>
+              <p>Doanh thu</p>
+              <h2>{formatMoney(stats.todayRevenue)}</h2>
             </div>
           </div>
         </div>
 
         <div className="staff-chart-grid first-row">
           <div className="staff-dashboard-card">
-            <h3>Doanh thu 7 ngày gần nhất</h3>
+            <h3>Doanh thu - {period?.label || "Hôm nay"}</h3>
 
             <div className="staff-chart-box">
               <ResponsiveContainer width="100%" height={260}>
@@ -382,7 +385,7 @@ function StaffOverview() {
           </div>
 
           <div className="staff-dashboard-card">
-            <h3>Số lượng lịch hẹn theo ngày</h3>
+            <h3>Số lượng lịch hẹn - {period?.label || "Hôm nay"}</h3>
 
             <div className="staff-chart-box">
               <ResponsiveContainer width="100%" height={260}>
@@ -422,7 +425,9 @@ function StaffOverview() {
         <div className="staff-chart-grid second-row">
           <div className="staff-dashboard-card staff-status-distribution-card">
             <h3>Phân bố trạng thái</h3>
-            <p className="staff-card-subtitle">Tổng lịch hẹn trong tuần</p>
+            <p className="staff-card-subtitle">
+              Tổng lịch hẹn theo trạng thái - {period?.label || "Hôm nay"}
+            </p>
 
             <div className="staff-status-chart-wrap">
               <ResponsiveContainer width="100%" height={210}>
@@ -467,7 +472,7 @@ function StaffOverview() {
           <div className="staff-dashboard-card staff-popular-service-card">
             <h3>Dịch vụ phổ biến</h3>
             <p className="staff-card-subtitle">
-              Số lượt sử dụng và doanh thu theo dịch vụ trong tuần
+              Số lượt sử dụng và doanh thu theo dịch vụ - {period?.label || "Hôm nay"}
             </p>
 
             <div className="staff-horizontal-bar-box">

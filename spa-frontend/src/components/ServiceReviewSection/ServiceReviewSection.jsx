@@ -152,14 +152,17 @@ function ServiceReviewSection({ reviewData }) {
                         </div>
                       )}
 
-                      <div>
+                      <div className="service-review-item__customer-info">
                         <h3>{review.customerName}</h3>
-                        <span>{review.createdAt}</span>
-                      </div>
-                    </div>
 
-                    <div className="service-review-item__stars">
-                      {renderStars(review.rating)}
+                        <div className="service-review-item__stars">
+                          {renderStars(review.rating)}
+                        </div>
+
+                        <span className="service-review-item__date">
+                          {review.createdAt}
+                        </span>
+                      </div>
                     </div>
                   </div>
 

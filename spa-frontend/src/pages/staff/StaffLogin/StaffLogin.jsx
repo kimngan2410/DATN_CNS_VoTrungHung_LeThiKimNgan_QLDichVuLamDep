@@ -4,7 +4,7 @@ import { Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react"
 
 import {
   loginReceptionistApi,
-  saveAuthData,
+  saveStaffAuthData,
 } from "../../../services/authApi"
 
 import "./StaffLogin.css"
@@ -90,7 +90,7 @@ function StaffLogin() {
         localStorage.removeItem("staffRememberedEmail")
       }
 
-      saveAuthData(data, rememberMe)
+      saveStaffAuthData(data, rememberMe)
 
       setIsEnteringStaff(true)
 

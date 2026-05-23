@@ -1,7 +1,31 @@
-import React, { useMemo } from "react";
-import { Search, Bell, UserRound } from "lucide-react";
-import { getCurrentUser } from "../../services/authApi";
-import "./StaffPageHeader.css";
+import React, { useEffect, useMemo, useState } from "react"
+import { Search, Bell, UserRound } from "lucide-react"
+import { getCurrentStaffUser } from "../../services/authApi"
+import "./StaffPageHeader.css"
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1"
+
+const API_ORIGIN = API_BASE_URL.replace("/api/v1", "")
+
+function getFullAvatarUrl(avatar) {
+  if (!avatar) return ""
+
+  if (
+    avatar.startsWith("http://") ||
+    avatar.startsWith("https://") ||
+    avatar.startsWith("blob:") ||
+    avatar.startsWith("data:")
+  ) {
+    return avatar
+  }
+
+  if (avatar.startsWith("/uploads")) {
+    return `${API_ORIGIN}${avatar}`
+  }
+
+  return avatar
+}
 
 function StaffPageHeader({
   title,
@@ -10,22 +34,36 @@ function StaffPageHeader({
   onSearchChange,
   staffName,
 }) {
-  const currentUser = getCurrentUser();
+  const [currentUser, setCurrentUser] = useState(() => getCurrentStaffUser())
 
-  const displayName = useMemo(() => {
-    if (staffName) return staffName;
-
-    if (currentUser?.hoTen) return currentUser.hoTen;
-
-    if (currentUser?.email) {
-      return currentUser.email.split("@")[0];
+  useEffect(() => {
+    const syncStaffUser = () => {
+      setCurrentUser(getCurrentStaffUser())
     }
 
-    return "Nhân viên lễ tân";
-  }, [currentUser, staffName]);
+    window.addEventListener("staff-auth-changed", syncStaffUser)
+    window.addEventListener("storage", syncStaffUser)
 
-  const staffRole = currentUser?.chucVu || "Lễ tân";
-  const avatarUrl = currentUser?.avatar || "";
+    return () => {
+      window.removeEventListener("staff-auth-changed", syncStaffUser)
+      window.removeEventListener("storage", syncStaffUser)
+    }
+  }, [])
+
+  const displayName = useMemo(() => {
+    if (staffName) return staffName
+
+    if (currentUser?.hoTen) return currentUser.hoTen
+
+    if (currentUser?.email) {
+      return currentUser.email.split("@")[0]
+    }
+
+    return "Nhân viên lễ tân"
+  }, [currentUser, staffName])
+
+  const staffRole = currentUser?.chucVu || "Lễ tân"
+  const avatarUrl = getFullAvatarUrl(currentUser?.avatar)
 
   return (
     <header className="staff-page-header">
@@ -34,6 +72,7 @@ function StaffPageHeader({
       <div className="staff-page-header-actions">
         <div className="staff-page-header-search">
           <Search size={18} />
+
           <input
             type="text"
             placeholder={searchPlaceholder}
@@ -65,7 +104,7 @@ function StaffPageHeader({
         </div>
       </div>
     </header>
-  );
+  )
 }
 
-export default StaffPageHeader;
+export default StaffPageHeader

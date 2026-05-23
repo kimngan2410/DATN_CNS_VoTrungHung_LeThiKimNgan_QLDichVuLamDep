@@ -80,6 +80,12 @@ def get_account_or_404(db: Session, id_tai_khoan: int) -> TaiKhoan:
 
 
 def get_or_create_customer(db: Session, tai_khoan: TaiKhoan) -> KhachHang:
+    if tai_khoan.loaiTK != "KHACH_HANG":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản này không phải tài khoản khách hàng",
+        )
+
     khach_hang = (
         db.query(KhachHang)
         .filter(KhachHang.idTaiKhoan == tai_khoan.idTaiKhoan)
@@ -301,6 +307,7 @@ def get_staff_customers(db: Session):
     customers = (
         db.query(KhachHang)
         .join(TaiKhoan, TaiKhoan.idTaiKhoan == KhachHang.idTaiKhoan)
+        .filter(TaiKhoan.loaiTK == "KHACH_HANG")
         .order_by(KhachHang.ngayTao.desc(), KhachHang.idKhachHang.desc())
         .all()
     )

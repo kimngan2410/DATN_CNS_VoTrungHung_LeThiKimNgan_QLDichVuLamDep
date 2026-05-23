@@ -11,7 +11,9 @@ import {
   loginApi,
   loginWithFacebook,
   loginWithGoogle,
-  saveAuthData,
+  saveCustomerAuthData,
+  clearCustomerAuthData,
+  getCurrentCustomerUser,
 } from "../../../services/authApi"
 import {
   ArrowLeft,
@@ -83,12 +85,7 @@ function LoginPage() {
   const [isResettingPassword, setIsResettingPassword] = useState(false)
 
   const clearSavedAuth = () => {
-    localStorage.removeItem("user")
-    localStorage.removeItem("token")
-    localStorage.removeItem("authStorageMode")
-
-    sessionStorage.removeItem("user")
-    sessionStorage.removeItem("token")
+    clearCustomerAuthData()
   }
 
   const redirectCustomerHome = useCallback(
@@ -108,28 +105,20 @@ function LoginPage() {
   )
 
   useEffect(() => {
-    const savedUser =
-      localStorage.getItem("user") || sessionStorage.getItem("user")
+    const user = getCurrentCustomerUser()
 
-    if (!savedUser) return
+    if (!user) return
 
-    try {
-      const user = JSON.parse(savedUser)
-
-      if (user?.vaiTro === "KhachHang") {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        redirectCustomerHome("Bạn đã đăng nhập. Đang chuyển đến trang chủ...")
-        return
-      }
-
-      clearSavedAuth()
-
-      setLoginError(
-        "Trang này chỉ dành cho khách hàng. Vui lòng đăng nhập bằng tài khoản khách hàng."
-      )
-    } catch {
-      clearSavedAuth()
+    if (user?.vaiTro === "KhachHang") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      redirectCustomerHome("Bạn đã đăng nhập. Đang chuyển đến trang chủ...")
+      return
     }
+
+    clearSavedAuth()
+    setLoginError(
+      "Trang này chỉ dành cho khách hàng. Vui lòng đăng nhập bằng tài khoản khách hàng."
+    )
 
     return () => {
       if (redirectTimerRef.current) {
@@ -203,7 +192,7 @@ function LoginPage() {
         localStorage.removeItem("rememberedEmail")
       }
 
-      saveAuthData(data, rememberMe)
+      saveCustomerAuthData(data, rememberMe)
       redirectCustomerHome("Đăng nhập thành công. Đang chuyển trang...")
     } catch (error) {
       setLoginError(error.message || "Đăng nhập thất bại.")
