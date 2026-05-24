@@ -1,124 +1,29 @@
-import React, { useMemo, useState } from "react";
+import React, {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import {
   Search,
-  Bell,
   UserRound,
   Phone,
   Send,
   MessageCircle,
-} from "lucide-react";
-import "./StaffConversations.css";
-import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
-
-
-const initialConversations = [
-  {
-    id: "HT001",
-    customerName: "Nguyễn Thị Mai",
-    phone: "0901234567",
-    avatarText: "N",
-    lastTime: "16:30",
-    unread: 0,
-    status: "answered",
-    activityStatus: "recent",
-    activityText: "Hoạt động 5 phút trước",
-    messages: [
-      {
-        id: 1,
-        sender: "customer",
-        content: "Chị muốn đặt lịch massage body chiều nay.",
-        time: "16:20",
-      },
-      {
-        id: 2,
-        sender: "staff",
-        content: "Dạ được ạ, em đã lên lịch cho chị rồi nhé.",
-        time: "16:30",
-      },
-    ],
-  },
-  {
-    id: "HT002",
-    customerName: "Lê Thu Hà",
-    phone: "0987654321",
-    avatarText: "L",
-    lastTime: "17:15",
-    unread: 1,
-    status: "unanswered",
-    activityStatus: "online",
-    activityText: "Đang hoạt động",
-    messages: [
-      {
-        id: 1,
-        sender: "customer",
-        content: "Cho mình hỏi giá tắm trắng phi thuyền là bao nhiêu?",
-        time: "17:15",
-      },
-    ],
-  },
-  {
-    id: "HT003",
-    customerName: "Trần Văn Hùng",
-    phone: "0912345678",
-    avatarText: "T",
-    lastTime: "11:45",
-    unread: 2,
-    status: "unanswered",
-    activityStatus: "online",
-    activityText: "Đang hoạt động",
-    messages: [
-      {
-        id: 1,
-        sender: "customer",
-        content: "Spa có chỗ đậu xe ô tô không?",
-        time: "11:42",
-      },
-      {
-        id: 2,
-        sender: "customer",
-        content: "Mình muốn đặt lịch chiều nay nữa.",
-        time: "11:45",
-      },
-    ],
-  },
-  {
-    id: "HT004",
-    customerName: "Hoàng Thu Trang",
-    phone: "0945678901",
-    avatarText: "H",
-    lastTime: "Hôm qua",
-    unread: 0,
-    status: "answered",
-    activityStatus: "offline",
-    activityText: "Ngoại tuyến",
-    messages: [
-      {
-        id: 1,
-        sender: "customer",
-        content: "Cho mình hỏi hôm nay còn lịch làm nail không ạ?",
-        time: "16:20",
-      },
-      {
-        id: 2,
-        sender: "staff",
-        content: "Dạ còn chị nhé. Chị muốn đặt khung giờ nào ạ?",
-        time: "16:22",
-      },
-      {
-        id: 3,
-        sender: "customer",
-        content: "Ok bạn",
-        time: "16:25",
-      },
-      {
-        id: 4,
-        sender: "staff",
-        content: "Dạ em giữ lịch cho chị rồi ạ.",
-        time: "16:28",
-      },
-    ],
-  },
-];
+  MoreVertical,
+} from "lucide-react"
+import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader"
+import { getCurrentStaffUser } from "../../../services/authApi"
+import {
+  getStaffConversationDetailApi,
+  getStaffConversationsApi,
+  recallConversationMessageApi,
+  sendStaffMessageApi,
+  updateConversationMessageApi,
+} from "../../../services/conversationApi"
+import "./StaffConversations.css"
 
 const filterOptions = [
   {
@@ -133,105 +38,353 @@ const filterOptions = [
     label: "Đã trả lời",
     value: "answered",
   },
-];
+]
 
 const getConversationPreview = (conversation) => {
-  const lastMessage = conversation.messages[conversation.messages.length - 1];
+  if (!conversation?.lastMessage) return ""
 
-  if (!lastMessage) {
-    return "";
+  if (conversation.lastSender === "staff") {
+    return `Bạn: ${conversation.lastMessage}`
   }
 
-  if (lastMessage.sender === "staff") {
-    return `Bạn: ${lastMessage.content}`;
+  return conversation.lastMessage
+}
+
+const getDateFromCreatedAt = (createdAt) => {
+  if (!createdAt) return ""
+
+  return String(createdAt).split(" ")[0] || ""
+}
+
+const getMessageDateLabel = (createdAt) => {
+  const dateText = getDateFromCreatedAt(createdAt)
+
+  if (!dateText) return ""
+
+  const [day, month, year] = dateText.split("/").map(Number)
+
+  if (!day || !month || !year) return dateText
+
+  const messageDate = new Date(year, month - 1, day)
+  const today = new Date()
+  const yesterday = new Date()
+
+  today.setHours(0, 0, 0, 0)
+  yesterday.setDate(today.getDate() - 1)
+  yesterday.setHours(0, 0, 0, 0)
+  messageDate.setHours(0, 0, 0, 0)
+
+  if (messageDate.getTime() === today.getTime()) {
+    return "Hôm nay"
   }
 
-  return lastMessage.content;
-};
+  if (messageDate.getTime() === yesterday.getTime()) {
+    return "Hôm qua"
+  }
+
+  return dateText
+}
 
 function StaffConversations() {
-  const [conversations, setConversations] = useState(initialConversations);
-  const [selectedId, setSelectedId] = useState(initialConversations[0]?.id);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [replyText, setReplyText] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [conversations, setConversations] = useState([])
+  const [selectedId, setSelectedId] = useState(null)
+  const [selectedConversation, setSelectedConversation] = useState(null)
+
+  const [searchTerm, setSearchTerm] = useState("")
+  const [activeFilter, setActiveFilter] = useState("all")
+  const [replyText, setReplyText] = useState("")
+  const [errorMessage, setErrorMessage] = useState("")
+
+  const [isLoadingList, setIsLoadingList] = useState(true)
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+  const [isSending, setIsSending] = useState(false)
+
+  const [editingMessageId, setEditingMessageId] = useState(null)
+  const [editingText, setEditingText] = useState("")
+
+  const [openMenuMessageId, setOpenMenuMessageId] = useState(null)
+
+  const messageAreaRef = useRef(null)
+  const currentStaff = getCurrentStaffUser()
+
+  const scrollToBottom = useCallback(() => {
+    setTimeout(() => {
+      if (messageAreaRef.current) {
+        messageAreaRef.current.scrollTop = messageAreaRef.current.scrollHeight
+      }
+    }, 60)
+  }, [])
+
+  const fetchConversationList = useCallback(
+    async ({ silent = false } = {}) => {
+      try {
+        if (!silent) {
+          setIsLoadingList(true)
+        }
+
+        const data = await getStaffConversationsApi()
+
+        setConversations(data)
+
+        setSelectedId((currentSelectedId) => {
+          if (currentSelectedId) return currentSelectedId
+          return data.length > 0 ? data[0].id : null
+        })
+      } catch (error) {
+        setErrorMessage(error.message || "Không thể tải danh sách hội thoại.")
+      } finally {
+        if (!silent) {
+          setIsLoadingList(false)
+        }
+      }
+    },
+    []
+  )
+
+  const fetchConversationDetail = useCallback(
+    async (idHoiThoai, { silent = false } = {}) => {
+      if (!idHoiThoai) return
+
+      try {
+        if (!silent) {
+          setIsLoadingDetail(true)
+        }
+
+        const data = await getStaffConversationDetailApi(idHoiThoai)
+
+        setSelectedConversation(data)
+        scrollToBottom()
+
+        setConversations((prev) =>
+          prev.map((item) =>
+            item.id === data.id
+              ? {
+                  ...item,
+                  unread: 0,
+                  status: data.status,
+                  lastMessage: data.lastMessage,
+                  lastSender: data.lastSender,
+                  lastTime: data.lastTime,
+                }
+              : item
+          )
+        )
+      } catch (error) {
+        setErrorMessage(error.message || "Không thể tải chi tiết hội thoại.")
+      } finally {
+        if (!silent) {
+          setIsLoadingDetail(false)
+        }
+      }
+    },
+    [scrollToBottom]
+  )
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchConversationList()
+
+    const timer = setInterval(() => {
+      fetchConversationList({ silent: true })
+    }, 5000)
+
+    return () => clearInterval(timer)
+  }, [fetchConversationList])
+
+  useEffect(() => {
+    if (!selectedId) return
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchConversationDetail(selectedId)
+
+    const timer = setInterval(() => {
+      fetchConversationDetail(selectedId, { silent: true })
+    }, 4000)
+
+    return () => clearInterval(timer)
+  }, [selectedId, fetchConversationDetail])
 
   const filteredConversations = useMemo(() => {
     return conversations.filter((conversation) => {
-      const keyword = searchTerm.trim().toLowerCase();
+      const keyword = searchTerm.trim().toLowerCase()
 
       const matchesKeyword =
         keyword === "" ||
-        conversation.customerName.toLowerCase().includes(keyword) ||
-        conversation.phone.includes(keyword);
+        String(conversation.customerName || "")
+          .toLowerCase()
+          .includes(keyword) ||
+        String(conversation.phone || "").includes(keyword)
 
       const matchesFilter =
-        activeFilter === "all" || conversation.status === activeFilter;
+        activeFilter === "all" || conversation.status === activeFilter
 
-      return matchesKeyword && matchesFilter;
-    });
-  }, [conversations, searchTerm, activeFilter]);
+      return matchesKeyword && matchesFilter
+    })
+  }, [conversations, searchTerm, activeFilter])
 
-  const selectedConversation = useMemo(() => {
-    return conversations.find((item) => item.id === selectedId);
-  }, [conversations, selectedId]);
+  const conversationStats = useMemo(() => {
+    const total = conversations.length
+
+    const unanswered = conversations.filter(
+      (conversation) => conversation.status === "unanswered"
+    ).length
+
+    const answered = conversations.filter(
+      (conversation) => conversation.status === "answered"
+    ).length
+
+    const unreadMessages = conversations.reduce(
+      (sum, conversation) => sum + Number(conversation.unread || 0),
+      0
+    )
+
+    return {
+      total,
+      unanswered,
+      answered,
+      unreadMessages,
+    }
+  }, [conversations])
 
   const handleSelectConversation = (conversationId) => {
-    setSelectedId(conversationId);
-    setErrorMessage("");
+    setSelectedId(conversationId)
+    setErrorMessage("")
+    setEditingMessageId(null)
+    setEditingText("")
+    setOpenMenuMessageId(null)
+  }
 
-    setConversations((prev) =>
-      prev.map((conversation) =>
-        conversation.id === conversationId
-          ? {
-              ...conversation,
-              unread: 0,
-            }
-          : conversation
-      )
-    );
-  };
+  const isOwnMessage = (message) => {
+    return Number(message.idNguoiGuiTaiKhoan) === Number(currentStaff?.maTK)
+  }
 
-  const handleSendMessage = () => {
-    const content = replyText.trim();
+  const handleSendMessage = async () => {
+    const content = replyText.trim()
 
     if (!content) {
-      setErrorMessage("Vui lòng nhập nội dung phản hồi trước khi gửi.");
-      return;
+      setErrorMessage("Vui lòng nhập nội dung phản hồi trước khi gửi.")
+      return
     }
 
-    const now = new Date();
-    const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
-      now.getMinutes()
-    ).padStart(2, "0")}`;
+    if (!selectedId) {
+      setErrorMessage("Vui lòng chọn hội thoại cần phản hồi.")
+      return
+    }
 
-    setConversations((prev) =>
-      prev.map((conversation) => {
-        if (conversation.id !== selectedId) {
-          return conversation;
-        }
+    if (!currentStaff?.maTK) {
+      setErrorMessage("Không tìm thấy thông tin tài khoản nhân viên.")
+      return
+    }
 
-        const newMessage = {
-          id: Date.now(),
-          sender: "staff",
-          content,
-          time: currentTime,
-        };
+    try {
+      setIsSending(true)
+      setErrorMessage("")
 
-        return {
-          ...conversation,
-          status: "answered",
-          unread: 0,
-          lastTime: currentTime,
-          messages: [...conversation.messages, newMessage],
-        };
+      const result = await sendStaffMessageApi({
+        idHoiThoai: selectedId,
+        idTaiKhoan: currentStaff.maTK,
+        noiDung: content,
       })
-    );
 
-    setReplyText("");
-    setErrorMessage("");
-  };
+      setSelectedConversation(result.conversation)
+      setReplyText("")
+      scrollToBottom()
+      fetchConversationList({ silent: true })
+    } catch (error) {
+      setErrorMessage(error.message || "Không thể gửi phản hồi.")
+    } finally {
+      setIsSending(false)
+    }
+  }
+
+  const handleStartEditMessage = (message) => {
+    if (message.daThuHoi) return
+
+    setOpenMenuMessageId(null)
+    setEditingMessageId(message.id)
+    setEditingText(message.content)
+    setErrorMessage("")
+  }
+
+  const handleCancelEditMessage = () => {
+    setEditingMessageId(null)
+    setEditingText("")
+  }
+
+  const handleSaveEditMessage = async (message) => {
+    const content = editingText.trim()
+
+    if (!content) {
+      setErrorMessage("Nội dung tin nhắn không được để trống.")
+      return
+    }
+
+    if (!currentStaff?.maTK) {
+      setErrorMessage("Không tìm thấy thông tin tài khoản nhân viên.")
+      return
+    }
+
+    try {
+      setErrorMessage("")
+
+      const result = await updateConversationMessageApi({
+        idTinNhan: message.id,
+        idTaiKhoan: currentStaff.maTK,
+        noiDung: content,
+        actor: "staff",
+      })
+
+      if (result.conversation) {
+        setSelectedConversation(result.conversation)
+      } else {
+        await fetchConversationDetail(selectedId, { silent: true })
+      }
+
+      setEditingMessageId(null)
+      setEditingText("")
+      scrollToBottom()
+      fetchConversationList({ silent: true })
+    } catch (error) {
+      setErrorMessage(error.message || "Không thể sửa tin nhắn.")
+    }
+  }
+
+  const handleRecallMessage = async (message) => {
+    setOpenMenuMessageId(null)
+    const confirmed = window.confirm(
+      "Bạn có chắc muốn thu hồi tin nhắn này không?"
+    )
+
+    if (!confirmed) return
+
+    if (!currentStaff?.maTK) {
+      setErrorMessage("Không tìm thấy thông tin tài khoản nhân viên.")
+      return
+    }
+
+    try {
+      setErrorMessage("")
+
+      const result = await recallConversationMessageApi({
+        idTinNhan: message.id,
+        idTaiKhoan: currentStaff.maTK,
+        actor: "staff",
+      })
+
+      if (result.conversation) {
+        setSelectedConversation(result.conversation)
+      } else {
+        await fetchConversationDetail(selectedId, { silent: true })
+      }
+
+      setEditingMessageId(null)
+      setEditingText("")
+      fetchConversationList({ silent: true })
+      scrollToBottom()
+    } catch (error) {
+      setErrorMessage(error.message || "Không thể thu hồi tin nhắn.")
+    }
+  }
 
   return (
     <div className="staff-conversations-page">
@@ -242,6 +395,7 @@ function StaffConversations() {
           <aside className="conversation-list-panel">
             <div className="conversation-search-box">
               <Search size={17} />
+
               <input
                 type="text"
                 placeholder="Tìm khách hàng..."
@@ -251,32 +405,56 @@ function StaffConversations() {
             </div>
 
             <div className="conversation-filter-tabs">
-              {filterOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={
-                    activeFilter === option.value
-                      ? "conversation-filter-tab active"
-                      : "conversation-filter-tab"
-                  }
-                  onClick={() => setActiveFilter(option.value)}
-                >
-                  {option.label}
-                </button>
-              ))}
+              {filterOptions.map((option) => {
+                const countMap = {
+                  all: conversationStats.total,
+                  unanswered: conversationStats.unanswered,
+                  answered: conversationStats.answered,
+                }
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={
+                      activeFilter === option.value
+                        ? "conversation-filter-tab active"
+                        : "conversation-filter-tab"
+                    }
+                    onClick={() => setActiveFilter(option.value)}
+                  >
+                    {option.label}
+
+                    <span className="conversation-filter-count">
+                      {countMap[option.value] || 0}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
 
+            {conversationStats.unreadMessages > 0 && (
+              <div className="conversation-unread-summary">
+                Có {conversationStats.unreadMessages} tin nhắn khách hàng chưa
+                đọc
+              </div>
+            )}
+
             <div className="conversation-list">
-              {filteredConversations.length === 0 ? (
+              {isLoadingList ? (
+                <div className="conversation-empty">
+                  <UserRound size={28} />
+                  <p>Đang tải hội thoại...</p>
+                </div>
+              ) : filteredConversations.length === 0 ? (
                 <div className="conversation-empty">
                   <MessageCircle size={28} />
                   <p>Chưa có hội thoại nào</p>
                 </div>
               ) : (
                 filteredConversations.map((conversation) => {
-                  const isUnread = conversation.unread > 0;
-                  const previewText = getConversationPreview(conversation);
+                  const isUnread = conversation.unread > 0
+                  const previewText = getConversationPreview(conversation)
 
                   return (
                     <button
@@ -304,7 +482,7 @@ function StaffConversations() {
                         </span>
                       )}
                     </button>
-                  );
+                  )
                 })
               )}
             </div>
@@ -316,7 +494,15 @@ function StaffConversations() {
                 <div className="conversation-detail-header">
                   <div className="conversation-customer-info">
                     <div className="conversation-customer-avatar">
-                      {selectedConversation.avatarText}
+                      {selectedConversation.avatar ? (
+                        <img
+                          src={selectedConversation.avatar}
+                          alt={selectedConversation.customerName}
+                          className="conversation-customer-avatar-img"
+                        />
+                      ) : (
+                        selectedConversation.avatarText
+                      )}
                     </div>
 
                     <div>
@@ -337,20 +523,156 @@ function StaffConversations() {
                   </div>
                 </div>
 
-                <div className="conversation-message-area">
-                  {selectedConversation.messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={
-                        message.sender === "staff"
-                          ? "message-row staff"
-                          : "message-row customer"
-                      }
-                    >
-                      <div className="message-bubble">{message.content}</div>
-                      <span className="message-time">{message.time}</span>
+                <div
+                  className="conversation-message-area"
+                  ref={messageAreaRef}
+                >
+                  {isLoadingDetail ? (
+                    <div className="conversation-empty">
+                      <MessageCircle size={28} />
+                      <p>Đang tải tin nhắn...</p>
                     </div>
-                  ))}
+                  ) : (
+                    (selectedConversation.messages || []).map(
+                      (message, index, messages) => {
+                        const currentDateLabel = getMessageDateLabel(
+                          message.createdAt
+                        )
+
+                        const previousDateLabel =
+                          index > 0
+                            ? getMessageDateLabel(
+                                messages[index - 1].createdAt
+                              )
+                            : ""
+
+                        const shouldShowDateDivider =
+                          currentDateLabel &&
+                          currentDateLabel !== previousDateLabel
+
+                        return (
+                          <Fragment key={message.id}>
+                            {shouldShowDateDivider && (
+                              <div className="message-date-divider">
+                                <span>{currentDateLabel}</span>
+                              </div>
+                            )}
+
+                            <div
+                              className={
+                                message.sender === "staff"
+                                  ? "message-row staff"
+                                  : "message-row customer"
+                              }
+                            >
+                              {editingMessageId === message.id ? (
+                                <div className="conversation-edit-box">
+                                  <input
+                                    type="text"
+                                    value={editingText}
+                                    onChange={(event) =>
+                                      setEditingText(event.target.value)
+                                    }
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter") {
+                                        handleSaveEditMessage(message)
+                                      }
+
+                                      if (event.key === "Escape") {
+                                        handleCancelEditMessage()
+                                      }
+                                    }}
+                                    autoFocus
+                                  />
+
+                                  <div className="conversation-edit-actions">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleSaveEditMessage(message)
+                                      }
+                                    >
+                                      Lưu
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={handleCancelEditMessage}
+                                    >
+                                      Huỷ
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="message-content-wrap">
+                                  <div
+                                    className={
+                                      message.daThuHoi
+                                        ? "message-bubble message-bubble--recalled"
+                                        : "message-bubble"
+                                    }
+                                  >
+                                    {message.daThuHoi ? "Tin nhắn đã được thu hồi" : message.content}
+                                  </div>
+
+                                  <div className="message-meta">
+                                    <span className="message-time">{message.time}</span>
+
+                                    {message.daChinhSua && !message.daThuHoi && (
+                                      <span className="message-edited">Đã chỉnh sửa</span>
+                                    )}
+                                  </div>
+
+                                  {isOwnMessage(message) && !message.daThuHoi && (
+                                    <div
+                                      className={
+                                        openMenuMessageId === message.id
+                                          ? "message-menu-wrap open"
+                                          : "message-menu-wrap"
+                                      }
+                                    >
+                                      <button
+                                        type="button"
+                                        className="message-more-btn"
+                                        onClick={(event) => {
+                                          event.stopPropagation()
+                                          setOpenMenuMessageId((currentId) =>
+                                            currentId === message.id ? null : message.id
+                                          )
+                                        }}
+                                        title="Tuỳ chọn tin nhắn"
+                                      >
+                                        <MoreVertical size={18} />
+                                      </button>
+
+                                      {openMenuMessageId === message.id && (
+                                        <div className="message-action-menu">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleStartEditMessage(message)}
+                                          >
+                                            Chỉnh sửa
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRecallMessage(message)}
+                                          >
+                                            Thu hồi
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                              )}
+                            </div>
+                          </Fragment>
+                        )
+                      }
+                    )
+                  )}
                 </div>
 
                 <div className="conversation-reply-box">
@@ -363,18 +685,23 @@ function StaffConversations() {
                       type="text"
                       placeholder="Nhập tin nhắn phản hồi..."
                       value={replyText}
+                      disabled={isSending}
                       onChange={(event) => {
-                        setReplyText(event.target.value);
-                        setErrorMessage("");
+                        setReplyText(event.target.value)
+                        setErrorMessage("")
                       }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter") {
-                          handleSendMessage();
+                          handleSendMessage()
                         }
                       }}
                     />
 
-                    <button type="button" onClick={handleSendMessage}>
+                    <button
+                      type="button"
+                      onClick={handleSendMessage}
+                      disabled={isSending}
+                    >
                       <Send size={20} />
                     </button>
                   </div>
@@ -391,7 +718,7 @@ function StaffConversations() {
         </div>
       </section>
     </div>
-  );
+  )
 }
 
-export default StaffConversations;
+export default StaffConversations

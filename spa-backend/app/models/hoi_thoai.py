@@ -22,7 +22,7 @@ class HoiThoai(Base):
         nullable=True,
     )
 
-    trangThai = Column(String(50), nullable=False, default="Đang hoạt động")
+    trangThai = Column(String(50), nullable=False, default="Đang mở")
 
     ngayTao = Column(DateTime, server_default=func.now())
 
