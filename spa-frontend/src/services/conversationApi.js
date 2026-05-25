@@ -75,7 +75,10 @@ export async function getCustomerConversationApi(idTaiKhoan) {
     `${API_BASE_URL}/hoi-thoai/customer/${idTaiKhoan}`,
     {
       method: "GET",
+      cache: "no-store",
       headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     }
@@ -118,7 +121,10 @@ export async function getStaffConversationsApi() {
 
   const response = await fetch(`${API_BASE_URL}/hoi-thoai/staff/danh-sach`, {
     method: "GET",
+    cache: "no-store",
     headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   })
@@ -136,7 +142,10 @@ export async function getStaffConversationDetailApi(idHoiThoai) {
 
   const response = await fetch(`${API_BASE_URL}/hoi-thoai/staff/${idHoiThoai}`, {
     method: "GET",
+    cache: "no-store",
     headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   })
@@ -187,7 +196,10 @@ export async function getCustomerUnreadCountApi(idTaiKhoan) {
     `${API_BASE_URL}/hoi-thoai/customer/${idTaiKhoan}/unread-count`,
     {
       method: "GET",
+      cache: "no-store",
       headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     }
@@ -201,7 +213,10 @@ export async function getStaffUnreadCountApi() {
 
   const response = await fetch(`${API_BASE_URL}/hoi-thoai/staff/unread-count`, {
     method: "GET",
+    cache: "no-store",
     headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   })

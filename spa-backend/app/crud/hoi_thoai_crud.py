@@ -9,6 +9,7 @@ from app.models.khach_hang import KhachHang
 from app.models.nhan_vien import NhanVien
 from app.models.tai_khoan import TaiKhoan
 from app.models.tin_nhan import TinNhan
+from app.websocket.connection_manager import manager
 
 CONVERSATION_OPEN_STATUS = "Đang mở"
 CONVERSATION_ANSWERED_STATUS = "Đã trả lời"
@@ -343,7 +344,35 @@ def get_staff_conversation_status(last_message: TinNhan | None):
     return "answered"
 
 
-def get_activity_info(last_message: TinNhan | None):
+def get_activity_info(khach_hang: KhachHang | None, last_message: TinNhan | None):
+    if khach_hang and khach_hang.idTaiKhoan:
+        presence = manager.get_user_presence(int(khach_hang.idTaiKhoan))
+
+        if presence["isOnline"]:
+            return {
+                "activityStatus": "online",
+                "activityText": "Đang hoạt động",
+            }
+
+        last_seen = presence["lastSeen"]
+
+        if last_seen:
+            diff_seconds = (datetime.now() - last_seen).total_seconds()
+
+            if diff_seconds <= 60 * 60:
+                minutes = max(1, int(diff_seconds // 60))
+
+                return {
+                    "activityStatus": "recent",
+                    "activityText": f"Hoạt động {minutes} phút trước",
+                }
+
+            return {
+                "activityStatus": "offline",
+                "activityText": "Ngoại tuyến",
+            }
+
+    # Fallback: nếu chưa có dữ liệu presence thì dựa vào tin nhắn cuối
     if not last_message or not last_message.thoiGianGui:
         return {
             "activityStatus": "offline",
@@ -375,7 +404,7 @@ def get_activity_info(last_message: TinNhan | None):
 def build_staff_conversation_item(db: Session, conversation: HoiThoai):
     khach_hang = conversation.khachHang
     last_message = get_last_message(db, int(conversation.idHoiThoai))
-    activity_info = get_activity_info(last_message)
+    activity_info = get_activity_info(khach_hang, last_message)
 
     customer_name = khach_hang.hoTen if khach_hang else "Khách hàng"
 

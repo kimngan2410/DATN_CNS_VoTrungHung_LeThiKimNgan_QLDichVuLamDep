@@ -23,15 +23,25 @@ async function handleResponse(response, defaultMessage) {
   return data
 }
 
-export async function getStaffOverviewApi(period = "today") {
+export async function getStaffOverviewApi(period = "date", value = "") {
   const token = getAuthToken()
 
+  const params = new URLSearchParams()
+  params.set("period", period)
+
+  if (value) {
+    params.set("value", value)
+  }
+
   const response = await fetch(
-    `${API_BASE_URL}/staff/overview?period=${encodeURIComponent(period)}`,
+    `${API_BASE_URL}/staff/overview?${params.toString()}`,
     {
       method: "GET",
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     }

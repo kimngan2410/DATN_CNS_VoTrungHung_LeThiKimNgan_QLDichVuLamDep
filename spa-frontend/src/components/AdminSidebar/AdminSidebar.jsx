@@ -1,5 +1,5 @@
-import React, { useState } from "react"
-import { NavLink, useLocation } from "react-router-dom"
+import React, { useEffect, useState } from "react"
+import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import {
   Sparkles,
   LayoutDashboard,
@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import "./AdminSidebar.css"
 import spaLogo from "../../assets/images/logo_header.png";
+import { getCurrentAdminUser, logoutAdmin } from "../../services/authApi"
 
 
 const menuItems = [
@@ -88,6 +89,33 @@ function AdminSidebar() {
   const [isReportOpen, setIsReportOpen] = useState(false)
 
   const shouldShowReportMenu = isReportOpen || isReportActive
+
+  const navigate = useNavigate()
+  const [currentAdmin, setCurrentAdmin] = useState(getCurrentAdminUser())
+
+  useEffect(() => {
+    const handleAuthChange = () => {
+      setCurrentAdmin(getCurrentAdminUser())
+    }
+
+    window.addEventListener("admin-auth-changed", handleAuthChange)
+    window.addEventListener("storage", handleAuthChange)
+
+    return () => {
+      window.removeEventListener("admin-auth-changed", handleAuthChange)
+      window.removeEventListener("storage", handleAuthChange)
+    }
+  }, [])
+
+  const displayName = currentAdmin?.hoTen || "Admin"
+  const roleText = currentAdmin?.chucVu || "Quản trị viên"
+  const avatar = currentAdmin?.avatar
+  const avatarText = displayName.charAt(0).toUpperCase()
+
+  const handleLogout = () => {
+    logoutAdmin()
+    navigate("/admin/dang-nhap", { replace: true })
+  }
 
   return (
     <aside className="admin-sidebar">
@@ -166,12 +194,23 @@ function AdminSidebar() {
       </nav>
 
       <div className="admin-sidebar-profile">
-        <div className="admin-profile-avatar">A</div>
+        <div className="admin-profile-avatar">
+          {avatar ? <img src={avatar} alt={displayName} /> : avatarText}
+        </div>
 
         <div className="admin-profile-info">
-          <h4>Admin Tổng</h4>
-          <p>Quản trị viên</p>
+          <h4>{displayName}</h4>
+          <p>{roleText}</p>
         </div>
+
+        <button
+          type="button"
+          className="admin-sidebar-logout-btn"
+          onClick={handleLogout}
+          title="Đăng xuất"
+        >
+          Đăng xuất
+        </button>
       </div>
     </aside>
   )

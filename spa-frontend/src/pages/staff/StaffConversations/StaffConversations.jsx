@@ -23,6 +23,12 @@ import {
   sendStaffMessageApi,
   updateConversationMessageApi,
 } from "../../../services/conversationApi"
+import {
+  createStaffConversationListSocket,
+  createStaffConversationSocket,
+  isSocketOpen,
+  sendSocketJson,
+} from "../../../services/conversationSocket"
 import "./StaffConversations.css"
 
 const filterOptions = [
@@ -85,6 +91,77 @@ const getMessageDateLabel = (createdAt) => {
   return dateText
 }
 
+const shouldShowMessageTime = (messages, index) => {
+  const currentMessage = messages[index]
+  const nextMessage = messages[index + 1]
+
+  if (!currentMessage?.time) return false
+
+  if (!nextMessage) return true
+
+  const currentDate = getDateFromCreatedAt(currentMessage.createdAt)
+  const nextDate = getDateFromCreatedAt(nextMessage.createdAt)
+
+  return currentMessage.time !== nextMessage.time || currentDate !== nextDate
+}
+
+const isSameMessageGroupWithNext = (messages, index) => {
+  const currentMessage = messages[index]
+  const nextMessage = messages[index + 1]
+
+  if (!currentMessage || !nextMessage) return false
+
+  const currentDate = getDateFromCreatedAt(currentMessage.createdAt)
+  const nextDate = getDateFromCreatedAt(nextMessage.createdAt)
+
+  return (
+    currentMessage.sender === nextMessage.sender &&
+    currentMessage.time === nextMessage.time &&
+    currentDate === nextDate
+  )
+}
+
+const upsertMessageToList = (messages = [], newMessage) => {
+  if (!newMessage?.id) return messages
+
+  const existed = messages.some(
+    (item) => Number(item.id) === Number(newMessage.id)
+  )
+
+  if (existed) {
+    return messages.map((item) =>
+      Number(item.id) === Number(newMessage.id)
+        ? {
+            ...item,
+            ...newMessage,
+          }
+        : item
+    )
+  }
+
+  return [...messages, newMessage]
+}
+
+const getPreviewFromSocketMessage = (message) => {
+  if (!message) return ""
+
+  if (message.daThuHoi) {
+    return "Tin nhắn đã được thu hồi"
+  }
+
+  return message.content || ""
+}
+
+const getConversationStatusFromSocketMessage = (message) => {
+  if (!message) return undefined
+
+  if (message.sender === "staff") {
+    return "answered"
+  }
+
+  return "unanswered"
+}
+
 function StaffConversations() {
   const [conversations, setConversations] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -101,11 +178,18 @@ function StaffConversations() {
 
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editingText, setEditingText] = useState("")
-
   const [openMenuMessageId, setOpenMenuMessageId] = useState(null)
 
   const messageAreaRef = useRef(null)
+  const listSocketRef = useRef(null)
+  const detailSocketRef = useRef(null)
+  const selectedIdRef = useRef(null)
+
   const currentStaff = getCurrentStaffUser()
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -180,16 +264,128 @@ function StaffConversations() {
     [scrollToBottom]
   )
 
+  const applySocketMessageToStaffState = useCallback(
+    (socketMessage) => {
+      if (!socketMessage?.id) return
+
+      const socketConversationId =
+        socketMessage.idHoiThoai || socketMessage.idConversation
+
+      const currentSelectedId = selectedIdRef.current
+
+      setSelectedConversation((prev) => {
+        if (!prev) return prev
+
+        const currentConversationId = prev.idHoiThoai || prev.id
+
+        if (
+          socketConversationId &&
+          Number(socketConversationId) !== Number(currentConversationId)
+        ) {
+          return prev
+        }
+
+        return {
+          ...prev,
+          lastMessage: getPreviewFromSocketMessage(socketMessage),
+          lastSender: socketMessage.sender,
+          lastTime: socketMessage.time,
+          status: getConversationStatusFromSocketMessage(socketMessage) || prev.status,
+          messages: upsertMessageToList(prev.messages || [], socketMessage),
+        }
+      })
+
+      setConversations((prev) =>
+        prev.map((item) => {
+          if (
+            socketConversationId &&
+            Number(item.id) !== Number(socketConversationId)
+          ) {
+            return item
+          }
+
+          const isCurrentOpenConversation =
+            Number(currentSelectedId) === Number(item.id)
+
+          const shouldIncreaseUnread =
+            !isCurrentOpenConversation && socketMessage.sender === "customer"
+
+          return {
+            ...item,
+            lastMessage: getPreviewFromSocketMessage(socketMessage),
+            lastSender: socketMessage.sender,
+            lastTime: socketMessage.time,
+            status: getConversationStatusFromSocketMessage(socketMessage) || item.status,
+            unread: shouldIncreaseUnread
+              ? Number(item.unread || 0) + 1
+              : isCurrentOpenConversation
+                ? 0
+                : item.unread,
+          }
+        })
+      )
+
+      scrollToBottom()
+    },
+    [scrollToBottom]
+  )
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchConversationList()
 
-    const timer = setInterval(() => {
-      fetchConversationList({ silent: true })
-    }, 5000)
+    if (listSocketRef.current) {
+      listSocketRef.current.close()
+    }
 
-    return () => clearInterval(timer)
-  }, [fetchConversationList])
+    listSocketRef.current = createStaffConversationListSocket({
+      onEvent: (eventData) => {
+        if (
+          eventData.type === "ping" ||
+          eventData.type === "connected_staff_list"
+        ) {
+          return
+        }
+
+        if (
+          eventData.type === "message_created" ||
+          eventData.type === "message_updated" ||
+          eventData.type === "message_recalled"
+        ) {
+          if (eventData.message) {
+            applySocketMessageToStaffState(eventData.message)
+            return
+          }
+        }
+
+        if (eventData.type === "conversation_updated") {
+          fetchConversationList({ silent: true })
+          return
+        }
+
+        if (eventData.type === "presence_updated") {
+          fetchConversationList({ silent: true })
+
+          const currentSelectedId = selectedIdRef.current
+
+          if (currentSelectedId) {
+            fetchConversationDetail(currentSelectedId, { silent: true })
+          }
+        }
+      },
+
+      onClose: () => {
+        listSocketRef.current = null
+      },
+    })
+
+    return () => {
+      if (listSocketRef.current) {
+        listSocketRef.current.close()
+        listSocketRef.current = null
+      }
+    }
+  }, [fetchConversationList, fetchConversationDetail, applySocketMessageToStaffState])
 
   useEffect(() => {
     if (!selectedId) return
@@ -197,12 +393,55 @@ function StaffConversations() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchConversationDetail(selectedId)
 
-    const timer = setInterval(() => {
-      fetchConversationDetail(selectedId, { silent: true })
-    }, 4000)
+    if (detailSocketRef.current) {
+      detailSocketRef.current.close()
+    }
 
-    return () => clearInterval(timer)
-  }, [selectedId, fetchConversationDetail])
+    detailSocketRef.current = createStaffConversationSocket({
+      idHoiThoai: selectedId,
+
+      onEvent: (eventData) => {
+        if (eventData.type === "connected") {
+          return
+        }
+
+        if (eventData.type === "error") {
+          setErrorMessage(eventData.message || "Lỗi kết nối hội thoại.")
+          return
+        }
+
+        if (
+          eventData.type === "message_created" ||
+          eventData.type === "message_updated" ||
+          eventData.type === "message_recalled"
+        ) {
+          if (eventData.message) {
+            applySocketMessageToStaffState(eventData.message)
+
+            // Resync nhẹ để backend cập nhật đã đọc / thống kê.
+            // Tin nhắn vẫn hiện ngay nhờ state ở trên.
+            fetchConversationList({ silent: true })
+
+            return
+          }
+
+          fetchConversationDetail(selectedId, { silent: true })
+          fetchConversationList({ silent: true })
+        }
+      },
+
+      onClose: () => {
+        detailSocketRef.current = null
+      },
+    })
+
+    return () => {
+      if (detailSocketRef.current) {
+        detailSocketRef.current.close()
+        detailSocketRef.current = null
+      }
+    }
+  }, [selectedId, fetchConversationDetail, fetchConversationList, applySocketMessageToStaffState])
 
   const filteredConversations = useMemo(() => {
     return conversations.filter((conversation) => {
@@ -280,6 +519,19 @@ function StaffConversations() {
       setIsSending(true)
       setErrorMessage("")
 
+      if (isSocketOpen(detailSocketRef.current)) {
+        const ok = sendSocketJson(detailSocketRef.current, {
+          action: "send_message",
+          idTaiKhoan: currentStaff.maTK,
+          noiDung: content,
+        })
+
+        if (ok) {
+          setReplyText("")
+          return
+        }
+      }
+
       const result = await sendStaffMessageApi({
         idHoiThoai: selectedId,
         idTaiKhoan: currentStaff.maTK,
@@ -327,6 +579,21 @@ function StaffConversations() {
     try {
       setErrorMessage("")
 
+      if (isSocketOpen(detailSocketRef.current)) {
+        const ok = sendSocketJson(detailSocketRef.current, {
+          action: "update_message",
+          idTinNhan: message.id,
+          idTaiKhoan: currentStaff.maTK,
+          noiDung: content,
+        })
+
+        if (ok) {
+          setEditingMessageId(null)
+          setEditingText("")
+          return
+        }
+      }
+
       const result = await updateConversationMessageApi({
         idTinNhan: message.id,
         idTaiKhoan: currentStaff.maTK,
@@ -351,6 +618,7 @@ function StaffConversations() {
 
   const handleRecallMessage = async (message) => {
     setOpenMenuMessageId(null)
+
     const confirmed = window.confirm(
       "Bạn có chắc muốn thu hồi tin nhắn này không?"
     )
@@ -364,6 +632,20 @@ function StaffConversations() {
 
     try {
       setErrorMessage("")
+
+      if (isSocketOpen(detailSocketRef.current)) {
+        const ok = sendSocketJson(detailSocketRef.current, {
+          action: "recall_message",
+          idTinNhan: message.id,
+          idTaiKhoan: currentStaff.maTK,
+        })
+
+        if (ok) {
+          setEditingMessageId(null)
+          setEditingText("")
+          return
+        }
+      }
 
       const result = await recallConversationMessageApi({
         idTinNhan: message.id,
@@ -468,19 +750,26 @@ function StaffConversations() {
                       onClick={() => handleSelectConversation(conversation.id)}
                     >
                       <div className="conversation-item-main">
-                        <div className="conversation-name-row">
-                          <strong>{conversation.customerName}</strong>
-                          <span>{conversation.lastTime}</span>
+                        <div className="conversation-item-row conversation-item-row-top">
+                          <strong className="conversation-item-name">
+                            {conversation.customerName}
+                          </strong>
+
+                          <span className="conversation-item-time">
+                            {conversation.lastTime}
+                          </span>
                         </div>
 
-                        <p>{previewText}</p>
-                      </div>
+                        <div className="conversation-item-row conversation-item-row-bottom">
+                          <p className="conversation-item-preview">{previewText}</p>
 
-                      {isUnread && (
-                        <span className="conversation-unread-badge">
-                          {conversation.unread}
-                        </span>
-                      )}
+                          {isUnread && (
+                            <span className="conversation-unread-badge">
+                              {conversation.unread}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </button>
                   )
                 })
@@ -550,6 +839,9 @@ function StaffConversations() {
                           currentDateLabel &&
                           currentDateLabel !== previousDateLabel
 
+                        const shouldShowTime = shouldShowMessageTime(messages, index)
+                        const isCompactMessage = isSameMessageGroupWithNext(messages, index)
+
                         return (
                           <Fragment key={message.id}>
                             {shouldShowDateDivider && (
@@ -559,11 +851,11 @@ function StaffConversations() {
                             )}
 
                             <div
-                              className={
-                                message.sender === "staff"
-                                  ? "message-row staff"
-                                  : "message-row customer"
-                              }
+                              className={[
+                                "message-row",
+                                message.sender === "staff" ? "staff" : "customer",
+                                isCompactMessage ? "message-row--compact" : "",
+                              ].join(" ")}
                             >
                               {editingMessageId === message.id ? (
                                 <div className="conversation-edit-box">
@@ -612,60 +904,72 @@ function StaffConversations() {
                                         : "message-bubble"
                                     }
                                   >
-                                    {message.daThuHoi ? "Tin nhắn đã được thu hồi" : message.content}
+                                    {message.daThuHoi
+                                      ? "Tin nhắn đã được thu hồi"
+                                      : message.content}
                                   </div>
 
-                                  <div className="message-meta">
-                                    <span className="message-time">{message.time}</span>
+                                  {(shouldShowTime || (message.daChinhSua && !message.daThuHoi)) && (
+                                    <div className="message-meta">
+                                      {shouldShowTime && (
+                                        <span className="message-time">{message.time}</span>
+                                      )}
 
-                                    {message.daChinhSua && !message.daThuHoi && (
-                                      <span className="message-edited">Đã chỉnh sửa</span>
-                                    )}
-                                  </div>
-
-                                  {isOwnMessage(message) && !message.daThuHoi && (
-                                    <div
-                                      className={
-                                        openMenuMessageId === message.id
-                                          ? "message-menu-wrap open"
-                                          : "message-menu-wrap"
-                                      }
-                                    >
-                                      <button
-                                        type="button"
-                                        className="message-more-btn"
-                                        onClick={(event) => {
-                                          event.stopPropagation()
-                                          setOpenMenuMessageId((currentId) =>
-                                            currentId === message.id ? null : message.id
-                                          )
-                                        }}
-                                        title="Tuỳ chọn tin nhắn"
-                                      >
-                                        <MoreVertical size={18} />
-                                      </button>
-
-                                      {openMenuMessageId === message.id && (
-                                        <div className="message-action-menu">
-                                          <button
-                                            type="button"
-                                            onClick={() => handleStartEditMessage(message)}
-                                          >
-                                            Chỉnh sửa
-                                          </button>
-
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRecallMessage(message)}
-                                          >
-                                            Thu hồi
-                                          </button>
-                                        </div>
+                                      {message.daChinhSua && !message.daThuHoi && (
+                                        <span className="message-edited">Đã chỉnh sửa</span>
                                       )}
                                     </div>
                                   )}
-                                </div>
 
+                                  {isOwnMessage(message) &&
+                                    !message.daThuHoi && (
+                                      <div
+                                        className={
+                                          openMenuMessageId === message.id
+                                            ? "message-menu-wrap open"
+                                            : "message-menu-wrap"
+                                        }
+                                      >
+                                        <button
+                                          type="button"
+                                          className="message-more-btn"
+                                          onClick={(event) => {
+                                            event.stopPropagation()
+                                            setOpenMenuMessageId((currentId) =>
+                                              currentId === message.id
+                                                ? null
+                                                : message.id
+                                            )
+                                          }}
+                                          title="Tuỳ chọn tin nhắn"
+                                        >
+                                          <MoreVertical size={18} />
+                                        </button>
+
+                                        {openMenuMessageId === message.id && (
+                                          <div className="message-action-menu">
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleStartEditMessage(message)
+                                              }
+                                            >
+                                              Chỉnh sửa
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleRecallMessage(message)
+                                              }
+                                            >
+                                              Thu hồi
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                </div>
                               )}
                             </div>
                           </Fragment>

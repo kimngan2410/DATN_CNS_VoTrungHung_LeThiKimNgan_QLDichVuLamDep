@@ -3,6 +3,9 @@ import {
   getCurrentStaffUser,
   getStaffAuthToken,
   clearStaffAuthData,
+  getCurrentAdminUser,
+  getAdminAuthToken,
+  clearAdminAuthData,
 } from "./services/authApi"
 
 function isTokenExpired(token) {
@@ -63,6 +66,42 @@ function StaffLoginGate() {
   return <StaffLogin />
 }
 
+function isAdminAuthenticated() {
+  const token = getAdminAuthToken()
+  const user = getCurrentAdminUser()
+
+  if (!token || isTokenExpired(token)) {
+    clearAdminAuthData()
+    return false
+  }
+
+  return user?.vaiTro === "Admin"
+}
+
+function RequireAdminAuth() {
+  const location = useLocation()
+
+  if (!isAdminAuthenticated()) {
+    return (
+      <Navigate
+        to="/admin/dang-nhap"
+        replace
+        state={{ from: location.pathname }}
+      />
+    )
+  }
+
+  return <Outlet />
+}
+
+function AdminLoginGate() {
+  if (isAdminAuthenticated()) {
+    return <Navigate to="/admin/tong-quan" replace />
+  }
+
+  return <AdminLogin />
+}
+
 /* CUSTOMER */
 import HomePage from "./pages/customer/HomePage/HomePage"
 import LoginPage from "./pages/auth/LoginPage/LoginPage"
@@ -87,6 +126,7 @@ import StaffSettings from "./pages/staff/StaffSettings/StaffSettings"
 
 /* ADMIN */
 import AdminLayout from "./components/AdminLayout/AdminLayout"
+import AdminLogin from "./pages/admin/AdminLogin/AdminLogin"
 import AdminOverview from "./pages/admin/AdminOverview/AdminOverview"
 import AdminCustomersList from "./pages/admin/AdminCustomersList/AdminCustomersList"
 import AdminServiceCategories from "./pages/admin/AdminServiceCategories/AdminServiceCategories"
@@ -133,19 +173,26 @@ function App() {
       </Route>
 
       {/* ADMIN ROUTES */}
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route index element={<Navigate to="/admin/tong-quan" replace />} />
-        <Route path="tong-quan" element={<AdminOverview />} />
-        <Route path="khach-hang" element={<AdminCustomersList />} />
-        <Route path="danh-muc-dich-vu" element={<AdminServiceCategories />} />
-        <Route path="dich-vu" element={<AdminServices />} />
-        <Route path="nhan-vien" element={<AdminEmployeeList />} />
-        <Route path="danh-gia-dich-vu" element={<AdminReviews />} />
-        <Route path="tai-khoan" element={<AdminAccounts />} />
-        <Route path="bao-cao/doanh-thu" element={<RevenueReport />} />
-        <Route path="bao-cao/hoa-don" element={<InvoiceReport />} />
-        <Route path="bao-cao/tinh-hinh-su-dung-dich-vu" element={<ServiceUsageReport />} />
-        <Route path="bao-cao/lich-hen" element={<AppointmentReport />} />
+      <Route path="/admin/dang-nhap" element={<AdminLoginGate />} />
+
+      <Route element={<RequireAdminAuth />}>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="tong-quan" replace />} />
+          <Route path="tong-quan" element={<AdminOverview />} />
+          <Route path="khach-hang" element={<AdminCustomersList />} />
+          <Route path="danh-muc-dich-vu" element={<AdminServiceCategories />} />
+          <Route path="dich-vu" element={<AdminServices />} />
+          <Route path="nhan-vien" element={<AdminEmployeeList />} />
+          <Route path="danh-gia-dich-vu" element={<AdminReviews />} />
+          <Route path="tai-khoan" element={<AdminAccounts />} />
+          <Route path="bao-cao/doanh-thu" element={<RevenueReport />} />
+          <Route path="bao-cao/hoa-don" element={<InvoiceReport />} />
+          <Route
+            path="bao-cao/tinh-hinh-su-dung-dich-vu"
+            element={<ServiceUsageReport />}
+          />
+          <Route path="bao-cao/lich-hen" element={<AppointmentReport />} />
+        </Route>
       </Route>
 
       {/* NOT FOUND */}

@@ -127,3 +127,16 @@ def require_receptionist(
         "taiKhoan": current_user,
         "nhanVien": nhan_vien,
     }
+
+def require_admin(
+    current_user: TaiKhoan = Depends(get_current_user),
+):
+    if current_user.loaiTK != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ quản trị viên mới được truy cập chức năng này",
+        )
+
+    return {
+        "taiKhoan": current_user,
+    }

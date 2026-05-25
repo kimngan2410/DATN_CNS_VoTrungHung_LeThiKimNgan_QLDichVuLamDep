@@ -511,3 +511,11 @@
 .chat-message__dropdown button:last-child:hover {
   background: #fee2e2;
 }
+
+.chat-message + .chat-message {
+  margin-top: 14px;
+}
+
+.chat-message--compact + .chat-message {
+  margin-top: 6px;
+}

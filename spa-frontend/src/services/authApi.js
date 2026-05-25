@@ -14,6 +14,12 @@ const AUTH_STORAGE = {
     mode: "staffAuthStorageMode",
     event: "staff-auth-changed",
   },
+  admin: {
+    token: "adminToken",
+    user: "adminUser",
+    mode: "adminAuthStorageMode",
+    event: "admin-auth-changed",
+  },
 }
 
 /* =========================
@@ -107,6 +113,18 @@ export async function loginReceptionistApi(payload) {
   })
 
   return handleResponse(response, "Đăng nhập nhân viên lễ tân thất bại")
+}
+
+export async function loginAdminApi(payload) {
+  const response = await fetch(`${API_BASE_URL}/auth/admin/dang-nhap`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return handleResponse(response, "Đăng nhập quản trị viên thất bại")
 }
 
 /* =========================
@@ -273,12 +291,42 @@ export function logoutStaff() {
 }
 
 /* =========================
+   ADMIN AUTH STORAGE
+========================= */
+
+export function saveAdminAuthData(data, rememberMe = true) {
+  saveAuthByKeys(data, rememberMe, AUTH_STORAGE.admin)
+}
+
+export function getAdminAuthToken() {
+  return getTokenByKeys(AUTH_STORAGE.admin)
+}
+
+export function getCurrentAdminUser() {
+  return getUserByKeys(AUTH_STORAGE.admin)
+}
+
+export function clearAdminAuthData() {
+  removeAuthByKeys(AUTH_STORAGE.admin)
+  window.dispatchEvent(new Event(AUTH_STORAGE.admin.event))
+}
+
+export function logoutAdmin() {
+  clearAdminAuthData()
+}
+
+/* =========================
    BACKWARD COMPATIBILITY
    Giữ tên cũ để các file hiện tại không bị lỗi đỏ.
 ========================= */
 
 export function saveAuthData(data, rememberMe = true) {
   const role = data?.user?.vaiTro
+
+  if (role === "Admin") {
+    saveAdminAuthData(data, rememberMe)
+    return
+  }
 
   if (role === "NhanVien") {
     saveStaffAuthData(data, rememberMe)
@@ -316,6 +364,7 @@ export function clearLegacyAuthData() {
 export function clearAllAuthData() {
   clearCustomerAuthData()
   clearStaffAuthData()
+  clearAdminAuthData()
   clearLegacyAuthData()
 }
 
@@ -325,9 +374,11 @@ export function clearAllAuthData() {
 
 export async function changePasswordApi(idTaiKhoan, payload, actor = "customer") {
   const token =
-    actor === "staff"
-      ? getStaffAuthToken()
-      : getCustomerAuthToken() || getStaffAuthToken()
+    actor === "admin"
+      ? getAdminAuthToken()
+      : actor === "staff"
+        ? getStaffAuthToken()
+        : getCustomerAuthToken() || getStaffAuthToken() || getAdminAuthToken()
 
   const response = await fetch(
     `${API_BASE_URL}/auth/doi-mat-khau/${idTaiKhoan}`,

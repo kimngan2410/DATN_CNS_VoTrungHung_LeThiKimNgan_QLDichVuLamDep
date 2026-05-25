@@ -202,6 +202,69 @@ def build_staff_user_payload(
         "sdt": nhan_vien.sdt,
     }
 
+def build_admin_user_payload(tai_khoan: TaiKhoan):
+    display_name = "Admin Tổng"
+
+    return {
+        "maTK": tai_khoan.idTaiKhoan,
+        "email": tai_khoan.email,
+        "vaiTro": "Admin",
+
+        "maKH": None,
+        "maNV": None,
+        "maNVCode": None,
+
+        "hoTen": display_name,
+        "avatar": make_default_avatar(display_name, tai_khoan.email),
+        "chucVu": "Quản trị viên",
+        "sdt": None,
+    }
+
+
+def authenticate_admin_user(db: Session, email: str, password: str):
+    email = email.strip().lower()
+
+    tai_khoan = db.query(TaiKhoan).filter(TaiKhoan.email == email).first()
+
+    if not tai_khoan:
+        return None
+
+    trang_thai = (tai_khoan.trangThai or "").strip().upper()
+
+    if trang_thai == "KHOA":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản admin đã bị khóa",
+        )
+
+    if tai_khoan.loaiTK != "ADMIN":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản này không phải tài khoản quản trị viên",
+        )
+
+    if not tai_khoan.matKhau:
+        return None
+
+    is_valid_password = verify_password(password, tai_khoan.matKhau)
+
+    # Hỗ trợ nếu DB cũ từng lưu mật khẩu dạng text thường
+    if not is_valid_password and password == tai_khoan.matKhau:
+        tai_khoan.matKhau = hash_password(password)
+        db.commit()
+        db.refresh(tai_khoan)
+        is_valid_password = True
+
+    if not is_valid_password:
+        return None
+
+    tai_khoan.lanDangNhapCuoi = datetime.now()
+
+    db.commit()
+    db.refresh(tai_khoan)
+
+    return build_admin_user_payload(tai_khoan)
+
 
 def authenticate_receptionist_user(db: Session, email: str, password: str):
     email = email.strip().lower()

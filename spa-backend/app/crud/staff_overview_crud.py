@@ -319,24 +319,87 @@ def to_float(value):
     return float(value or 0)
 
 
-def get_period_range(period: str):
-    now = datetime.now()
-    today = now.date()
+def parse_selected_date(value: str | None):
+    if value:
+        try:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+
+    return datetime.now().date()
+
+
+def parse_selected_week(value: str | None):
+    if value:
+        try:
+            # value dạng: 2026-W22
+            return datetime.strptime(f"{value}-1", "%G-W%V-%u").date()
+        except ValueError:
+            pass
+
+    today = datetime.now().date()
+    return today - timedelta(days=today.weekday())
+
+
+def parse_selected_month(value: str | None):
+    if value:
+        try:
+            return datetime.strptime(value, "%Y-%m").date().replace(day=1)
+        except ValueError:
+            pass
+
+    today = datetime.now().date()
+    return today.replace(day=1)
+
+
+def parse_selected_year(value: str | None):
+    if value:
+        try:
+            year = int(value)
+            return datetime(year, 1, 1).date()
+        except ValueError:
+            pass
+
+    today = datetime.now().date()
+    return today.replace(month=1, day=1)
+
+
+def get_period_range(period: str, value: str | None = None):
+    today = datetime.now().date()
+
+    if period in ["date", "today"]:
+        selected_date = parse_selected_date(value)
+        next_date = selected_date + timedelta(days=1)
+
+        label = (
+            "Hôm nay"
+            if selected_date == today
+            else f"Ngày {selected_date.strftime('%d/%m/%Y')}"
+        )
+
+        return {
+            "key": "date",
+            "label": label,
+            "start": datetime.combine(selected_date, datetime.min.time()),
+            "end": datetime.combine(next_date, datetime.min.time()),
+            "group": "hour",
+        }
 
     if period == "week":
-        start_date = today - timedelta(days=today.weekday())
+        start_date = parse_selected_week(value)
         end_date = start_date + timedelta(days=7)
+        iso_year, iso_week, _ = start_date.isocalendar()
 
         return {
             "key": "week",
-            "label": "Tuần này",
+            "label": f"Tuần {iso_week}/{iso_year}",
             "start": datetime.combine(start_date, datetime.min.time()),
             "end": datetime.combine(end_date, datetime.min.time()),
             "group": "day",
         }
 
     if period == "month":
-        start_date = today.replace(day=1)
+        start_date = parse_selected_month(value)
 
         if start_date.month == 12:
             next_month = start_date.replace(year=start_date.year + 1, month=1)
@@ -345,47 +408,31 @@ def get_period_range(period: str):
 
         return {
             "key": "month",
-            "label": "Tháng này",
+            "label": f"Tháng {start_date.month:02d}/{start_date.year}",
             "start": datetime.combine(start_date, datetime.min.time()),
             "end": datetime.combine(next_month, datetime.min.time()),
             "group": "week",
         }
 
-    if period == "quarter":
-        quarter_start_month = ((today.month - 1) // 3) * 3 + 1
-        start_date = today.replace(month=quarter_start_month, day=1)
-
-        if quarter_start_month == 10:
-            next_quarter = start_date.replace(year=start_date.year + 1, month=1)
-        else:
-            next_quarter = start_date.replace(month=quarter_start_month + 3)
-
-        return {
-            "key": "quarter",
-            "label": "Quý này",
-            "start": datetime.combine(start_date, datetime.min.time()),
-            "end": datetime.combine(next_quarter, datetime.min.time()),
-            "group": "month",
-        }
-
     if period == "year":
-        start_date = today.replace(month=1, day=1)
+        start_date = parse_selected_year(value)
         next_year = start_date.replace(year=start_date.year + 1)
 
         return {
             "key": "year",
-            "label": "Năm này",
+            "label": f"Năm {start_date.year}",
             "start": datetime.combine(start_date, datetime.min.time()),
             "end": datetime.combine(next_year, datetime.min.time()),
             "group": "month",
         }
 
+    selected_date = today
     tomorrow = today + timedelta(days=1)
 
     return {
-        "key": "today",
+        "key": "date",
         "label": "Hôm nay",
-        "start": datetime.combine(today, datetime.min.time()),
+        "start": datetime.combine(selected_date, datetime.min.time()),
         "end": datetime.combine(tomorrow, datetime.min.time()),
         "group": "hour",
     }
@@ -643,8 +690,8 @@ def get_recent_appointments(db: Session, start, end, limit: int = 5):
     ]
 
 
-def get_staff_overview(db: Session, period: str = "today"):
-    period_info = get_period_range(period)
+def get_staff_overview(db: Session, period: str = "date", value: str | None = None):
+    period_info = get_period_range(period, value)
     start = period_info["start"]
     end = period_info["end"]
 

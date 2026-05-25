@@ -28,8 +28,8 @@ import "./StaffOverview.css";
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
 import { getStaffOverviewApi } from "../../../services/staffOverviewApi";
 
-const formatMoney = (value) => {
-  return `${value.toLocaleString("vi-VN")} đ`;
+const formatMoney = (value = 0) => {
+  return `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 };
 
 const formatAxisMoney = (value) => {
@@ -44,7 +44,7 @@ const formatAxisMoney = (value) => {
 
 const defaultOverviewData = {
   period: {
-    key: "today",
+    key: "date",
     label: "Hôm nay",
     startDate: "",
     endDate: "",
@@ -60,15 +60,78 @@ const defaultOverviewData = {
   appointmentStatusData: [],
   popularServicesData: [],
   recentAppointments: [],
-}
+};
 
 const OVERVIEW_PERIOD_OPTIONS = [
-  { value: "today", label: "Hôm nay" },
-  { value: "week", label: "Tuần này" },
-  { value: "month", label: "Tháng này" },
-  { value: "quarter", label: "Quý này" },
-  { value: "year", label: "Năm này" },
-]
+  {
+    value: "date",
+    label: "Ngày",
+    inputLabel: "Chọn ngày",
+  },
+  {
+    value: "week",
+    label: "Tuần",
+    inputLabel: "Chọn tuần",
+  },
+  {
+    value: "month",
+    label: "Tháng",
+    inputLabel: "Chọn tháng",
+  },
+  {
+    value: "year",
+    label: "Năm",
+    inputLabel: "Chọn năm",
+  },
+];
+
+const padNumber = (value) => {
+  return String(value).padStart(2, "0");
+};
+
+const getDateInputValue = (date = new Date()) => {
+  return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(
+    date.getDate()
+  )}`;
+};
+
+const getMonthInputValue = (date = new Date()) => {
+  return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}`;
+};
+
+const getWeekInputValue = (date = new Date()) => {
+  const tempDate = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+  );
+
+  const dayNumber = tempDate.getUTCDay() || 7;
+  tempDate.setUTCDate(tempDate.getUTCDate() + 4 - dayNumber);
+
+  const yearStart = new Date(Date.UTC(tempDate.getUTCFullYear(), 0, 1));
+  const weekNumber = Math.ceil(
+    ((tempDate - yearStart) / 86400000 + 1) / 7
+  );
+
+  return `${tempDate.getUTCFullYear()}-W${padNumber(weekNumber)}`;
+};
+
+const getDefaultFilterValue = (period) => {
+  const now = new Date();
+
+  if (period === "week") return getWeekInputValue(now);
+  if (period === "month") return getMonthInputValue(now);
+  if (period === "year") return String(now.getFullYear());
+
+  return getDateInputValue(now);
+};
+
+const getFilterInputType = (period) => {
+  if (period === "week") return "week";
+  if (period === "month") return "month";
+  if (period === "year") return "number";
+
+  return "date";
+};
 
 const getServiceNamesText = (services) => {
   if (!services || services.length === 0) return "";
@@ -164,14 +227,25 @@ function StaffOverview() {
   const [overviewData, setOverviewData] = useState(defaultOverviewData);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [selectedPeriod, setSelectedPeriod] = useState("today")
+  const [selectedPeriod, setSelectedPeriod] = useState("date");
+  const [selectedFilterValue, setSelectedFilterValue] = useState(
+    getDefaultFilterValue("date")
+  );
+
+  const handleChangePeriod = (periodValue) => {
+    setSelectedPeriod(periodValue);
+    setSelectedFilterValue(getDefaultFilterValue(periodValue));
+  };
 
   const fetchOverview = useCallback(async () => {
     try {
       setIsLoading(true);
       setErrorMessage("");
 
-      const data = await getStaffOverviewApi(selectedPeriod);
+      const data = await getStaffOverviewApi(
+        selectedPeriod,
+        selectedFilterValue
+      );
 
       setOverviewData({
         period: data?.period || defaultOverviewData.period,
@@ -187,7 +261,7 @@ function StaffOverview() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedPeriod]);
+  }, [selectedPeriod, selectedFilterValue]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -204,34 +278,65 @@ function StaffOverview() {
     recentAppointments,
   } = overviewData;
 
+  const activePeriodOption =
+    OVERVIEW_PERIOD_OPTIONS.find((option) => option.value === selectedPeriod) ||
+    OVERVIEW_PERIOD_OPTIONS[0];
+
+  const renderFilterCard = () => (
+    <div className="staff-overview-filter-card">
+      <div className="staff-overview-filter-info">
+        <span>Bộ lọc thời gian</span>
+        <strong>{period?.label || activePeriodOption.label}</strong>
+
+        {period?.startDate && period?.endDate && (
+          <small>
+            {period.startDate === period.endDate
+              ? period.startDate
+              : `${period.startDate} đến ${period.endDate}`}
+          </small>
+        )}
+      </div>
+
+      <div className="staff-overview-filter-control">
+        <div className="staff-overview-filter-tabs">
+          {OVERVIEW_PERIOD_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`staff-overview-filter-btn ${
+                selectedPeriod === option.value ? "active" : ""
+              }`}
+              onClick={() => handleChangePeriod(option.value)}
+              disabled={isLoading}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="staff-overview-date-filter">
+          <label>{activePeriodOption.inputLabel}</label>
+
+          <input
+            type={getFilterInputType(selectedPeriod)}
+            value={selectedFilterValue}
+            min={selectedPeriod === "year" ? "2020" : undefined}
+            max={selectedPeriod === "year" ? "2100" : undefined}
+            onChange={(event) => setSelectedFilterValue(event.target.value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div className="staff-overview">
         <StaffPageHeader title="Tổng quan" />
 
         <section className="staff-dashboard-content">
-          <div className="staff-overview-filter-card">
-            <div className="staff-overview-filter-info">
-              <span>Bộ lọc thời gian</span>
-              <strong>{period?.label || "Hôm nay"}</strong>
-            </div>
+          {renderFilterCard()}
 
-            <div className="staff-overview-filter-tabs">
-              {OVERVIEW_PERIOD_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`staff-overview-filter-btn ${
-                    selectedPeriod === option.value ? "active" : ""
-                  }`}
-                  onClick={() => setSelectedPeriod(option.value)}
-                  disabled={isLoading}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
           <div className="staff-dashboard-card staff-overview-state-card">
             <Loader2 className="staff-overview-loading-icon" size={34} />
             <h3>Đang tải dữ liệu tổng quan</h3>
@@ -248,6 +353,8 @@ function StaffOverview() {
         <StaffPageHeader title="Tổng quan" />
 
         <section className="staff-dashboard-content">
+          {renderFilterCard()}
+
           <div className="staff-dashboard-card staff-overview-state-card">
             <AlertCircle size={36} />
             <h3>Không thể tải dữ liệu</h3>
@@ -267,29 +374,8 @@ function StaffOverview() {
       <StaffPageHeader title="Tổng quan" />
 
       <section className="staff-dashboard-content">
-        <div className="staff-overview-filter-card">
-          <div className="staff-overview-filter-info">
-            <span>Bộ lọc thời gian</span>
-            <strong>{period?.label || "Hôm nay"}</strong>
-          </div>
+        {renderFilterCard()}
 
-          <div className="staff-overview-filter-tabs">
-            {OVERVIEW_PERIOD_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`staff-overview-filter-btn ${
-                  selectedPeriod === option.value ? "active" : ""
-                }`}
-                onClick={() => setSelectedPeriod(option.value)}
-                disabled={isLoading}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        
         <div className="staff-stat-grid">
           <div className="staff-stat-card">
             <div className="staff-stat-icon gold-soft">
@@ -425,6 +511,7 @@ function StaffOverview() {
         <div className="staff-chart-grid second-row">
           <div className="staff-dashboard-card staff-status-distribution-card">
             <h3>Phân bố trạng thái</h3>
+
             <p className="staff-card-subtitle">
               Tổng lịch hẹn theo trạng thái - {period?.label || "Hôm nay"}
             </p>
@@ -471,8 +558,10 @@ function StaffOverview() {
 
           <div className="staff-dashboard-card staff-popular-service-card">
             <h3>Dịch vụ phổ biến</h3>
+
             <p className="staff-card-subtitle">
-              Số lượt sử dụng và doanh thu theo dịch vụ - {period?.label || "Hôm nay"}
+              Số lượt sử dụng và doanh thu theo dịch vụ -{" "}
+              {period?.label || "Hôm nay"}
             </p>
 
             <div className="staff-horizontal-bar-box">
@@ -494,8 +583,8 @@ function StaffOverview() {
                     tickLine={false}
                     tickFormatter={formatAxisMoney}
                     tick={{
-                        fontSize: 14,
-                        fill: "#6f6a6b",
+                      fontSize: 14,
+                      fill: "#6f6a6b",
                     }}
                   />
 
@@ -506,8 +595,8 @@ function StaffOverview() {
                     tickLine={false}
                     width={125}
                     tick={{
-                        fontSize: 12,
-                        fill: "#6f6a6b",
+                      fontSize: 12,
+                      fill: "#6f6a6b",
                     }}
                   />
 
@@ -533,10 +622,8 @@ function StaffOverview() {
         <div className="staff-dashboard-card staff-appointment-card">
           <div className="staff-card-header">
             <h3>Lịch hẹn gần đây</h3>
-            <button
-              type="button"
-              onClick={() => navigate("/staff/lich-hen")}
-            >
+
+            <button type="button" onClick={() => navigate("/staff/lich-hen")}>
               Xem tất cả
             </button>
           </div>
@@ -554,37 +641,45 @@ function StaffOverview() {
               </thead>
 
               <tbody>
-                {recentAppointments.map((item) => (
-                  <tr key={item.id}>
-                    <td className="staff-appointment-id">{item.id}</td>
-
-                    <td>
-                      <strong>{item.customer}</strong>
-                      <p>{item.phone}</p>
-                    </td>
-
-                    <td>
-                      <div className="appointment-service-text">
-                        {getServiceNamesText(item.services)}
-                      </div>
-                    </td>
-
-                    <td>
-                      <strong>{item.time}</strong>
-                      <p>{item.date}</p>
-                    </td>
-
-                    <td>
-                      <span
-                        className={`staff-status ${getStatusClass(
-                          item.status
-                        )}`}
-                      >
-                        {item.status}
-                      </span>
+                {recentAppointments.length === 0 ? (
+                  <tr>
+                    <td colSpan="5">
+                      <p>Không có lịch hẹn trong khoảng thời gian này.</p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentAppointments.map((item) => (
+                    <tr key={item.id}>
+                      <td className="staff-appointment-id">{item.id}</td>
+
+                      <td>
+                        <strong>{item.customer}</strong>
+                        <p>{item.phone}</p>
+                      </td>
+
+                      <td>
+                        <div className="appointment-service-text">
+                          {getServiceNamesText(item.services)}
+                        </div>
+                      </td>
+
+                      <td>
+                        <strong>{item.time}</strong>
+                        <p>{item.date}</p>
+                      </td>
+
+                      <td>
+                        <span
+                          className={`staff-status ${getStatusClass(
+                            item.status
+                          )}`}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

@@ -11,8 +11,13 @@ router = APIRouter()
 
 @router.get("/overview")
 def get_staff_overview_api(
-    period: str = Query(default="today"),
+    period: str = Query(default="date"),
+    value: str | None = Query(default=None),
     current_staff: dict = Depends(require_receptionist),
     db: Session = Depends(get_db),
 ):
-    return get_staff_overview(db=db, period=period)
+    return get_staff_overview(
+        db=db,
+        period=period,
+        value=value,
+    )

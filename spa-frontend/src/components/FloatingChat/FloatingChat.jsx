@@ -14,6 +14,12 @@ import {
   sendCustomerMessageApi,
   updateConversationMessageApi,
 } from "../../services/conversationApi"
+import {
+  createCustomerChatSocket,
+  createCustomerPresenceSocket,
+  isSocketOpen,
+  sendSocketJson,
+} from "../../services/conversationSocket"
 import "./FloatingChat.css"
 
 const getDateFromCreatedAt = (createdAt) => {
@@ -51,6 +57,73 @@ const getMessageDateLabel = (createdAt) => {
   return dateText
 }
 
+const shouldShowMessageTime = (messages, index) => {
+  const currentMessage = messages[index]
+  const nextMessage = messages[index + 1]
+
+  if (!currentMessage?.time) return false
+
+  if (!nextMessage) return true
+
+  const currentDate = getDateFromCreatedAt(currentMessage.createdAt)
+  const nextDate = getDateFromCreatedAt(nextMessage.createdAt)
+
+  return currentMessage.time !== nextMessage.time || currentDate !== nextDate
+}
+
+const isSameMessageGroupWithNext = (messages, index) => {
+  const currentMessage = messages[index]
+  const nextMessage = messages[index + 1]
+
+  if (!currentMessage || !nextMessage) return false
+
+  const currentDate = getDateFromCreatedAt(currentMessage.createdAt)
+  const nextDate = getDateFromCreatedAt(nextMessage.createdAt)
+
+  return (
+    currentMessage.sender === nextMessage.sender &&
+    currentMessage.time === nextMessage.time &&
+    currentDate === nextDate
+  )
+}
+
+const upsertMessageToList = (messages = [], newMessage) => {
+  if (!newMessage?.id) return messages
+
+  const existed = messages.some(
+    (item) => Number(item.id) === Number(newMessage.id)
+  )
+
+  if (existed) {
+    return messages.map((item) =>
+      Number(item.id) === Number(newMessage.id)
+        ? {
+            ...item,
+            ...newMessage,
+          }
+        : item
+    )
+  }
+
+  return [...messages, newMessage]
+}
+
+const applySocketMessageToCustomerConversation = ({
+  setConversation,
+  socketMessage,
+}) => {
+  if (!socketMessage?.id) return
+
+  setConversation((prev) => {
+    if (!prev) return prev
+
+    return {
+      ...prev,
+      messages: upsertMessageToList(prev.messages || [], socketMessage),
+    }
+  })
+}
+
 function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState("")
@@ -65,11 +138,40 @@ function FloatingChat() {
 
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editingText, setEditingText] = useState("")
-
   const [openMenuMessageId, setOpenMenuMessageId] = useState(null)
 
   const bodyRef = useRef(null)
+  const socketRef = useRef(null)
+  const presenceSocketRef = useRef(null)
+
   const currentUser = getCurrentCustomerUser()
+
+  useEffect(() => {
+    if (!currentUser?.maTK) return
+
+    if (presenceSocketRef.current) {
+      presenceSocketRef.current.close()
+    }
+
+    presenceSocketRef.current = createCustomerPresenceSocket({
+      idTaiKhoan: currentUser.maTK,
+      onEvent: (eventData) => {
+        if (eventData.type === "presence_connected") {
+          return
+        }
+      },
+      onClose: () => {
+        presenceSocketRef.current = null
+      },
+    })
+
+    return () => {
+      if (presenceSocketRef.current) {
+        presenceSocketRef.current.close()
+        presenceSocketRef.current = null
+      }
+    }
+  }, [currentUser?.maTK])
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -139,14 +241,66 @@ function FloatingChat() {
   useEffect(() => {
     if (!isOpen || !currentUser?.maTK) return
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchConversation()
+    let isMounted = true
 
-    const timer = setInterval(() => {
-      fetchConversation({ silent: true })
-    }, 4000)
+    const openSocket = async () => {
+      await fetchConversation()
 
-    return () => clearInterval(timer)
+      if (!isMounted) return
+
+      if (socketRef.current) {
+        socketRef.current.close()
+      }
+
+      socketRef.current = createCustomerChatSocket({
+        idTaiKhoan: currentUser.maTK,
+
+        onEvent: (eventData) => {
+          if (eventData.type === "connected") {
+            return
+          }
+
+          if (eventData.type === "error") {
+            setMessageActionError(eventData.message || "Lỗi kết nối chat.")
+            return
+          }
+
+          if (
+            eventData.type === "message_created" ||
+            eventData.type === "message_updated" ||
+            eventData.type === "message_recalled"
+          ) {
+            if (eventData.message) {
+              applySocketMessageToCustomerConversation({
+                setConversation,
+                socketMessage: eventData.message,
+              })
+
+              setUnreadCount(0)
+              scrollToBottom()
+              return
+            }
+
+            fetchConversation({ silent: true })
+          }
+        },
+
+        onClose: () => {
+          socketRef.current = null
+        },
+      })
+    }
+
+    openSocket()
+
+    return () => {
+      isMounted = false
+
+      if (socketRef.current) {
+        socketRef.current.close()
+        socketRef.current = null
+      }
+    }
   }, [isOpen, currentUser?.maTK, fetchConversation])
 
   const isOwnMessage = (item) => {
@@ -167,6 +321,18 @@ function FloatingChat() {
       setIsSending(true)
       setErrorMessage("")
       setMessageActionError("")
+
+      if (isSocketOpen(socketRef.current)) {
+        const ok = sendSocketJson(socketRef.current, {
+          action: "send_message",
+          noiDung: content,
+        })
+
+        if (ok) {
+          setMessage("")
+          return
+        }
+      }
 
       const result = await sendCustomerMessageApi({
         idTaiKhoan: currentUser.maTK,
@@ -214,6 +380,20 @@ function FloatingChat() {
     try {
       setMessageActionError("")
 
+      if (isSocketOpen(socketRef.current)) {
+        const ok = sendSocketJson(socketRef.current, {
+          action: "update_message",
+          idTinNhan: item.id,
+          noiDung: content,
+        })
+
+        if (ok) {
+          setEditingMessageId(null)
+          setEditingText("")
+          return
+        }
+      }
+
       const result = await updateConversationMessageApi({
         idTinNhan: item.id,
         idTaiKhoan: currentUser.maTK,
@@ -251,6 +431,17 @@ function FloatingChat() {
 
     try {
       setMessageActionError("")
+
+      if (isSocketOpen(socketRef.current)) {
+        const ok = sendSocketJson(socketRef.current, {
+          action: "recall_message",
+          idTinNhan: item.id,
+        })
+
+        if (ok) {
+          return
+        }
+      }
 
       const result = await recallConversationMessageApi({
         idTinNhan: item.id,
@@ -337,6 +528,7 @@ function FloatingChat() {
 
                 {messages.map((item, index) => {
                   const currentDateLabel = getMessageDateLabel(item.createdAt)
+
                   const previousDateLabel =
                     index > 0
                       ? getMessageDateLabel(messages[index - 1].createdAt)
@@ -344,6 +536,9 @@ function FloatingChat() {
 
                   const shouldShowDateDivider =
                     currentDateLabel && currentDateLabel !== previousDateLabel
+                  
+                  const shouldShowTime = shouldShowMessageTime(messages, index)
+                  const isCompactMessage = isSameMessageGroupWithNext(messages, index)
 
                   return (
                     <Fragment key={item.id}>
@@ -354,11 +549,13 @@ function FloatingChat() {
                       )}
 
                       <div
-                        className={
+                        className={[
+                          "chat-message",
                           item.sender === "customer"
-                            ? "chat-message chat-message--customer"
-                            : "chat-message chat-message--staff"
-                        }
+                            ? "chat-message--customer"
+                            : "chat-message--staff",
+                          isCompactMessage ? "chat-message--compact" : "",
+                        ].join(" ")}
                       >
                         {item.sender !== "customer" && (
                           <div className="chat-message__icon">
@@ -417,17 +614,17 @@ function FloatingChat() {
                                   : item.content}
                               </div>
 
-                              <div className="chat-message__meta">
-                                <span className="chat-message__time">
-                                  {item.time}
-                                </span>
+                              {(shouldShowTime || (item.daChinhSua && !item.daThuHoi)) && (
+                                <div className="chat-message__meta">
+                                  {shouldShowTime && (
+                                    <span className="chat-message__time">{item.time}</span>
+                                  )}
 
-                                {item.daChinhSua && !item.daThuHoi && (
-                                  <span className="chat-message__edited">
-                                    Đã chỉnh sửa
-                                  </span>
-                                )}
-                              </div>
+                                  {item.daChinhSua && !item.daThuHoi && (
+                                    <span className="chat-message__edited">Đã chỉnh sửa</span>
+                                  )}
+                                </div>
+                              )}
 
                               {isOwnMessage(item) && !item.daThuHoi && (
                                 <div
@@ -455,14 +652,18 @@ function FloatingChat() {
                                     <div className="chat-message__dropdown">
                                       <button
                                         type="button"
-                                        onClick={() => handleStartEditMessage(item)}
+                                        onClick={() =>
+                                          handleStartEditMessage(item)
+                                        }
                                       >
                                         Chỉnh sửa
                                       </button>
 
                                       <button
                                         type="button"
-                                        onClick={() => handleRecallMessage(item)}
+                                        onClick={() =>
+                                          handleRecallMessage(item)
+                                        }
                                       >
                                         Thu hồi
                                       </button>
