@@ -109,7 +109,7 @@
 .service-gallery__thumbs {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
 }
 
@@ -323,12 +323,39 @@ button.service-info__book {
   font-weight: 600;
 }
 
-.service-detail-description p {
-  margin: 0;
+.service-detail-description__content {
   color: #20233b;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.85;
-  white-space: pre-line;
+}
+
+.service-detail-description__content p,
+.service-detail-description__content div {
+  margin: 0 0 10px;
+}
+
+.service-detail-description__content ul,
+.service-detail-description__content ol {
+  margin: 10px 0 10px 22px;
+  padding-left: 18px;
+}
+
+.service-detail-description__content li {
+  margin-bottom: 8px;
+}
+
+.service-detail-description__content strong,
+.service-detail-description__content b {
+  font-weight: 700;
+}
+
+.service-detail-description__content em,
+.service-detail-description__content i {
+  font-style: italic;
+}
+
+.service-detail-description__content u {
+  text-decoration: underline;
 }
 
 
@@ -427,12 +454,14 @@ button.service-info__book {
 
 .service-detail-empty h2 {
   margin: 0 0 10px;
-  font-size: 28px;
+  font-size: 26px;
+  font-weight: 600;
 }
 
 .service-detail-empty p {
   margin: 0;
   color: #6f6761;
+  font-size: 16px;
 }
 
 .service-detail-empty button {
@@ -443,7 +472,7 @@ button.service-info__book {
   border-radius: 999px;
   background: #5b5552;
   color: #ffffff;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
 }
 

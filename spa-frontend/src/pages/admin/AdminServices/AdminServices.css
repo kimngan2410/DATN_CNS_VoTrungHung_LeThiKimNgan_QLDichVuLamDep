@@ -66,7 +66,7 @@
   justify-content: center;
   gap: 8px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
@@ -719,13 +719,14 @@
 .admin-service-description-box h3 {
   margin: 0 0 14px;
   color: var(--admin-dark, #4d4a4b);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 .admin-service-description-content,
 .admin-rich-editor {
   color: #334155;
+  font-size: 14px;
 }
 
 .admin-service-description-content p,
@@ -908,5 +909,386 @@
   .admin-service-gallery,
   .admin-service-image-preview-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+.admin-services-sort {
+  height: 40px;
+  border: 1px solid var(--admin-border, #ebe7e1);
+  border-radius: 10px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.admin-services-sort label {
+  color: var(--admin-muted, #8a7f72);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-services-sort select {
+  width: 170px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--admin-text, #4d4a4b);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-services-sort:hover {
+  border-color: rgba(215, 169, 63, 0.45);
+  background: #fffdf8;
+}
+
+@media (max-width: 1000px) {
+  .admin-services-sort {
+    width: fit-content;
+  }
+}
+
+/* TOAST NOTIFICATION */
+
+.admin-toast {
+  position: fixed;
+  top: 88px;
+  right: 28px;
+  z-index: 6000;
+  width: min(380px, calc(100vw - 32px));
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid #f1e6cf;
+  box-shadow: 0 18px 45px rgba(41, 31, 20, 0.14);
+  animation: toastSlideIn 0.28s ease;
+  overflow: hidden;
+}
+
+.admin-toast__icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex: 0 0 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-toast__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-toast__title {
+  color: #2f2a26;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+
+.admin-toast__message {
+  color: #7a6f62;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-toast__close {
+  border: none;
+  background: transparent;
+  color: #9a8f81;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  margin-top: -2px;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-toast__close:hover {
+  color: #4d4a4b;
+  transform: scale(1.05);
+}
+
+.admin-toast__progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  width: 100%;
+  transform-origin: left;
+  animation: toastProgress 3s linear forwards;
+}
+
+.admin-toast--success {
+  border-left: 5px solid #34c759;
+}
+
+.admin-toast--success .admin-toast__icon {
+  background: rgba(52, 199, 89, 0.12);
+  color: #1d8f3f;
+}
+
+.admin-toast--success .admin-toast__progress {
+  background: linear-gradient(90deg, #34c759, #8de6a6);
+}
+
+.admin-toast--error {
+  border-left: 5px solid #ff4d4f;
+}
+
+.admin-toast--error .admin-toast__icon {
+  background: rgba(255, 77, 79, 0.12);
+  color: #d9363e;
+}
+
+.admin-toast--error .admin-toast__progress {
+  background: linear-gradient(90deg, #ff4d4f, #ff9a9c);
+}
+
+.admin-toast--warning {
+  border-left: 5px solid #f5a623;
+}
+
+.admin-toast--warning .admin-toast__icon {
+  background: rgba(245, 166, 35, 0.14);
+  color: #c88508;
+}
+
+.admin-toast--warning .admin-toast__progress {
+  background: linear-gradient(90deg, #f5a623, #ffd27a);
+}
+
+.admin-toast--info {
+  border-left: 5px solid #3b82f6;
+}
+
+.admin-toast--info .admin-toast__icon {
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+}
+
+.admin-toast--info .admin-toast__progress {
+  background: linear-gradient(90deg, #3b82f6, #8bb8ff);
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0);
+  }
+}
+
+@keyframes toastProgress {
+  from {
+    transform: scaleX(1);
+  }
+
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-toast {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    width: auto;
+    border-radius: 16px;
+    padding: 14px 16px;
+  }
+
+  .admin-toast__title {
+    font-size: 15px;
+  }
+
+  .admin-toast__message {
+    font-size: 13px;
+  }
+}
+
+/* ===== BEAUTIFUL WARNING POPUP ===== */
+
+.admin-service-warning-modal {
+  position: relative;
+  width: min(470px, calc(100vw - 36px));
+  padding: 0;
+  border-radius: 26px;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf9 100%);
+  border: 1px solid rgba(236, 220, 190, 0.9);
+  box-shadow:
+    0 30px 90px rgba(15, 23, 42, 0.24),
+    0 8px 22px rgba(77, 74, 75, 0.1);
+  overflow: hidden;
+  text-align: center;
+  animation: adminServiceWarningPopup 0.26s ease;
+}
+
+.admin-service-warning-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 7px;
+  background: linear-gradient(90deg, #d7a93f, #f7d889, #d7a93f);
+}
+
+.admin-service-warning-modal .admin-service-modal-header {
+  position: relative;
+  height: auto;
+  min-height: unset;
+  padding: 30px 54px 16px;
+  border-bottom: none;
+  background: transparent;
+  box-shadow: none;
+  display: block;
+}
+
+.admin-service-warning-modal .admin-service-modal-header h2 {
+  margin: 0;
+  color: #383334;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  line-height: 1.28;
+}
+
+.admin-service-warning-modal .admin-service-modal-header p {
+  width: fit-content;
+  margin: 12px auto 0;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: #fff7e7;
+  color: #b88713;
+  border: 1px solid rgba(215, 169, 63, 0.25);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-service-warning-close {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  border: 1px solid rgba(215, 169, 63, 0.22);
+  background: #fffaf0;
+  color: #b88713;
+  transition: all 0.2s ease;
+}
+
+.admin-service-warning-close:hover {
+  background: #d7a93f;
+  border-color: #d7a93f;
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+.admin-service-warning-body {
+  padding: 0 42px 8px;
+}
+
+.admin-service-warning-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 18px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.95), transparent 36%),
+    linear-gradient(135deg, #fff3d5 0%, #ffe0a3 100%);
+  color: #d88a05;
+  box-shadow:
+    0 14px 30px rgba(216, 138, 5, 0.18),
+    inset 0 0 0 1px rgba(215, 169, 63, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-service-warning-icon svg {
+  width: 32px;
+  height: 32px;
+  stroke-width: 2.2;
+}
+
+.admin-service-warning-body p {
+  margin: 0 auto;
+  max-width: 370px;
+  color: #64748b;
+  font-size: 14.5px;
+  line-height: 1.75;
+  font-weight: 500;
+}
+
+.admin-service-warning-body strong {
+  color: #383334;
+  font-weight: 700;
+}
+
+.admin-service-warning-actions {
+  margin-top: 24px;
+  padding: 0 42px 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.admin-service-warning-actions .admin-service-primary-btn {
+  min-width: 132px;
+  height: 44px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #4d4a4b 0%, #343132 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(77, 74, 75, 0.2);
+  font-weight: 600;
+}
+
+.admin-service-warning-actions .admin-service-primary-btn:hover {
+  background: linear-gradient(135deg, #3f3c3d 0%, #252324 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(77, 74, 75, 0.26);
+}
+
+@keyframes adminServiceWarningPopup {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-service-warning-modal .admin-service-modal-header {
+    padding: 28px 50px 14px;
+  }
+
+  .admin-service-warning-modal .admin-service-modal-header h2 {
+    font-size: 20px;
+  }
+
+  .admin-service-warning-body {
+    padding: 0 24px 8px;
+  }
+
+  .admin-service-warning-actions {
+    padding: 0 24px 28px;
   }
 }

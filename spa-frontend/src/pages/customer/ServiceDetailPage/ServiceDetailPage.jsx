@@ -350,7 +350,13 @@ function ServiceDetailPage() {
 
             <div className="service-detail-description">
               <h2>MÔ TẢ DỊCH VỤ</h2>
-              <p>{service.detailDescription || service.description}</p>
+
+              <div
+                className="service-detail-description__content"
+                dangerouslySetInnerHTML={{
+                  __html: service.detailDescription || service.description || "",
+                }}
+              />
             </div>
 
             <ServiceReviewSection reviewData={reviewData} />

@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import { NavLink, useLocation, useNavigate } from "react-router-dom"
 import {
-  Sparkles,
   LayoutDashboard,
   UsersRound,
   Layers,
@@ -15,11 +14,12 @@ import {
   CircleDollarSign,
   ClipboardList,
   CalendarCheck,
-  CreditCard,
+  Settings,
+  LogOut,
 } from "lucide-react"
 import "./AdminSidebar.css"
 import spaLogo from "../../assets/images/logo_header.png";
-import { getCurrentAdminUser, logoutAdmin } from "../../services/authApi"
+import { logoutAdmin } from "../../services/authApi"
 
 
 const menuItems = [
@@ -91,26 +91,6 @@ function AdminSidebar() {
   const shouldShowReportMenu = isReportOpen || isReportActive
 
   const navigate = useNavigate()
-  const [currentAdmin, setCurrentAdmin] = useState(getCurrentAdminUser())
-
-  useEffect(() => {
-    const handleAuthChange = () => {
-      setCurrentAdmin(getCurrentAdminUser())
-    }
-
-    window.addEventListener("admin-auth-changed", handleAuthChange)
-    window.addEventListener("storage", handleAuthChange)
-
-    return () => {
-      window.removeEventListener("admin-auth-changed", handleAuthChange)
-      window.removeEventListener("storage", handleAuthChange)
-    }
-  }, [])
-
-  const displayName = currentAdmin?.hoTen || "Admin"
-  const roleText = currentAdmin?.chucVu || "Quản trị viên"
-  const avatar = currentAdmin?.avatar
-  const avatarText = displayName.charAt(0).toUpperCase()
 
   const handleLogout = () => {
     logoutAdmin()
@@ -193,23 +173,26 @@ function AdminSidebar() {
         </div>
       </nav>
 
-      <div className="admin-sidebar-profile">
-        <div className="admin-profile-avatar">
-          {avatar ? <img src={avatar} alt={displayName} /> : avatarText}
-        </div>
-
-        <div className="admin-profile-info">
-          <h4>{displayName}</h4>
-          <p>{roleText}</p>
-        </div>
+      <div className="admin-sidebar-footer">
+        <NavLink
+          to="/admin/cai-dat"
+          className={({ isActive }) =>
+            isActive
+              ? "admin-sidebar-footer-item active"
+              : "admin-sidebar-footer-item"
+          }
+        >
+          <Settings size={19} />
+          <span>Cài đặt</span>
+        </NavLink>
 
         <button
           type="button"
-          className="admin-sidebar-logout-btn"
+          className="admin-sidebar-footer-item admin-sidebar-logout-item"
           onClick={handleLogout}
-          title="Đăng xuất"
         >
-          Đăng xuất
+          <LogOut size={19} />
+          <span>Đăng xuất</span>
         </button>
       </div>
     </aside>

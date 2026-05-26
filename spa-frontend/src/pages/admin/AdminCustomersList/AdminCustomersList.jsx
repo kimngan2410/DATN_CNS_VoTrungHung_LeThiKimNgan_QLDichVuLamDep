@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import {
   Search,
   Filter,
@@ -14,305 +14,18 @@ import {
   ReceiptText,
   Download,
 } from "lucide-react"
+
+import {
+  getAdminCustomerDetailApi,
+  getAdminCustomersApi,
+} from "../../../services/adminCustomerApi"
+
 import "./AdminCustomersList.css"
 
-const SPA_OPENING_YEAR = 2020
+const API_ORIGIN =
+  import.meta.env.VITE_API_ORIGIN || "http://127.0.0.1:8000"
 
-const customerList = [
-  {
-    id: "KH001",
-    accountId: "TK001",
-    fullName: "Nguyễn Thị Hoa",
-    avatarText: "N",
-    email: "hoa.nguyen@email.com",
-    phone: "0901234567",
-    gender: "Nữ",
-    birthday: "1998-05-12",
-    createdAt: "01/10/2023",
-    status: "Hoạt động",
-    customerType: "VIP",
-    appointments: [
-      {
-        id: "LH001",
-        date: "04/05/2026",
-        time: "09:00",
-        services: "Massage body, Gội đầu dưỡng sinh",
-        status: "Đã hoàn thành",
-      },
-      {
-        id: "LH006",
-        date: "05/05/2026",
-        time: "10:00",
-        services: "Tắm trắng",
-        status: "Đã xác nhận",
-      },
-      {
-        id: "LH009",
-        date: "18/04/2026",
-        time: "14:00",
-        services: "Chăm sóc da mặt",
-        status: "Đã hoàn thành",
-      },
-    ],
-    invoices: [
-      {
-        invoiceId: "HD001",
-        appointmentId: "LH001",
-        paidAt: "04/05/2026",
-        paymentMethod: "Chuyển khoản",
-        paymentStatus: "Đã thanh toán",
-        details: [
-          {
-            serviceId: "DV001",
-            serviceName: "Massage body",
-            quantity: 1,
-            unitPrice: 500000,
-          },
-          {
-            serviceId: "DV002",
-            serviceName: "Gội đầu dưỡng sinh",
-            quantity: 1,
-            unitPrice: 250000,
-          },
-        ],
-      },
-      {
-        invoiceId: "HD009",
-        appointmentId: "LH009",
-        paidAt: "18/04/2026",
-        paymentMethod: "Tiền mặt",
-        paymentStatus: "Đã thanh toán",
-        details: [
-          {
-            serviceId: "DV003",
-            serviceName: "Chăm sóc da mặt",
-            quantity: 1,
-            unitPrice: 400000,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "KH002",
-    accountId: "TK002",
-    fullName: "Trần Văn Nam",
-    avatarText: "T",
-    email: "nam.tran@email.com",
-    phone: "0912345678",
-    gender: "Nam",
-    birthday: "1995-08-20",
-    createdAt: "15/10/2023",
-    status: "Hoạt động",
-    customerType: "Thường",
-    appointments: [
-      {
-        id: "LH002",
-        date: "02/05/2026",
-        time: "14:30",
-        services: "Chăm sóc da mặt",
-        status: "Đã hoàn thành",
-      },
-      {
-        id: "LH010",
-        date: "21/04/2026",
-        time: "16:00",
-        services: "Massage cổ vai gáy",
-        status: "Đã hoàn thành",
-      },
-    ],
-    invoices: [
-      {
-        invoiceId: "HD002",
-        appointmentId: "LH002",
-        paidAt: "02/05/2026",
-        paymentMethod: "Thẻ ngân hàng",
-        paymentStatus: "Đã thanh toán",
-        details: [
-          {
-            serviceId: "DV003",
-            serviceName: "Chăm sóc da mặt",
-            quantity: 1,
-            unitPrice: 400000,
-          },
-          {
-            serviceId: "DV010",
-            serviceName: "Đắp mặt nạ collagen",
-            quantity: 1,
-            unitPrice: 100000,
-          },
-        ],
-      },
-      {
-        invoiceId: "HD010",
-        appointmentId: "LH010",
-        paidAt: "21/04/2026",
-        paymentMethod: "Tiền mặt",
-        paymentStatus: "Đã thanh toán",
-        details: [
-          {
-            serviceId: "DV004",
-            serviceName: "Massage cổ vai gáy",
-            quantity: 1,
-            unitPrice: 200000,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "KH003",
-    accountId: "TK003",
-    fullName: "Lê Mai Anh",
-    avatarText: "L",
-    email: "maianh.le@email.com",
-    phone: "0987654321",
-    gender: "Nữ",
-    birthday: "2000-11-04",
-    createdAt: "05/11/2023",
-    status: "Khóa",
-    customerType: "Thường",
-    appointments: [
-      {
-        id: "LH003",
-        date: "20/04/2026",
-        time: "16:00",
-        services: "Nail art",
-        status: "Đã huỷ",
-      },
-      {
-        id: "LH011",
-        date: "12/04/2026",
-        time: "10:30",
-        services: "Sơn gel",
-        status: "Đã hoàn thành",
-      },
-    ],
-    invoices: [
-      {
-        invoiceId: "HD011",
-        appointmentId: "LH011",
-        paidAt: "12/04/2026",
-        paymentMethod: "Tiền mặt",
-        paymentStatus: "Đã thanh toán",
-        details: [
-          {
-            serviceId: "DV006",
-            serviceName: "Sơn gel",
-            quantity: 1,
-            unitPrice: 180000,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "KH004",
-    accountId: "TK004",
-    fullName: "Phạm Thu Thủy",
-    avatarText: "P",
-    email: "thuy.pham@email.com",
-    phone: "0933445566",
-    gender: "Nữ",
-    birthday: "1997-03-18",
-    createdAt: "20/11/2023",
-    status: "Hoạt động",
-    customerType: "VIP",
-    appointments: [
-      {
-        id: "LH004",
-        date: "03/05/2026",
-        time: "11:00",
-        services: "Tắm trắng, Massage body",
-        status: "Đã hoàn thành",
-      },
-      {
-        id: "LH012",
-        date: "15/04/2026",
-        time: "09:30",
-        services: "Gội đầu dưỡng sinh",
-        status: "Đã hoàn thành",
-      },
-    ],
-    invoices: [
-      {
-        invoiceId: "HD004",
-        appointmentId: "LH004",
-        paidAt: "03/05/2026",
-        paymentMethod: "Chuyển khoản",
-        paymentStatus: "Đã thanh toán",
-        details: [
-          {
-            serviceId: "DV007",
-            serviceName: "Tắm trắng",
-            quantity: 1,
-            unitPrice: 700000,
-          },
-          {
-            serviceId: "DV001",
-            serviceName: "Massage body",
-            quantity: 1,
-            unitPrice: 500000,
-          },
-        ],
-      },
-      {
-        invoiceId: "HD012",
-        appointmentId: "LH012",
-        paidAt: "15/04/2026",
-        paymentMethod: "Tiền mặt",
-        paymentStatus: "Đã thanh toán",
-        details: [
-          {
-            serviceId: "DV002",
-            serviceName: "Gội đầu dưỡng sinh",
-            quantity: 1,
-            unitPrice: 250000,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: "KH005",
-    accountId: "TK005",
-    fullName: "Hoàng Minh Tuấn",
-    avatarText: "H",
-    email: "tuan.hoang@email.com",
-    phone: "0977889900",
-    gender: "Nam",
-    birthday: "1992-07-09",
-    createdAt: "02/12/2023",
-    status: "Hoạt động",
-    customerType: "Thường",
-    appointments: [
-      {
-        id: "LH005",
-        date: "29/04/2026",
-        time: "15:30",
-        services: "Massage cổ vai gáy",
-        status: "Đã hoàn thành",
-      },
-    ],
-    invoices: [
-      {
-        invoiceId: "HD005",
-        appointmentId: "LH005",
-        paidAt: "29/04/2026",
-        paymentMethod: "Thẻ ngân hàng",
-        paymentStatus: "Đã thanh toán",
-        details: [
-          {
-            serviceId: "DV004",
-            serviceName: "Massage cổ vai gáy",
-            quantity: 1,
-            unitPrice: 200000,
-          },
-        ],
-      },
-    ],
-  },
-]
+const SPA_OPENING_YEAR = 2020
 
 const monthOptions = [
   { value: "Tất cả", label: "Tất cả" },
@@ -330,27 +43,103 @@ const monthOptions = [
   { value: "12", label: "Tháng 12" },
 ]
 
-const getCurrentYear = () => {
-  return new Date().getFullYear()
-}
-
 const yearOptions = Array.from(
-  { length: getCurrentYear() - SPA_OPENING_YEAR + 1 },
-  (_, index) => String(getCurrentYear() - index)
+  { length: new Date().getFullYear() - SPA_OPENING_YEAR + 1 },
+  (_, index) => String(new Date().getFullYear() - index)
 )
 
+const getImageUrl = (imageUrl) => {
+  if (!imageUrl) return ""
+
+  if (
+    imageUrl.startsWith("http://") ||
+    imageUrl.startsWith("https://") ||
+    imageUrl.startsWith("blob:") ||
+    imageUrl.startsWith("data:")
+  ) {
+    return imageUrl
+  }
+
+  if (imageUrl.startsWith("/")) {
+    return `${API_ORIGIN}${imageUrl}`
+  }
+
+  return `${API_ORIGIN}/${imageUrl}`
+}
+
 const getDateParts = (dateText) => {
-  const [day, month, year] = dateText.split("/")
+  if (!dateText || dateText === "Chưa cập nhật" || dateText === "Chưa sử dụng") {
+    return {
+      day: "",
+      month: "",
+      year: "",
+    }
+  }
+
+  if (dateText.includes("/")) {
+    const [day, month, year] = dateText.split("/")
+
+    return {
+      day,
+      month,
+      year,
+    }
+  }
+
+  if (dateText.includes("-")) {
+    const [year, month, day] = dateText.split("-")
+
+    return {
+      day,
+      month,
+      year,
+    }
+  }
 
   return {
-    day,
-    month,
-    year,
+    day: "",
+    month: "",
+    year: "",
   }
 }
 
-const formatMoney = (value) => {
-  return `${value.toLocaleString("vi-VN")} đ`
+const formatDateDisplay = (dateText) => {
+  if (!dateText || dateText === "Chưa cập nhật" || dateText === "Chưa sử dụng") {
+    return dateText || "Chưa cập nhật"
+  }
+
+  if (dateText.includes("/")) return dateText
+
+  if (dateText.includes("-")) {
+    const [year, month, day] = dateText.split("-")
+
+    if (year && month && day) {
+      return `${day}/${month}/${year}`
+    }
+  }
+
+  return dateText
+}
+
+const getCreatedAtTimestamp = (customer) => {
+  const createdAt = customer?.createdAt
+
+  if (!createdAt || createdAt === "Chưa cập nhật") return 0
+
+  if (createdAt.includes("/")) {
+    const [day, month, year] = createdAt.split("/")
+    return new Date(`${year}-${month}-${day}`).getTime()
+  }
+
+  if (createdAt.includes("-")) {
+    return new Date(createdAt).getTime()
+  }
+
+  return 0
+}
+
+const formatMoney = (value = 0) => {
+  return `${Number(value || 0).toLocaleString("vi-VN")} đ`
 }
 
 const escapeCsvValue = (value) => {
@@ -363,69 +152,101 @@ const escapeCsvValue = (value) => {
   return text
 }
 
-const getInvoiceTotal = (invoice) => {
-  return invoice.details.reduce((sum, item) => {
-    return sum + item.quantity * item.unitPrice
-  }, 0)
-}
-
-const getPaidInvoices = (customer) => {
-  return customer.invoices.filter(
-    (invoice) => invoice.paymentStatus === "Đã thanh toán"
-  )
+const isActiveStatus = (status) => {
+  return status === "Đang hoạt động" || status === "Hoạt động"
 }
 
 const getTotalSpent = (customer) => {
-  return getPaidInvoices(customer).reduce((sum, invoice) => {
-    return sum + getInvoiceTotal(invoice)
-  }, 0)
+  return Number(customer?.totalSpent || 0)
 }
 
 const getServiceUsageHistory = (customer) => {
-  return getPaidInvoices(customer).flatMap((invoice) =>
-    invoice.details.map((detail) => ({
-      id: `${invoice.invoiceId}-${detail.serviceId}`,
-      invoiceId: invoice.invoiceId,
-      appointmentId: invoice.appointmentId,
-      serviceName: detail.serviceName,
-      quantity: detail.quantity,
-      unitPrice: detail.unitPrice,
-      total: detail.quantity * detail.unitPrice,
-      paidAt: invoice.paidAt,
-      paymentMethod: invoice.paymentMethod,
-    }))
-  )
+  return Array.isArray(customer?.serviceHistory) ? customer.serviceHistory : []
+}
+
+const getAppointments = (customer) => {
+  return Array.isArray(customer?.appointments) ? customer.appointments : []
 }
 
 const getLastPaidDate = (customer) => {
-  const paidInvoices = getPaidInvoices(customer)
+  const history = getServiceUsageHistory(customer)
 
-  if (paidInvoices.length === 0) {
-    return "Chưa có"
+  if (history.length > 0) {
+    return formatDateDisplay(history[0].date)
   }
 
-  return paidInvoices[0].paidAt
+  return customer?.lastVisit || "Chưa có"
+}
+
+const getCustomerCode = (customer) => {
+  return customer?.maKH || customer?.id || `KH${customer?.idKhachHang || ""}`
+}
+
+const getCustomerAvatarText = (customer) => {
+  if (customer?.avatarText) return customer.avatarText
+
+  const fullName = customer?.fullName || "K"
+  return fullName.trim().charAt(0).toUpperCase()
+}
+
+const getCustomerSortNumber = (customer) => {
+  const code = getCustomerCode(customer)
+  const numberText = String(code).replace(/\D/g, "")
+
+  return Number(numberText || customer?.idKhachHang || 0)
 }
 
 function AdminCustomers() {
+  const [customerList, setCustomerList] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
+
   const [searchText, setSearchText] = useState("")
   const [statusFilter, setStatusFilter] = useState("Tất cả")
   const [genderFilter, setGenderFilter] = useState("Tất cả")
   const [monthFilter, setMonthFilter] = useState("Tất cả")
   const [yearFilter, setYearFilter] = useState("Tất cả")
+  const [sortOption, setSortOption] = useState("default")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
+
   const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [historyModal, setHistoryModal] = useState(null)
+
+  const fetchCustomers = async () => {
+    try {
+      setIsLoading(true)
+      setErrorMessage("")
+
+      const data = await getAdminCustomersApi()
+      setCustomerList(Array.isArray(data) ? data : [])
+    } catch (error) {
+      setErrorMessage(error.message || "Không thể tải danh sách khách hàng.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchCustomers()
+  }, [])
 
   const filteredCustomers = useMemo(() => {
     const keyword = searchText.trim().toLowerCase()
 
-    return customerList.filter((customer) => {
+    const filtered = customerList.filter((customer) => {
+      const customerCode = getCustomerCode(customer).toLowerCase()
+      const fullName = (customer.fullName || "").toLowerCase()
+      const phone = customer.phone || ""
+      const email = (customer.email || "").toLowerCase()
+
       const matchKeyword =
-        customer.fullName.toLowerCase().includes(keyword) ||
-        customer.phone.includes(keyword) ||
-        customer.email.toLowerCase().includes(keyword) ||
-        customer.id.toLowerCase().includes(keyword)
+        !keyword ||
+        fullName.includes(keyword) ||
+        phone.includes(keyword) ||
+        email.includes(keyword) ||
+        customerCode.includes(keyword)
 
       const matchStatus =
         statusFilter === "Tất cả" || customer.status === statusFilter
@@ -436,7 +257,6 @@ function AdminCustomers() {
       const { month, year } = getDateParts(customer.createdAt)
 
       const matchMonth = monthFilter === "Tất cả" || month === monthFilter
-
       const matchYear = yearFilter === "Tất cả" || year === yearFilter
 
       return (
@@ -447,7 +267,56 @@ function AdminCustomers() {
         matchYear
       )
     })
-  }, [searchText, statusFilter, genderFilter, monthFilter, yearFilter])
+
+    if (sortOption === "default") {
+      return filtered
+    }
+
+    return [...filtered].sort((a, b) => {
+      const codeA = getCustomerSortNumber(a)
+      const codeB = getCustomerSortNumber(b)
+
+      const nameA = (a.fullName || "").toLowerCase()
+      const nameB = (b.fullName || "").toLowerCase()
+
+      const createdAtA = getCreatedAtTimestamp(a)
+      const createdAtB = getCreatedAtTimestamp(b)
+
+      if (sortOption === "code-asc") {
+        return codeA - codeB
+      }
+
+      if (sortOption === "code-desc") {
+        return codeB - codeA
+      }
+
+      if (sortOption === "name-asc") {
+        return nameA.localeCompare(nameB, "vi")
+      }
+
+      if (sortOption === "name-desc") {
+        return nameB.localeCompare(nameA, "vi")
+      }
+
+      if (sortOption === "created-desc") {
+        return createdAtB - createdAtA
+      }
+
+      if (sortOption === "created-asc") {
+        return createdAtA - createdAtB
+      }
+
+      return 0
+    })
+  }, [
+    customerList,
+    searchText,
+    statusFilter,
+    genderFilter,
+    monthFilter,
+    yearFilter,
+    sortOption,
+  ])
 
   const handleResetFilter = () => {
     setSearchText("")
@@ -455,6 +324,7 @@ function AdminCustomers() {
     setGenderFilter("Tất cả")
     setMonthFilter("Tất cả")
     setYearFilter("Tất cả")
+    setSortOption("default")
   }
 
   const handleExportCustomers = () => {
@@ -474,17 +344,17 @@ function AdminCustomers() {
         "Tổng chi tiêu",
       ],
       ...filteredCustomers.map((customer) => [
-        customer.id,
-        customer.accountId,
-        customer.fullName,
-        customer.email,
-        customer.phone,
-        customer.gender,
-        customer.birthday,
-        customer.createdAt,
-        customer.status,
-        customer.customerType,
-        customer.appointments.length,
+        getCustomerCode(customer),
+        customer.idTaiKhoan || "",
+        customer.fullName || "",
+        customer.email || "",
+        customer.phone || "",
+        customer.gender || "",
+        customer.birthday || "",
+        customer.createdAt || "",
+        customer.status || "",
+        customer.loaiKH || "Thường",
+        customer.totalAppointments || 0,
         getTotalSpent(customer),
       ]),
     ]
@@ -507,9 +377,56 @@ function AdminCustomers() {
     URL.revokeObjectURL(url)
   }
 
+  const handleOpenCustomerDetail = async (customer) => {
+    try {
+      setIsDetailLoading(true)
+      setHistoryModal(null)
+
+      const detail = await getAdminCustomerDetailApi(customer.idKhachHang)
+      setSelectedCustomer(detail)
+    } catch {
+      setSelectedCustomer(customer)
+    } finally {
+      setIsDetailLoading(false)
+    }
+  }
+
   const handleCloseCustomerModal = () => {
     setSelectedCustomer(null)
     setHistoryModal(null)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="admin-customers-page">
+        <section className="admin-customers-card">
+          <div className="admin-empty-state">
+            Đang tải danh sách khách hàng...
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="admin-customers-page">
+        <section className="admin-customers-card">
+          <div className="admin-empty-state">
+            <p>{errorMessage}</p>
+
+            <button
+              type="button"
+              className="admin-filter-reset-btn"
+              onClick={fetchCustomers}
+            >
+              <RotateCcw size={16} />
+              Tải lại
+            </button>
+          </div>
+        </section>
+      </div>
+    )
   }
 
   return (
@@ -517,6 +434,7 @@ function AdminCustomers() {
       <section className="admin-customers-toolbar">
         <div className="admin-customers-search">
           <Search size={18} />
+
           <input
             type="text"
             placeholder="Tìm kiếm theo tên, SĐT, email..."
@@ -538,6 +456,23 @@ function AdminCustomers() {
           Lọc
         </button>
 
+        <div className="admin-customers-sort">
+          <label>Sắp xếp</label>
+
+          <select
+            value={sortOption}
+            onChange={(event) => setSortOption(event.target.value)}
+          >
+            <option value="default">Mặc định</option>
+            <option value="code-desc">Mã KH giảm dần</option>
+            <option value="code-asc">Mã KH tăng dần</option>
+            <option value="name-asc">Tên A - Z</option>
+            <option value="name-desc">Tên Z - A</option>
+            <option value="created-desc">Ngày tạo mới nhất</option>
+            <option value="created-asc">Ngày tạo cũ nhất</option>
+          </select>
+        </div>
+
         <button
           type="button"
           className="admin-customers-export-btn"
@@ -552,18 +487,20 @@ function AdminCustomers() {
         <section className="admin-customers-filter-panel">
           <div className="admin-filter-group">
             <label>Trạng thái</label>
+
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
             >
               <option>Tất cả</option>
-              <option>Hoạt động</option>
-              <option>Khóa</option>
+              <option>Đang hoạt động</option>
+              <option>Tạm khoá</option>
             </select>
           </div>
 
           <div className="admin-filter-group">
             <label>Giới tính</label>
+
             <select
               value={genderFilter}
               onChange={(event) => setGenderFilter(event.target.value)}
@@ -571,11 +508,14 @@ function AdminCustomers() {
               <option>Tất cả</option>
               <option>Nam</option>
               <option>Nữ</option>
+              <option>Khác</option>
+              <option>Chưa cập nhật</option>
             </select>
           </div>
 
           <div className="admin-filter-group">
             <label>Tháng tạo</label>
+
             <select
               value={monthFilter}
               onChange={(event) => setMonthFilter(event.target.value)}
@@ -590,11 +530,13 @@ function AdminCustomers() {
 
           <div className="admin-filter-group">
             <label>Năm tạo</label>
+
             <select
               value={yearFilter}
               onChange={(event) => setYearFilter(event.target.value)}
             >
               <option>Tất cả</option>
+
               {yearOptions.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -638,13 +580,25 @@ function AdminCustomers() {
             <tbody>
               {filteredCustomers.length > 0 ? (
                 filteredCustomers.map((customer) => (
-                  <tr key={customer.id}>
-                    <td className="admin-customer-code">{customer.id}</td>
+                  <tr key={customer.idKhachHang || customer.id}>
+                    <td className="admin-customer-code">
+                      {getCustomerCode(customer)}
+                    </td>
 
                     <td>
                       <div className="admin-customer-info">
                         <div className="admin-customer-avatar">
-                          {customer.avatarText}
+                          {customer.avatar ? (
+                            <img
+                              src={getImageUrl(customer.avatar)}
+                              alt={customer.fullName}
+                              onError={(event) => {
+                                event.currentTarget.style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            getCustomerAvatarText(customer)
+                          )}
                         </div>
 
                         <div>
@@ -654,19 +608,19 @@ function AdminCustomers() {
                       </div>
                     </td>
 
-                    <td>{customer.phone}</td>
-                    <td>{customer.gender}</td>
-                    <td>{customer.createdAt}</td>
+                    <td>{customer.phone || "Chưa cập nhật"}</td>
+                    <td>{customer.gender || "Chưa cập nhật"}</td>
+                    <td>{formatDateDisplay(customer.createdAt)}</td>
 
                     <td>
                       <span
                         className={
-                          customer.status === "Hoạt động"
+                          isActiveStatus(customer.status)
                             ? "admin-status-badge active"
                             : "admin-status-badge locked"
                         }
                       >
-                        {customer.status}
+                        {customer.status || "Chưa cập nhật"}
                       </span>
                     </td>
 
@@ -675,7 +629,8 @@ function AdminCustomers() {
                         type="button"
                         className="admin-view-btn"
                         title="Xem chi tiết"
-                        onClick={() => setSelectedCustomer(customer)}
+                        disabled={isDetailLoading}
+                        onClick={() => handleOpenCustomerDetail(customer)}
                       >
                         <Eye size={17} />
                       </button>
@@ -708,7 +663,7 @@ function AdminCustomers() {
             <div className="admin-customer-modal-header">
               <div>
                 <h2>Chi tiết khách hàng</h2>
-                <p>{selectedCustomer.id}</p>
+                <p>{getCustomerCode(selectedCustomer)}</p>
               </div>
 
               <button
@@ -722,55 +677,69 @@ function AdminCustomers() {
 
             <div className="admin-customer-profile-box">
               <div className="admin-customer-profile-avatar">
-                {selectedCustomer.avatarText}
+                {selectedCustomer.avatar ? (
+                  <img
+                    src={getImageUrl(selectedCustomer.avatar)}
+                    alt={selectedCustomer.fullName}
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none"
+                    }}
+                  />
+                ) : (
+                  getCustomerAvatarText(selectedCustomer)
+                )}
               </div>
 
               <div>
                 <h3>{selectedCustomer.fullName}</h3>
-                <p>{selectedCustomer.customerType}</p>
+                <p>{selectedCustomer.loaiKH || "Thường"}</p>
               </div>
 
               <span
                 className={
-                  selectedCustomer.status === "Hoạt động"
+                  isActiveStatus(selectedCustomer.status)
                     ? "admin-status-badge active"
                     : "admin-status-badge locked"
                 }
               >
-                {selectedCustomer.status}
+                {selectedCustomer.status || "Chưa cập nhật"}
               </span>
             </div>
 
             <div className="admin-customer-detail-grid">
               <div className="admin-detail-item">
                 <Phone size={17} />
+
                 <div>
                   <span>Số điện thoại</span>
-                  <strong>{selectedCustomer.phone}</strong>
+                  <strong>{selectedCustomer.phone || "Chưa cập nhật"}</strong>
                 </div>
               </div>
 
               <div className="admin-detail-item">
                 <Mail size={17} />
+
                 <div>
                   <span>Email</span>
-                  <strong>{selectedCustomer.email}</strong>
+                  <strong>{selectedCustomer.email || "Chưa cập nhật"}</strong>
                 </div>
               </div>
 
               <div className="admin-detail-item">
                 <UserRound size={17} />
+
                 <div>
                   <span>Giới tính</span>
-                  <strong>{selectedCustomer.gender}</strong>
+                  <strong>{selectedCustomer.gender || "Chưa cập nhật"}</strong>
                 </div>
               </div>
 
               <div className="admin-detail-item">
                 <CalendarDays size={17} />
+
                 <div>
                   <span>Ngày sinh</span>
-                  <strong>{selectedCustomer.birthday}</strong>
+                  <strong>{formatDateDisplay(selectedCustomer.birthday)}</strong>
                 </div>
               </div>
             </div>
@@ -778,19 +747,22 @@ function AdminCustomers() {
             <div className="admin-customer-stat-grid">
               <div>
                 <Clock3 size={18} />
+
                 <span>Lịch hẹn</span>
-                <strong>{selectedCustomer.appointments.length}</strong>
+                <strong>{selectedCustomer.totalAppointments || 0}</strong>
               </div>
 
               <div>
                 <Wallet size={18} />
+
                 <span>Chi tiêu</span>
                 <strong>{formatMoney(getTotalSpent(selectedCustomer))}</strong>
               </div>
 
               <div>
                 <ReceiptText size={18} />
-                <span>Lần thanh toán gần nhất</span>
+
+                <span>Lần sử dụng gần nhất</span>
                 <strong>{getLastPaidDate(selectedCustomer)}</strong>
               </div>
             </div>
@@ -806,29 +778,44 @@ function AdminCustomers() {
                       setHistoryModal({
                         title: "Tất cả lịch sử lịch hẹn",
                         type: "appointments",
-                        data: selectedCustomer.appointments,
+                        data: getAppointments(selectedCustomer),
                       })
                     }
+                    disabled={getAppointments(selectedCustomer).length === 0}
                   >
                     Xem tất cả
                   </button>
                 </div>
 
                 <div className="admin-history-list">
-                  {selectedCustomer.appointments
-                    .slice(0, 2)
-                    .map((appointment) => (
-                      <div className="admin-history-item" key={appointment.id}>
-                        <div>
-                          <h4>{appointment.services}</h4>
-                          <p>
-                            {appointment.date} • {appointment.time}
-                          </p>
-                        </div>
+                  {getAppointments(selectedCustomer).length > 0 ? (
+                    getAppointments(selectedCustomer)
+                      .slice(0, 2)
+                      .map((appointment) => (
+                        <div
+                          className="admin-history-item"
+                          key={appointment.id}
+                        >
+                          <div>
+                            <h4>{appointment.services || "Dịch vụ"}</h4>
 
-                        <span>{appointment.status}</span>
+                            <p>
+                              {formatDateDisplay(appointment.date)} •{" "}
+                              {appointment.time || "Chưa cập nhật"}
+                            </p>
+                          </div>
+
+                          <span>{appointment.status}</span>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="admin-history-item">
+                      <div>
+                        <h4>Chưa có lịch hẹn</h4>
+                        <p>Khách hàng chưa phát sinh lịch hẹn.</p>
                       </div>
-                    ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -845,26 +832,37 @@ function AdminCustomers() {
                         data: getServiceUsageHistory(selectedCustomer),
                       })
                     }
+                    disabled={
+                      getServiceUsageHistory(selectedCustomer).length === 0
+                    }
                   >
                     Xem tất cả
                   </button>
                 </div>
 
                 <div className="admin-history-list">
-                  {getServiceUsageHistory(selectedCustomer)
-                    .slice(0, 2)
-                    .map((service) => (
-                      <div className="admin-history-item" key={service.id}>
-                        <div>
-                          <h4>{service.serviceName}</h4>
-                          <p>
-                            {service.paidAt} • {service.invoiceId}
-                          </p>
-                        </div>
+                  {getServiceUsageHistory(selectedCustomer).length > 0 ? (
+                    getServiceUsageHistory(selectedCustomer)
+                      .slice(0, 2)
+                      .map((service) => (
+                        <div className="admin-history-item" key={service.id}>
+                          <div>
+                            <h4>{service.serviceName}</h4>
 
-                        <strong>{formatMoney(service.total)}</strong>
+                            <p>{formatDateDisplay(service.date)}</p>
+                          </div>
+
+                          <strong>{formatMoney(service.amount)}</strong>
+                        </div>
+                      ))
+                  ) : (
+                    <div className="admin-history-item">
+                      <div>
+                        <h4>Chưa sử dụng dịch vụ</h4>
+                        <p>Chưa có dịch vụ đã hoàn thành.</p>
                       </div>
-                    ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -897,34 +895,42 @@ function AdminCustomers() {
             </div>
 
             <div className="admin-history-modal-list">
-              {historyModal.data.map((item) => (
-                <div className="admin-history-modal-item" key={item.id}>
-                  {historyModal.type === "appointments" ? (
-                    <>
-                      <div>
-                        <h4>{item.services}</h4>
-                        <p>
-                          {item.date} • {item.time}
-                        </p>
-                      </div>
+              {historyModal.data.length > 0 ? (
+                historyModal.data.map((item) => (
+                  <div className="admin-history-modal-item" key={item.id}>
+                    {historyModal.type === "appointments" ? (
+                      <>
+                        <div>
+                          <h4>{item.services || "Dịch vụ"}</h4>
 
-                      <span>{item.status}</span>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        <h4>{item.serviceName}</h4>
-                        <p>
-                          {item.paidAt} • {item.invoiceId} • SL:{" "}
-                          {item.quantity}
-                        </p>
-                      </div>
+                          <p>
+                            {formatDateDisplay(item.date)} •{" "}
+                            {item.time || "Chưa cập nhật"}
+                          </p>
+                        </div>
 
-                      <strong>{formatMoney(item.total)}</strong>
-                    </>
-                  )}
+                        <span>{item.status}</span>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <h4>{item.serviceName}</h4>
+                          <p>{formatDateDisplay(item.date)}</p>
+                        </div>
+
+                        <strong>{formatMoney(item.amount)}</strong>
+                      </>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="admin-history-modal-item">
+                  <div>
+                    <h4>Chưa có dữ liệu</h4>
+                    <p>Không có dữ liệu để hiển thị.</p>
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

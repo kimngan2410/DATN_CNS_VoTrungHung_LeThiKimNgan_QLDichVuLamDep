@@ -66,3 +66,56 @@ class ServiceReviewResponse(BaseModel):
     averageRating: float
     totalReviews: int
     reviews: list[ServiceReviewOut]
+
+class AdminServiceImageOut(BaseModel):
+    idHinhAnh: int | None = None
+    imageUrl: str
+    isMain: bool = False
+
+
+class AdminServiceOut(BaseModel):
+    id: str
+    idDichVu: int
+    maDV: str
+    name: str
+    categoryId: int
+    categoryName: str
+    price: float
+    duration: int
+    status: str
+    createdAt: str
+    shortDescription: str | None = None
+    detailDescription: str | None = None
+    isUsedInAppointments: bool = False
+    images: list[str] = []
+
+
+class AdminServiceCreate(BaseModel):
+    idDanhMuc: int
+    tenDV: str = Field(..., min_length=1, max_length=200)
+    moTaNgan: str | None = None
+    moTaChiTiet: str | None = None
+    gia: float = Field(..., ge=0)
+    thoiLuongPhut: int = Field(..., ge=1)
+    trangThai: str = "Hoạt động"
+    images: list[str] = []
+
+
+class AdminServiceUpdate(BaseModel):
+    idDanhMuc: int
+    tenDV: str = Field(..., min_length=1, max_length=200)
+    moTaNgan: str | None = None
+    moTaChiTiet: str | None = None
+    gia: float = Field(..., ge=0)
+    thoiLuongPhut: int = Field(..., ge=1)
+    trangThai: str = "Hoạt động"
+    images: list[str] = []
+
+
+class AdminServiceActionResponse(BaseModel):
+    message: str
+    service: AdminServiceOut | None = None
+
+
+class AdminUploadImagesResponse(BaseModel):
+    images: list[str] = []

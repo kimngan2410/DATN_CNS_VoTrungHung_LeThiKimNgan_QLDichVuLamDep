@@ -9,7 +9,8 @@ function toAbsoluteFileUrl(url) {
   if (
     url.startsWith("http://") ||
     url.startsWith("https://") ||
-    url.startsWith("blob:")
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
   ) {
     return url
   }
@@ -35,6 +36,24 @@ async function handleResponse(response, defaultMessage) {
   }
 
   return data
+}
+
+function normalizeService(service) {
+  const rawImage = service?.image || ""
+  const rawImages = Array.isArray(service?.images) ? service.images : []
+
+  const normalizedImages =
+    rawImages.length > 0
+      ? rawImages.map((image) => toAbsoluteFileUrl(image))
+      : rawImage
+        ? [toAbsoluteFileUrl(rawImage)]
+        : []
+
+  return {
+    ...service,
+    image: toAbsoluteFileUrl(rawImage || rawImages[0] || ""),
+    images: normalizedImages,
+  }
 }
 
 function normalizeServiceReviews(data) {
@@ -65,15 +84,29 @@ export async function getServiceCategoriesApi() {
 }
 
 export async function getServicesApi() {
-  const response = await fetch(`${API_BASE_URL}/dich-vu`)
+  const response = await fetch(`${API_BASE_URL}/dich-vu`, {
+    cache: "no-store",
+  })
 
-  return handleResponse(response, "Không thể tải danh sách dịch vụ")
+  const data = await handleResponse(
+    response,
+    "Không thể tải danh sách dịch vụ"
+  )
+
+  return Array.isArray(data) ? data.map(normalizeService) : []
 }
 
 export async function getServiceDetailApi(serviceId) {
-  const response = await fetch(`${API_BASE_URL}/dich-vu/${serviceId}`)
+  const response = await fetch(`${API_BASE_URL}/dich-vu/${serviceId}`, {
+    cache: "no-store",
+  })
 
-  return handleResponse(response, "Không thể tải chi tiết dịch vụ")
+  const data = await handleResponse(
+    response,
+    "Không thể tải chi tiết dịch vụ"
+  )
+
+  return normalizeService(data)
 }
 
 export async function getServiceReviewsApi(serviceId) {

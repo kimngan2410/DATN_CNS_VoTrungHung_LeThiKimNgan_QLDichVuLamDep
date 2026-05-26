@@ -30,3 +30,6 @@ pnpm-debug.log*
 !.vscode/extensions.json
 .idea/
 .DS_Store
+
+# Admin account
+spa-backend/create_admin.py

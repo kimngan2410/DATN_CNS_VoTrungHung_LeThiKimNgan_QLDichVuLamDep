@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.crud.khach_hang_crud import (
     create_staff_customer,
+    get_admin_customer_detail,
+    get_admin_customers,
     get_customer_profile,
     get_staff_customers,
     update_customer_profile,
@@ -10,11 +12,12 @@ from app.crud.khach_hang_crud import (
 from app.db.session import get_db
 from app.schemas.khach_hang_schema import (
     AccountProfileResponse,
+    AdminCustomerOut,
     StaffCustomerActionResponse,
     StaffCustomerCreateRequest,
     StaffCustomerOut,
 )
-from app.api.deps.auth_deps import require_receptionist
+from app.api.deps.auth_deps import require_admin, require_receptionist
 
 router = APIRouter()
 
@@ -103,3 +106,32 @@ def get_customer_detail(
         "message": "API chi tiết khách hàng",
         "customer_id": customer_id,
     }
+
+# =========================
+# ADMIN CUSTOMER MANAGEMENT
+# =========================
+
+@router.get(
+    "/admin/danh-sach",
+    response_model=list[AdminCustomerOut],
+)
+def get_admin_customers_api(
+    current_admin: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return get_admin_customers(db)
+
+
+@router.get(
+    "/admin/{id_khach_hang}",
+    response_model=AdminCustomerOut,
+)
+def get_admin_customer_detail_api(
+    id_khach_hang: int,
+    current_admin: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return get_admin_customer_detail(
+        db=db,
+        id_khach_hang=id_khach_hang,
+    )

@@ -75,3 +75,7 @@ class StaffCustomerCreateRequest(BaseModel):
 class StaffCustomerActionResponse(BaseModel):
     message: str
     customer: StaffCustomerOut
+
+
+class AdminCustomerOut(StaffCustomerOut):
+    pass

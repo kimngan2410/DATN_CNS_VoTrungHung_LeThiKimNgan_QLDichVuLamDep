@@ -534,3 +534,177 @@ def update_customer_profile(
     db.refresh(khach_hang)
 
     return build_profile_response(tai_khoan, khach_hang)
+
+def get_customer_appointments_for_admin(
+    db: Session,
+    id_tai_khoan: int,
+    limit: int | None = None,
+):
+    query = (
+        db.query(LichHen)
+        .filter(LichHen.idTaiKhoan == id_tai_khoan)
+        .order_by(LichHen.thoiGianBatDau.desc())
+    )
+
+    if limit:
+        query = query.limit(limit)
+
+    appointments = query.all()
+
+    return [
+        {
+            "id": item.maLH,
+            "date": format_date_value(item.thoiGianBatDau),
+            "time": format_time_value(item.thoiGianBatDau),
+            "services": get_appointment_services_text(db, int(item.idLichHen)),
+            "status": item.trangThai,
+        }
+        for item in appointments
+    ]
+
+
+def get_customer_service_history_for_admin(
+    db: Session,
+    id_tai_khoan: int,
+    limit: int | None = None,
+):
+    query = (
+        db.query(ChiTietLichHen, LichHen, DichVu)
+        .join(LichHen, LichHen.idLichHen == ChiTietLichHen.idLichHen)
+        .join(DichVu, DichVu.idDichVu == ChiTietLichHen.idDichVu)
+        .filter(
+            LichHen.idTaiKhoan == id_tai_khoan,
+            LichHen.trangThai == COMPLETED_APPOINTMENT_STATUS,
+        )
+        .order_by(LichHen.thoiGianBatDau.desc())
+    )
+
+    if limit:
+        query = query.limit(limit)
+
+    rows = query.all()
+    result = []
+
+    for chi_tiet, lich_hen, dich_vu in rows:
+        quantity = int(chi_tiet.soLuong or 1)
+        unit_price = float(chi_tiet.donGia or 0)
+        amount = unit_price * quantity
+
+        result.append(
+            {
+                "id": f"LS{int(chi_tiet.idChiTietLH):05d}",
+                "serviceName": dich_vu.tenDV,
+                "date": format_date_value(lich_hen.thoiGianBatDau),
+                "amount": amount,
+            }
+        )
+
+    return result
+
+
+def build_admin_customer_response(
+    db: Session,
+    khach_hang: KhachHang,
+    full_detail: bool = False,
+):
+    tai_khoan = khach_hang.taiKhoan
+
+    total_appointments = (
+        db.query(func.count(LichHen.idLichHen))
+        .filter(LichHen.idTaiKhoan == khach_hang.idTaiKhoan)
+        .scalar()
+        or 0
+    )
+
+    last_completed_appointment = (
+        db.query(LichHen)
+        .filter(
+            LichHen.idTaiKhoan == khach_hang.idTaiKhoan,
+            LichHen.trangThai == COMPLETED_APPOINTMENT_STATUS,
+        )
+        .order_by(LichHen.thoiGianBatDau.desc())
+        .first()
+    )
+
+    last_visit = (
+        format_date_value(last_completed_appointment.thoiGianBatDau)
+        if last_completed_appointment
+        else "Chưa sử dụng"
+    )
+
+    full_name = khach_hang.hoTen or "Khách hàng"
+
+    history_limit = None if full_detail else 5
+
+    return {
+        "id": khach_hang.maKH,
+        "idKhachHang": int(khach_hang.idKhachHang),
+        "idTaiKhoan": int(khach_hang.idTaiKhoan),
+        "maKH": khach_hang.maKH,
+        "fullName": full_name,
+        "avatarText": get_customer_avatar_text(full_name),
+        "avatar": khach_hang.anhDaiDien or "",
+        "phone": khach_hang.sdt or "",
+        "email": tai_khoan.email if tai_khoan else "",
+        "gender": khach_hang.gioiTinh or "Chưa cập nhật",
+        "birthday": format_date_value(khach_hang.ngaySinh) or "Chưa cập nhật",
+        "createdAt": format_date_value(khach_hang.ngayTao),
+        "loaiKH": khach_hang.loaiKH or "Thường",
+        "status": get_account_status_label(tai_khoan.trangThai if tai_khoan else ""),
+        "totalAppointments": int(total_appointments),
+        "totalSpent": get_customer_total_spent(db, int(khach_hang.idTaiKhoan)),
+        "lastVisit": last_visit,
+        "appointments": get_customer_appointments_for_admin(
+            db=db,
+            id_tai_khoan=int(khach_hang.idTaiKhoan),
+            limit=history_limit,
+        ),
+        "serviceHistory": get_customer_service_history_for_admin(
+            db=db,
+            id_tai_khoan=int(khach_hang.idTaiKhoan),
+            limit=history_limit,
+        ),
+    }
+
+
+def get_admin_customers(db: Session):
+    customers = (
+        db.query(KhachHang)
+        .join(TaiKhoan, TaiKhoan.idTaiKhoan == KhachHang.idTaiKhoan)
+        .filter(TaiKhoan.loaiTK == "KHACH_HANG")
+        .order_by(KhachHang.ngayTao.desc(), KhachHang.idKhachHang.desc())
+        .all()
+    )
+
+    return [
+        build_admin_customer_response(
+            db=db,
+            khach_hang=customer,
+            full_detail=False,
+        )
+        for customer in customers
+    ]
+
+
+def get_admin_customer_detail(db: Session, id_khach_hang: int):
+    customer = (
+        db.query(KhachHang)
+        .join(TaiKhoan, TaiKhoan.idTaiKhoan == KhachHang.idTaiKhoan)
+        .filter(
+            KhachHang.idKhachHang == id_khach_hang,
+            TaiKhoan.loaiTK == "KHACH_HANG",
+        )
+        .first()
+    )
+
+    if not customer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy khách hàng",
+        )
+
+    return build_admin_customer_response(
+        db=db,
+        khach_hang=customer,
+        full_detail=True,
+    )
