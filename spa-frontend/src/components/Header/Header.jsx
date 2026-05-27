@@ -65,10 +65,12 @@ function Header() {
       setCurrentUser(getCurrentUser())
     }
 
+    window.addEventListener("customer-auth-changed", handleAuthChanged)
     window.addEventListener("auth-changed", handleAuthChanged)
     window.addEventListener("storage", handleAuthChanged)
 
     return () => {
+      window.removeEventListener("customer-auth-changed", handleAuthChanged)
       window.removeEventListener("auth-changed", handleAuthChanged)
       window.removeEventListener("storage", handleAuthChanged)
     }
@@ -199,6 +201,7 @@ function Header() {
                   aria-expanded={isAccountMenuOpen}
                 >
                   <img
+                    key={avatarUrl}
                     src={avatarUrl}
                     alt={userName}
                     className="header__avatar-img"

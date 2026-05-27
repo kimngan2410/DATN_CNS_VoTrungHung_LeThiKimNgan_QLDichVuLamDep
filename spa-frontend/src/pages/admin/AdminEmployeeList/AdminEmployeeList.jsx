@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import {
   Search,
   Filter,
@@ -18,14 +18,51 @@ import {
   VenusAndMars,
   Image as ImageIcon,
   Upload,
+  CheckCircle2,
+  XCircle,
+  Info,
+  AlertCircle,
 } from "lucide-react"
+
+import {
+  createAdminEmployeeApi,
+  deleteAdminEmployeeApi,
+  getAdminEmployeesApi,
+  updateAdminEmployeeApi,
+  uploadAdminEmployeeAvatarApi,
+} from "../../../services/adminEmployeeApi"
+
 import "./AdminEmployeeList.css"
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1"
+
+const API_ORIGIN = API_BASE_URL.replace("/api/v1", "")
+
+const getFullAvatarUrl = (avatar) => {
+  if (!avatar) return ""
+
+  if (
+    avatar.startsWith("http://") ||
+    avatar.startsWith("https://") ||
+    avatar.startsWith("blob:") ||
+    avatar.startsWith("data:")
+  ) {
+    return avatar
+  }
+
+  if (avatar.startsWith("/uploads")) {
+    return `${API_ORIGIN}${avatar}`
+  }
+
+  return avatar
+}
 
 const SPA_OPENING_YEAR = 2020
 
 const roleOptions = ["Lễ tân", "Kỹ thuật viên", "Quản lý", "Khác"]
 const genderOptions = ["Nam", "Nữ", "Khác"]
-const statusOptions = ["Đang làm việc", "Ngừng làm việc"]
+const statusOptions = ["Đang làm", "Tạm nghỉ", "Đã nghỉ"]
 
 const monthOptions = [
   { value: "Tất cả", label: "Tất cả" },
@@ -52,6 +89,18 @@ const yearOptions = Array.from(
   (_, index) => String(getCurrentYear() - index)
 )
 
+const emptyForm = {
+  hoTen: "",
+  email: "",
+  sdt: "",
+  chucVu: "Lễ tân",
+  gioiTinh: "Nữ",
+  ngaySinh: "",
+  anhDaiDien: "",
+  ngayVaoLam: "",
+  trangThaiLamViec: "Đang làm",
+}
+
 const getDateParts = (dateValue) => {
   if (!dateValue) {
     return {
@@ -75,96 +124,6 @@ const getDateParts = (dateValue) => {
   }
 }
 
-const initialEmployees = [
-  {
-    idNhanVien: 1,
-    idTaiKhoan: 101,
-    maNV: "NV001",
-    hoTen: "Trần Thị Bích",
-    email: "bich.tran@spa.com",
-    sdt: "0911223344",
-    chucVu: "Lễ tân",
-    gioiTinh: "Nữ",
-    ngaySinh: "1998-04-12",
-    anhDaiDien: "",
-    ngayVaoLam: "2022-06-01",
-    trangThaiLamViec: "Đang làm việc",
-    ngayTao: "2022-06-01T08:30:00",
-  },
-  {
-    idNhanVien: 2,
-    idTaiKhoan: 102,
-    maNV: "NV002",
-    hoTen: "Lê Văn Cường",
-    email: "cuong.le@spa.com",
-    sdt: "0922334455",
-    chucVu: "Kỹ thuật viên",
-    gioiTinh: "Nam",
-    ngaySinh: "1996-09-20",
-    anhDaiDien: "",
-    ngayVaoLam: "2022-08-15",
-    trangThaiLamViec: "Đang làm việc",
-    ngayTao: "2022-08-15T09:00:00",
-  },
-  {
-    idNhanVien: 3,
-    idTaiKhoan: 103,
-    maNV: "NV003",
-    hoTen: "Nguyễn Thu Hà",
-    email: "ha.nguyen@spa.com",
-    sdt: "0933445566",
-    chucVu: "Kỹ thuật viên",
-    gioiTinh: "Nữ",
-    ngaySinh: "1999-01-18",
-    anhDaiDien: "",
-    ngayVaoLam: "2023-01-10",
-    trangThaiLamViec: "Đang làm việc",
-    ngayTao: "2023-01-10T10:15:00",
-  },
-  {
-    idNhanVien: 4,
-    idTaiKhoan: 104,
-    maNV: "NV004",
-    hoTen: "Phạm Minh Đạt",
-    email: "dat.pham@spa.com",
-    sdt: "0944556677",
-    chucVu: "Quản lý",
-    gioiTinh: "Nam",
-    ngaySinh: "1992-05-08",
-    anhDaiDien: "",
-    ngayVaoLam: "2021-01-01",
-    trangThaiLamViec: "Đang làm việc",
-    ngayTao: "2021-01-01T08:00:00",
-  },
-  {
-    idNhanVien: 5,
-    idTaiKhoan: 105,
-    maNV: "NV005",
-    hoTen: "Hoàng Thị Yến",
-    email: "yen.hoang@spa.com",
-    sdt: "0955667788",
-    chucVu: "Kỹ thuật viên",
-    gioiTinh: "Nữ",
-    ngaySinh: "1997-11-25",
-    anhDaiDien: "",
-    ngayVaoLam: "2023-03-20",
-    trangThaiLamViec: "Ngừng làm việc",
-    ngayTao: "2023-03-20T08:45:00",
-  },
-]
-
-const emptyForm = {
-  hoTen: "",
-  email: "",
-  sdt: "",
-  chucVu: "Lễ tân",
-  gioiTinh: "Nữ",
-  ngaySinh: "",
-  anhDaiDien: "",
-  ngayVaoLam: "",
-  trangThaiLamViec: "Đang làm việc",
-}
-
 const formatDate = (dateValue) => {
   if (!dateValue) return "Chưa cập nhật"
 
@@ -179,6 +138,7 @@ const getInitial = (name) => {
   if (!name) return "?"
 
   const words = name.trim().split(" ")
+
   return words[words.length - 1]?.charAt(0)?.toUpperCase() || "?"
 }
 
@@ -186,37 +146,24 @@ const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
-const createNextEmployeeId = (employees) => {
-  return (
-    employees.reduce((max, employee) => {
-      return Math.max(max, employee.idNhanVien)
-    }, 0) + 1
-  )
-}
+const getStatusClass = (status) => {
+  if (status === "Đang làm") {
+    return "admin-employee-status active"
+  }
 
-const createNextAccountId = (employees) => {
-  return (
-    employees.reduce((max, employee) => {
-      return Math.max(max, employee.idTaiKhoan)
-    }, 100) + 1
-  )
-}
+  if (status === "Tạm nghỉ") {
+    return "admin-employee-status inactive"
+  }
 
-const createNextEmployeeCode = (employees) => {
-  const maxNumber = employees.reduce((max, employee) => {
-    const number = Number(employee.maNV.replace("NV", ""))
-    return Number.isNaN(number) ? max : Math.max(max, number)
-  }, 0)
+  if (status === "Đã nghỉ") {
+    return "admin-employee-status inactive"
+  }
 
-  return `NV${String(maxNumber + 1).padStart(3, "0")}`
-}
-
-const getNowDateTime = () => {
-  return new Date().toISOString()
+  return "admin-employee-status inactive"
 }
 
 function AdminEmployees() {
-  const [employees, setEmployees] = useState(initialEmployees)
+  const [employees, setEmployees] = useState([])
 
   const [searchText, setSearchText] = useState("")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -233,27 +180,73 @@ function AdminEmployees() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [formData, setFormData] = useState({ ...emptyForm })
   const [formError, setFormError] = useState("")
-  const [successMessage, setSuccessMessage] = useState("")
+
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const [toast, setToast] = useState({
+    show: false,
+    type: "success",
+    title: "",
+    message: "",
+  })
+
+  const toastTimeoutRef = useRef(null)
+
+  const fetchEmployees = async () => {
+    try {
+      setIsLoading(true)
+      setFormError("")
+
+      const data = await getAdminEmployeesApi()
+
+      setEmployees(Array.isArray(data) ? data : [])
+    } catch (error) {
+      setFormError(error.message || "Không thể tải danh sách nhân viên.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchEmployees()
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const filteredEmployees = useMemo(() => {
     const keyword = searchText.trim().toLowerCase()
 
     return employees.filter((employee) => {
-      const matchKeyword =
-        employee.maNV.toLowerCase().includes(keyword) ||
-        employee.hoTen.toLowerCase().includes(keyword) ||
-        employee.email.toLowerCase().includes(keyword) ||
-        employee.sdt.toLowerCase().includes(keyword)
+      const maNV = employee.maNV || ""
+      const hoTen = employee.hoTen || ""
+      const email = employee.email || ""
+      const sdt = employee.sdt || ""
+      const chucVu = employee.chucVu || ""
+      const gioiTinh = employee.gioiTinh || ""
+      const trangThaiLamViec = employee.trangThaiLamViec || ""
 
-      const matchRole =
-        roleFilter === "Tất cả" || employee.chucVu === roleFilter
+      const matchKeyword =
+        maNV.toLowerCase().includes(keyword) ||
+        hoTen.toLowerCase().includes(keyword) ||
+        email.toLowerCase().includes(keyword) ||
+        sdt.toLowerCase().includes(keyword)
+
+      const matchRole = roleFilter === "Tất cả" || chucVu === roleFilter
 
       const matchGender =
-        genderFilter === "Tất cả" || employee.gioiTinh === genderFilter
+        genderFilter === "Tất cả" || gioiTinh === genderFilter
 
       const matchStatus =
-        statusFilter === "Tất cả" ||
-        employee.trangThaiLamViec === statusFilter
+        statusFilter === "Tất cả" || trangThaiLamViec === statusFilter
 
       const { month, year } = getDateParts(employee.ngayVaoLam)
 
@@ -280,12 +273,55 @@ function AdminEmployees() {
     yearFilter,
   ])
 
-  const showSuccess = (message) => {
-    setSuccessMessage(message)
+  const showToast = ({
+    type = "success",
+    title = "Thành công",
+    message = "",
+  }) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
 
-    setTimeout(() => {
-      setSuccessMessage("")
-    }, 2200)
+    setToast({
+      show: true,
+      type,
+      title,
+      message,
+    })
+
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast((prev) => ({
+        ...prev,
+        show: false,
+      }))
+    }, 3000)
+  }
+
+  const closeToast = () => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+
+    setToast((prev) => ({
+      ...prev,
+      show: false,
+    }))
+  }
+
+  const renderToastIcon = () => {
+    if (toast.type === "success") {
+      return <CheckCircle2 size={22} />
+    }
+
+    if (toast.type === "error") {
+      return <XCircle size={22} />
+    }
+
+    if (toast.type === "warning") {
+      return <AlertCircle size={22} />
+    }
+
+    return <Info size={22} />
   }
 
   const handleChangeForm = (field, value) => {
@@ -297,7 +333,7 @@ function AdminEmployees() {
     if (formError) setFormError("")
   }
 
-  const handleAvatarUpload = (event) => {
+  const handleAvatarUpload = async (event) => {
     const file = event.target.files?.[0]
 
     if (!file) return
@@ -316,15 +352,36 @@ function AdminEmployees() {
       return
     }
 
-    const imageUrl = URL.createObjectURL(file)
+    try {
+      setIsSaving(true)
+      setFormError("")
 
-    setFormData((prev) => ({
-      ...prev,
-      anhDaiDien: imageUrl,
-    }))
+      const result = await uploadAdminEmployeeAvatarApi(file)
 
-    setFormError("")
-    event.target.value = ""
+      setFormData((prev) => ({
+        ...prev,
+        anhDaiDien: result.url,
+      }))
+
+      showToast({
+        type: "success",
+        title: "Tải ảnh thành công",
+        message: "Ảnh đại diện đã được tải lên hệ thống.",
+      })
+    } catch (error) {
+      const message = error.message || "Không thể tải ảnh đại diện."
+
+      setFormError(message)
+
+      showToast({
+        type: "error",
+        title: "Tải ảnh thất bại",
+        message,
+      })
+    } finally {
+      setIsSaving(false)
+      event.target.value = ""
+    }
   }
 
   const handleResetFilter = () => {
@@ -345,155 +402,248 @@ function AdminEmployees() {
 
   const handleOpenEditForm = (employee) => {
     setEditingEmployee(employee)
+
     setFormData({
-      hoTen: employee.hoTen,
-      email: employee.email,
-      sdt: employee.sdt,
-      chucVu: employee.chucVu,
-      gioiTinh: employee.gioiTinh,
-      ngaySinh: employee.ngaySinh,
+      hoTen: employee.hoTen || "",
+      email: employee.email || "",
+      sdt: employee.sdt || "",
+      chucVu: employee.chucVu || "Lễ tân",
+      gioiTinh: employee.gioiTinh || "Nữ",
+      ngaySinh: employee.ngaySinh || "",
       anhDaiDien: employee.anhDaiDien || "",
-      ngayVaoLam: employee.ngayVaoLam,
-      trangThaiLamViec: employee.trangThaiLamViec,
+      ngayVaoLam: employee.ngayVaoLam || "",
+      trangThaiLamViec: employee.trangThaiLamViec || "Đang làm",
     })
+
     setFormError("")
     setIsFormOpen(true)
   }
 
   const handleCloseForm = () => {
+    if (isSaving) return
+
     setIsFormOpen(false)
     setEditingEmployee(null)
     setFormError("")
+    setFormData({ ...emptyForm })
   }
 
-  const handleSaveEmployee = () => {
+  const validateForm = () => {
+    const trimmedName = formData.hoTen.trim()
+    const trimmedEmail = formData.email.trim()
+    const trimmedPhone = formData.sdt.trim()
+
+    if (!trimmedName) {
+      setFormError("Vui lòng nhập họ tên nhân viên.")
+      return false
+    }
+
+    if (trimmedName.length < 2) {
+      setFormError("Họ tên nhân viên phải có ít nhất 2 ký tự.")
+      return false
+    }
+
+    if (!trimmedPhone) {
+      setFormError("Vui lòng nhập số điện thoại nhân viên.")
+      return false
+    }
+
+    if (!/^[0-9]{9,11}$/.test(trimmedPhone)) {
+      setFormError("Số điện thoại không hợp lệ. Vui lòng nhập từ 9 đến 11 số.")
+      return false
+    }
+
+    if (!trimmedEmail) {
+      setFormError("Vui lòng nhập email tài khoản của nhân viên.")
+      return false
+    }
+
+    if (!isValidEmail(trimmedEmail)) {
+      setFormError("Email không đúng định dạng.")
+      return false
+    }
+
+    if (!formData.ngaySinh) {
+      setFormError("Vui lòng chọn ngày sinh.")
+      return false
+    }
+
+    if (!formData.ngayVaoLam) {
+      setFormError("Vui lòng chọn ngày vào làm.")
+      return false
+    }
+
+    const selectedBirthDate = new Date(formData.ngaySinh)
+    const selectedStartDate = new Date(formData.ngayVaoLam)
+    const today = new Date()
+
+    if (
+      !Number.isNaN(selectedBirthDate.getTime()) &&
+      selectedBirthDate > today
+    ) {
+      setFormError("Ngày sinh không được lớn hơn ngày hiện tại.")
+      return false
+    }
+
+    if (!Number.isNaN(selectedStartDate.getTime()) && selectedStartDate > today) {
+      setFormError("Ngày vào làm không được lớn hơn ngày hiện tại.")
+      return false
+    }
+
+    return true
+  }
+
+  const handleSaveEmployee = async () => {
+    if (!validateForm()) return
+
     const trimmedName = formData.hoTen.trim()
     const trimmedEmail = formData.email.trim()
     const trimmedPhone = formData.sdt.trim()
     const trimmedAvatar = formData.anhDaiDien.trim()
 
-    if (!trimmedName) {
-      setFormError("Vui lòng nhập họ tên nhân viên.")
-      return
+    const payload = {
+      hoTen: trimmedName,
+      email: trimmedEmail,
+      sdt: trimmedPhone,
+      chucVu: formData.chucVu,
+      gioiTinh: formData.gioiTinh,
+      ngaySinh: formData.ngaySinh,
+      anhDaiDien: trimmedAvatar,
+      ngayVaoLam: formData.ngayVaoLam,
+      trangThaiLamViec: formData.trangThaiLamViec,
     }
 
-    if (!trimmedPhone) {
-      setFormError("Vui lòng nhập số điện thoại nhân viên.")
-      return
-    }
+    try {
+      setIsSaving(true)
+      setFormError("")
 
-    if (!/^[0-9]{9,11}$/.test(trimmedPhone)) {
-      setFormError("Số điện thoại không hợp lệ. Vui lòng nhập từ 9 đến 11 số.")
-      return
-    }
-
-    if (!trimmedEmail) {
-      setFormError("Vui lòng nhập email tài khoản của nhân viên.")
-      return
-    }
-
-    if (!isValidEmail(trimmedEmail)) {
-      setFormError("Email không đúng định dạng.")
-      return
-    }
-
-    if (!formData.ngaySinh) {
-      setFormError("Vui lòng chọn ngày sinh.")
-      return
-    }
-
-    if (!formData.ngayVaoLam) {
-      setFormError("Vui lòng chọn ngày vào làm.")
-      return
-    }
-
-    const isDuplicateEmail = employees.some((employee) => {
-      const sameEmail =
-        employee.email.trim().toLowerCase() === trimmedEmail.toLowerCase()
-
-      return editingEmployee
-        ? sameEmail && employee.idNhanVien !== editingEmployee.idNhanVien
-        : sameEmail
-    })
-
-    if (isDuplicateEmail) {
-      setFormError("Email đã tồn tại trong hệ thống. Vui lòng nhập email khác.")
-      return
-    }
-
-    const isDuplicatePhone = employees.some((employee) => {
-      const samePhone = employee.sdt.trim() === trimmedPhone
-
-      return editingEmployee
-        ? samePhone && employee.idNhanVien !== editingEmployee.idNhanVien
-        : samePhone
-    })
-
-    if (isDuplicatePhone) {
-      setFormError("Số điện thoại đã tồn tại trong hệ thống.")
-      return
-    }
-
-    if (editingEmployee) {
-      setEmployees((prev) =>
-        prev.map((employee) =>
-          employee.idNhanVien === editingEmployee.idNhanVien
-            ? {
-                ...employee,
-                hoTen: trimmedName,
-                email: trimmedEmail,
-                sdt: trimmedPhone,
-                chucVu: formData.chucVu,
-                gioiTinh: formData.gioiTinh,
-                ngaySinh: formData.ngaySinh,
-                anhDaiDien: trimmedAvatar,
-                ngayVaoLam: formData.ngayVaoLam,
-                trangThaiLamViec: formData.trangThaiLamViec,
-              }
-            : employee
+      if (editingEmployee) {
+        const result = await updateAdminEmployeeApi(
+          editingEmployee.idNhanVien,
+          payload
         )
-      )
 
-      showSuccess("Cập nhật nhân viên thành công.")
-    } else {
-      const newEmployee = {
-        idNhanVien: createNextEmployeeId(employees),
-        idTaiKhoan: createNextAccountId(employees),
-        maNV: createNextEmployeeCode(employees),
-        hoTen: trimmedName,
-        email: trimmedEmail,
-        sdt: trimmedPhone,
-        chucVu: formData.chucVu,
-        gioiTinh: formData.gioiTinh,
-        ngaySinh: formData.ngaySinh,
-        anhDaiDien: trimmedAvatar,
-        ngayVaoLam: formData.ngayVaoLam,
-        trangThaiLamViec: formData.trangThaiLamViec,
-        ngayTao: getNowDateTime(),
+        setEmployees((prev) =>
+          prev.map((employee) =>
+            employee.idNhanVien === editingEmployee.idNhanVien
+              ? result.employee
+              : employee
+          )
+        )
+
+        if (
+          selectedEmployee &&
+          selectedEmployee.idNhanVien === editingEmployee.idNhanVien
+        ) {
+          setSelectedEmployee(result.employee)
+        }
+
+        showToast({
+          type: "success",
+          title: "Cập nhật thành công",
+          message: result.message || "Thông tin nhân viên đã được cập nhật.",
+        })
+      } else {
+        const result = await createAdminEmployeeApi(payload)
+
+        setEmployees((prev) => [result.employee, ...prev])
+
+        showToast({
+          type: "success",
+          title: "Thêm thành công",
+          message: result.message || "Nhân viên mới đã được thêm vào hệ thống.",
+        })
       }
 
-      setEmployees((prev) => [newEmployee, ...prev])
-      showSuccess("Thêm nhân viên thành công.")
+      handleCloseForm()
+    } catch (error) {
+      const message = error.message || "Không thể lưu nhân viên."
+
+      setFormError(message)
+
+      showToast({
+        type: "error",
+        title: "Lưu thất bại",
+        message,
+      })
+    } finally {
+      setIsSaving(false)
     }
-
-    handleCloseForm()
   }
 
-  const handleConfirmDelete = () => {
-    if (!deleteTarget) return
+    const handleConfirmDelete = async () => {
+      if (!deleteTarget) return
 
-    setEmployees((prev) =>
-      prev.filter((employee) => employee.idNhanVien !== deleteTarget.idNhanVien)
-    )
+      try {
+        setIsDeleting(true)
 
-    setDeleteTarget(null)
-    showSuccess("Xoá nhân viên thành công.")
-  }
+        const result = await deleteAdminEmployeeApi(deleteTarget.idNhanVien)
+
+        setEmployees((prev) =>
+          prev.filter(
+            (employee) => employee.idNhanVien !== deleteTarget.idNhanVien
+          )
+        )
+
+        if (
+          selectedEmployee &&
+          selectedEmployee.idNhanVien === deleteTarget.idNhanVien
+        ) {
+          setSelectedEmployee(null)
+        }
+
+        setDeleteTarget(null)
+
+        showToast({
+          type: "success",
+          title: "Xoá thành công",
+          message: result.message || "Nhân viên đã được xoá khỏi danh sách.",
+        })
+      } catch (error) {
+        const message = error.message || "Không thể xoá nhân viên."
+
+        setFormError(message)
+        setDeleteTarget(null)
+
+        showToast({
+          type: "error",
+          title: "Xoá thất bại",
+          message,
+        })
+      } finally {
+        setIsDeleting(false)
+      }
+    }
 
   return (
     <div className="admin-employees-page">
-      {successMessage && (
-        <div className="admin-employee-success-toast">{successMessage}</div>
+      {toast.show && (
+        <div className={`admin-toast admin-toast--${toast.type}`}>
+          <div className="admin-toast__icon">{renderToastIcon()}</div>
+
+          <div className="admin-toast__content">
+            <div className="admin-toast__title">{toast.title}</div>
+            <div className="admin-toast__message">{toast.message}</div>
+          </div>
+
+          <button
+            type="button"
+            className="admin-toast__close"
+            onClick={closeToast}
+            aria-label="Đóng thông báo"
+          >
+            ×
+          </button>
+
+          <span className="admin-toast__progress" />
+        </div>
+      )}
+
+      {formError && !isFormOpen && (
+        <div className="admin-employee-form-error">
+          <AlertTriangle size={17} />
+          <span>{formError}</span>
+        </div>
       )}
 
       <section className="admin-employees-toolbar">
@@ -648,7 +798,15 @@ function AdminEmployees() {
             </thead>
 
             <tbody>
-              {filteredEmployees.length > 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan="7">
+                    <div className="admin-employee-empty">
+                      Đang tải danh sách nhân viên...
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredEmployees.length > 0 ? (
                 filteredEmployees.map((employee) => (
                   <tr key={employee.idNhanVien}>
                     <td className="admin-employee-code">{employee.maNV}</td>
@@ -657,7 +815,7 @@ function AdminEmployees() {
                       <div className="admin-employee-info">
                         {employee.anhDaiDien ? (
                           <img
-                            src={employee.anhDaiDien}
+                            src={getFullAvatarUrl(employee.anhDaiDien)}
                             alt={employee.hoTen}
                             className="admin-employee-avatar-img"
                           />
@@ -679,13 +837,7 @@ function AdminEmployees() {
                     <td>{formatDate(employee.ngayVaoLam)}</td>
 
                     <td>
-                      <span
-                        className={
-                          employee.trangThaiLamViec === "Đang làm việc"
-                            ? "admin-employee-status active"
-                            : "admin-employee-status inactive"
-                        }
-                      >
+                      <span className={getStatusClass(employee.trangThaiLamViec)}>
                         {employee.trangThaiLamViec}
                       </span>
                     </td>
@@ -764,7 +916,7 @@ function AdminEmployees() {
               <div className="admin-employee-profile-box">
                 {selectedEmployee.anhDaiDien ? (
                   <img
-                    src={selectedEmployee.anhDaiDien}
+                    src={getFullAvatarUrl(selectedEmployee.anhDaiDien)}
                     alt={selectedEmployee.hoTen}
                     className="admin-employee-profile-avatar-img"
                   />
@@ -779,13 +931,7 @@ function AdminEmployees() {
                   <p>{selectedEmployee.chucVu}</p>
                 </div>
 
-                <span
-                  className={
-                    selectedEmployee.trangThaiLamViec === "Đang làm việc"
-                      ? "admin-employee-status active"
-                      : "admin-employee-status inactive"
-                  }
-                >
+                <span className={getStatusClass(selectedEmployee.trangThaiLamViec)}>
                   {selectedEmployee.trangThaiLamViec}
                 </span>
               </div>
@@ -924,6 +1070,7 @@ function AdminEmployees() {
                 type="button"
                 className="admin-employee-close-btn"
                 onClick={handleCloseForm}
+                disabled={isSaving}
               >
                 <X size={20} />
               </button>
@@ -947,6 +1094,7 @@ function AdminEmployees() {
                     onChange={(event) =>
                       handleChangeForm("hoTen", event.target.value)
                     }
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -959,6 +1107,7 @@ function AdminEmployees() {
                     onChange={(event) =>
                       handleChangeForm("sdt", event.target.value)
                     }
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -971,6 +1120,7 @@ function AdminEmployees() {
                     onChange={(event) =>
                       handleChangeForm("email", event.target.value)
                     }
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -981,6 +1131,7 @@ function AdminEmployees() {
                     onChange={(event) =>
                       handleChangeForm("chucVu", event.target.value)
                     }
+                    disabled={isSaving}
                   >
                     {roleOptions.map((role) => (
                       <option key={role}>{role}</option>
@@ -995,6 +1146,7 @@ function AdminEmployees() {
                     onChange={(event) =>
                       handleChangeForm("gioiTinh", event.target.value)
                     }
+                    disabled={isSaving}
                   >
                     {genderOptions.map((gender) => (
                       <option key={gender}>{gender}</option>
@@ -1010,6 +1162,7 @@ function AdminEmployees() {
                     onChange={(event) =>
                       handleChangeForm("ngaySinh", event.target.value)
                     }
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -1021,6 +1174,7 @@ function AdminEmployees() {
                     onChange={(event) =>
                       handleChangeForm("ngayVaoLam", event.target.value)
                     }
+                    disabled={isSaving}
                   />
                 </div>
 
@@ -1034,6 +1188,7 @@ function AdminEmployees() {
                         event.target.value
                       )
                     }
+                    disabled={isSaving}
                   >
                     {statusOptions.map((status) => (
                       <option key={status}>{status}</option>
@@ -1053,6 +1208,7 @@ function AdminEmployees() {
                     onChange={(event) =>
                       handleChangeForm("anhDaiDien", event.target.value)
                     }
+                    disabled={isSaving}
                   />
 
                   <label className="admin-employee-upload-avatar-btn">
@@ -1062,6 +1218,7 @@ function AdminEmployees() {
                       type="file"
                       accept="image/*"
                       onChange={handleAvatarUpload}
+                      disabled={isSaving}
                     />
                   </label>
                 </div>
@@ -1080,6 +1237,7 @@ function AdminEmployees() {
                 type="button"
                 className="admin-employee-cancel-btn"
                 onClick={handleCloseForm}
+                disabled={isSaving}
               >
                 Huỷ
               </button>
@@ -1088,9 +1246,10 @@ function AdminEmployees() {
                 type="button"
                 className="admin-employee-primary-btn"
                 onClick={handleSaveEmployee}
+                disabled={isSaving}
               >
                 <Save size={17} />
-                Lưu
+                {isSaving ? "Đang lưu..." : "Lưu"}
               </button>
             </div>
           </div>
@@ -1100,7 +1259,9 @@ function AdminEmployees() {
       {deleteTarget && (
         <div
           className="admin-employee-modal-overlay"
-          onClick={() => setDeleteTarget(null)}
+          onClick={() => {
+            if (!isDeleting) setDeleteTarget(null)
+          }}
         >
           <div
             className="admin-employee-delete-modal"
@@ -1123,6 +1284,7 @@ function AdminEmployees() {
                 type="button"
                 className="admin-employee-cancel-btn"
                 onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
               >
                 Huỷ
               </button>
@@ -1131,8 +1293,9 @@ function AdminEmployees() {
                 type="button"
                 className="admin-employee-danger-btn"
                 onClick={handleConfirmDelete}
+                disabled={isDeleting}
               >
-                Xoá nhân viên
+                {isDeleting ? "Đang xoá..." : "Xoá nhân viên"}
               </button>
             </div>
           </div>

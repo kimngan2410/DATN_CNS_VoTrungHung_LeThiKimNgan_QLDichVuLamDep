@@ -24,32 +24,43 @@ const DEFAULT_AVATAR =
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80"
 
 function syncProfileToStoredUser(updatedProfile) {
-  const localUser = localStorage.getItem("user")
-  const sessionUser = sessionStorage.getItem("user")
+  const updateCustomerUserInStorage = (storage) => {
+    const rawUser = storage.getItem("customerUser")
 
-  const storage = localUser ? localStorage : sessionUser ? sessionStorage : null
+    if (!rawUser) return
 
-  if (!storage) return
+    try {
+      const oldUser = JSON.parse(rawUser)
 
-  try {
-    const oldUser = JSON.parse(storage.getItem("user") || "{}")
+      const nextUser = {
+        ...oldUser,
 
-    const nextUser = {
-      ...oldUser,
-      hoTen: updatedProfile.fullName,
-      fullName: updatedProfile.fullName,
-      email: updatedProfile.email,
-      sdt: updatedProfile.phone,
+        // Thông tin cá nhân
+        hoTen: updatedProfile.fullName,
+        fullName: updatedProfile.fullName,
+        email: updatedProfile.email,
+        sdt: updatedProfile.phone,
+        phone: updatedProfile.phone,
 
-      avatar: updatedProfile.avatar,
-      anhDaiDien: updatedProfile.avatar,
+        // Avatar cho Header
+        avatar: updatedProfile.avatar,
+        anhDaiDien: updatedProfile.avatar,
+        avatarUrl: updatedProfile.avatar,
+      }
+
+      storage.setItem("customerUser", JSON.stringify(nextUser))
+    } catch {
+      // Bỏ qua nếu dữ liệu storage bị lỗi
     }
-
-    storage.setItem("user", JSON.stringify(nextUser))
-    window.dispatchEvent(new Event("auth-changed"))
-  } catch {
-    // Bỏ qua nếu dữ liệu storage bị lỗi
   }
+
+  updateCustomerUserInStorage(localStorage)
+  updateCustomerUserInStorage(sessionStorage)
+
+  window.dispatchEvent(new Event("customer-auth-changed"))
+
+  // Giữ lại event cũ nếu component khác trong app còn dùng
+  window.dispatchEvent(new Event("auth-changed"))
 }
 
 function getInitialProfileFromStorage() {
