@@ -2,13 +2,15 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.danh_gia import DanhGia
 from app.models.hinh_anh_danh_gia import HinhAnhDanhGia
 from app.models.chi_tiet_lich_hen import ChiTietLichHen
 from app.models.lich_hen import LichHen
 from app.models.khach_hang import KhachHang
+from app.models.dich_vu import DichVu
+from app.models.phan_hoi_danh_gia import PhanHoiDanhGia
 
 
 REVIEW_UPLOAD_DIR = Path("uploads/reviews")
@@ -345,4 +347,192 @@ def update_customer_review(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi cập nhật đánh giá dịch vụ: {str(error)}",
+        )
+    
+
+def format_admin_datetime(value):
+    if not value:
+        return ""
+
+    return value.isoformat()
+
+
+def get_review_images_for_admin(db: Session, id_danh_gia: int):
+    images = (
+        db.query(HinhAnhDanhGia)
+        .filter(HinhAnhDanhGia.idDanhGia == id_danh_gia)
+        .order_by(HinhAnhDanhGia.idHinhAnhDanhGia.asc())
+        .all()
+    )
+
+    return [image.duongDanAnh for image in images if image.duongDanAnh]
+
+
+def get_customer_display_name(customer: KhachHang | None):
+    if not customer:
+        return "Khách hàng"
+
+    return (
+        getattr(customer, "hoTen", None)
+        or getattr(customer, "tenKhachHang", None)
+        or getattr(customer, "fullName", None)
+        or f"KH{int(customer.idKhachHang):03d}"
+    )
+
+
+def get_review_service(db: Session, review: DanhGia):
+    chi_tiet = review.chiTietLichHen
+
+    if not chi_tiet:
+        return None
+
+    id_dich_vu = getattr(chi_tiet, "idDichVu", None)
+
+    if not id_dich_vu:
+        return None
+
+    return (
+        db.query(DichVu)
+        .filter(DichVu.idDichVu == id_dich_vu)
+        .first()
+    )
+
+
+def get_review_reply(db: Session, id_danh_gia: int):
+    return (
+        db.query(PhanHoiDanhGia)
+        .filter(PhanHoiDanhGia.idDanhGia == id_danh_gia)
+        .first()
+    )
+
+
+def build_admin_review_response(db: Session, review: DanhGia):
+    customer = review.khachHang
+    service = get_review_service(db, review)
+    reply = get_review_reply(db, int(review.idDanhGia))
+
+    response = {
+        "idDanhGia": int(review.idDanhGia),
+        "maDanhGia": f"DG{int(review.idDanhGia):03d}",
+
+        "idKhachHang": int(review.idKhachHang),
+        "tenKhachHang": get_customer_display_name(customer),
+        "avatar": customer.anhDaiDien if customer else "",
+
+        "idDichVu": int(service.idDichVu) if service else 0,
+        "tenDichVu": service.tenDV if service else "Dịch vụ",
+
+        "soSao": int(review.soSao),
+        "noiDung": review.noiDung or "",
+
+        "hinhAnh": get_review_images_for_admin(db, int(review.idDanhGia)),
+
+        "ngayDanhGia": format_admin_datetime(review.ngayDanhGia),
+        "trangThai": "Đã phản hồi" if reply else "Chưa phản hồi",
+
+        "phanHoi": None,
+    }
+
+    if reply:
+        response["phanHoi"] = {
+            "noiDungPhanHoi": reply.noiDungDanhGia or "",
+            "ngayTao": format_admin_datetime(reply.ngayTao),
+            "ngayCapNhat": format_admin_datetime(
+                getattr(reply, "ngayCapNhat", None)
+            ),
+        }
+
+    return response
+
+
+def get_admin_reviews(db: Session):
+    reviews = (
+        db.query(DanhGia)
+        .options(
+            joinedload(DanhGia.khachHang),
+            joinedload(DanhGia.chiTietLichHen),
+        )
+        .order_by(DanhGia.ngayDanhGia.desc(), DanhGia.idDanhGia.desc())
+        .all()
+    )
+
+    return [build_admin_review_response(db, review) for review in reviews]
+
+
+def get_admin_review_or_404(db: Session, id_danh_gia: int):
+    review = (
+        db.query(DanhGia)
+        .options(
+            joinedload(DanhGia.khachHang),
+            joinedload(DanhGia.chiTietLichHen),
+        )
+        .filter(DanhGia.idDanhGia == id_danh_gia)
+        .first()
+    )
+
+    if not review:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy đánh giá",
+        )
+
+    return review
+
+
+def upsert_admin_review_reply(
+    db: Session,
+    id_danh_gia: int,
+    noi_dung_phan_hoi: str,
+    id_tai_khoan_admin: int | None = None,
+):
+    content = str(noi_dung_phan_hoi or "").strip()
+
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Vui lòng nhập nội dung phản hồi",
+        )
+
+    if len(content) > 500:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nội dung phản hồi không được vượt quá 500 ký tự",
+        )
+
+    review = get_admin_review_or_404(db, id_danh_gia)
+    reply = get_review_reply(db, id_danh_gia)
+
+    try:
+        if reply:
+            reply.noiDungDanhGia = content
+        else:
+            if not id_tai_khoan_admin:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Không xác định được tài khoản admin phản hồi",
+                )
+
+            reply = PhanHoiDanhGia(
+                idDanhGia=id_danh_gia,
+                idTaiKhoan=id_tai_khoan_admin,
+                noiDungDanhGia=content,
+            )
+
+            db.add(reply)
+
+        db.commit()
+        db.refresh(review)
+
+        return build_admin_review_response(db, review)
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as error:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi phản hồi đánh giá: {str(error)}",
         )

@@ -51,7 +51,7 @@ class AdminEmployeeUpdateRequest(BaseModel):
     anhDaiDien: Optional[str] = ""
 
     ngayVaoLam: Optional[str] = None
-    trangThaiLamViec: Optional[str] = "Đang làm việc"
+    trangThaiLamViec: Optional[str] = "Đang làm"
 
 
 class AdminEmployeeActionResponse(BaseModel):

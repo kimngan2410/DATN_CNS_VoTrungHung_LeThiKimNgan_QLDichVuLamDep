@@ -4,6 +4,7 @@ from uuid import uuid4
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.nhan_vien import NhanVien
@@ -280,9 +281,14 @@ def update_admin_employee(db: Session, id_nhan_vien: int, payload):
 
 def delete_admin_employee(db: Session, id_nhan_vien: int):
     employee = get_employee_or_404(db, id_nhan_vien)
+    account = employee.taiKhoan
 
     try:
-        employee.trangThaiLamViec = "Đã nghỉ"
+        db.delete(employee)
+        db.flush()
+
+        if account:
+            db.delete(account)
 
         db.commit()
 
@@ -291,8 +297,20 @@ def delete_admin_employee(db: Session, id_nhan_vien: int):
             "employee": None,
         }
 
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Không thể xoá nhân viên vì nhân viên này đã có dữ liệu liên quan. "
+                "Vui lòng chuyển trạng thái làm việc sang 'Đã nghỉ'."
+            ),
+        )
+
     except Exception as error:
         db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi xoá nhân viên: {str(error)}",

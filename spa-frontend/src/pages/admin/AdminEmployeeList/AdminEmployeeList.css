@@ -219,6 +219,44 @@
   color: #9aa4b5;
 }
 
+.admin-employees-sort {
+  height: 40px;
+  border: 1px solid var(--admin-border, #ebe7e1);
+  border-radius: 10px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--admin-text, #4d4a4b);
+  white-space: nowrap;
+}
+
+.admin-employees-sort label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--admin-muted, #8a7f72);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-employees-sort label svg {
+  color: var(--admin-muted, #8a7f72);
+}
+
+.admin-employees-sort select {
+  min-width: 190px;
+  height: 34px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--admin-text, #4d4a4b);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* BUTTONS */
 
 .admin-employees-filter-btn,
@@ -347,7 +385,7 @@
   margin: 0;
   color: var(--admin-dark, #4d4a4b);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .admin-employees-result-bar p {
@@ -902,6 +940,16 @@
 
   .admin-employees-search {
     width: 100%;
+  }
+
+    .admin-employees-sort {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .admin-employees-sort select {
+    flex: 1;
+    min-width: 0;
   }
 
   .admin-employees-filter-btn,

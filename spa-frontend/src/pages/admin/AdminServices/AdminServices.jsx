@@ -24,6 +24,7 @@ import {
   XCircle,
   Info,
   AlertCircle,
+  ArrowUpDown,
 } from "lucide-react"
 
 import { getServiceCategoriesApi } from "../../../services/serviceApi"
@@ -688,7 +689,7 @@ function AdminServices() {
     if (service.isUsedInAppointments) {
       openWarningDialog(
         "Không thể xoá dịch vụ",
-        `Dịch vụ "${service.name}" hiện đang được sử dụng trong lịch hẹn. Bạn cần xử lý hoặc hoàn tất các lịch hẹn liên quan trước khi xoá dịch vụ này.`
+        `Dịch vụ "${service.name}" đã phát sinh lịch hẹn hoặc hoá đơn. Bạn không nên xoá dịch vụ này, hãy giữ trạng thái "Ngừng cung cấp" để bảo toàn lịch sử.`
       )
       return
     }
@@ -823,7 +824,10 @@ function AdminServices() {
           </button>
 
           <div className="admin-services-sort">
-            <label>Sắp xếp</label>
+            <label>
+              <ArrowUpDown size={15} />
+              Sắp xếp
+            </label>
 
             <select
               value={sortOption}

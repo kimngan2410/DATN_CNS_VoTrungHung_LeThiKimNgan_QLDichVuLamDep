@@ -859,9 +859,16 @@
 }
 
 .admin-categories-sort label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: var(--admin-muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+}
+
+.admin-categories-sort label svg {
+  color: var(--admin-muted);
 }
 
 .admin-categories-sort select {

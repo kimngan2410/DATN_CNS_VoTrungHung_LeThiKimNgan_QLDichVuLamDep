@@ -804,6 +804,13 @@
   color: var(--admin-muted);
   font-size: 14px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-customers-sort label svg {
+  color: var(--admin-muted);
 }
 
 .admin-customers-sort select {

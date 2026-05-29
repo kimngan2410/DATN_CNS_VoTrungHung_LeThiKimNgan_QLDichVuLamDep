@@ -21,6 +21,7 @@ import {
   XCircle,
   Info,
   AlertCircle,
+  ArrowUpDown,
 } from "lucide-react"
 
 import {
@@ -507,7 +508,10 @@ function AdminServiceCategories() {
           </button>
 
           <div className="admin-categories-sort">
-            <label>Sắp xếp</label>
+            <label>
+              <ArrowUpDown size={15} />
+              Sắp xếp
+            </label>
 
             <select
               value={sortOption}

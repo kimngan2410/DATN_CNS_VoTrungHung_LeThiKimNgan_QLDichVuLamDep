@@ -129,6 +129,58 @@
   color: var(--admin-subtle);
 }
 
+.account-sort {
+  height: 46px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: var(--admin-card);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--admin-text);
+  white-space: nowrap;
+}
+
+.account-sort label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.account-sort label svg {
+  color: var(--admin-muted);
+}
+
+.account-sort select {
+  min-width: 180px;
+  height: 34px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.account-avatar-img {
+  width: 39px;
+  height: 39px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--admin-border);
+  flex-shrink: 0;
+}
+
+.account-avatar-img.is-muted {
+  filter: grayscale(1);
+  opacity: 0.65;
+}
+
 .account-toolbar-right {
   display: flex;
   align-items: center;
@@ -202,7 +254,7 @@
 .account-filter-group label {
   font-size: 13px;
   color: var(--admin-muted);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .account-filter-group select {
@@ -870,5 +922,15 @@
     left: 16px;
     right: 16px;
     top: 78px;
+  }
+
+  .account-sort {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .account-sort select {
+    flex: 1;
+    min-width: 0;
   }
 }

@@ -12,6 +12,7 @@ from app.api.v1.endpoints import danh_gia
 from app.api.v1.endpoints import bao_cao
 from app.api.v1.endpoints import home
 from app.api.v1.endpoints import staff_overview
+from app.api.v1.endpoints import tai_khoan
 
 api_router = APIRouter()
 
@@ -27,3 +28,4 @@ api_router.include_router(danh_gia.router, prefix="/danh-gia", tags=["Đánh gi�
 api_router.include_router(bao_cao.router, prefix="/bao-cao", tags=["Báo cáo"])
 api_router.include_router(home.router, prefix="/home", tags=["Trang chủ"])
 api_router.include_router( staff_overview.router, prefix="/staff", tags=["Staff Overview"])
+api_router.include_router( tai_khoan.router, prefix="/tai-khoan", tags=["Tài khoản"])

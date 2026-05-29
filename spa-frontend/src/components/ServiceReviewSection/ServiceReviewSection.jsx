@@ -186,7 +186,7 @@ function ServiceReviewSection({ reviewData }) {
 
                   {review.reply && (
                     <div className="service-review-item__reply">
-                      <strong>Phản hồi từ {review.reply.adminName}</strong>
+                      <strong>Phản hồi từ Serenity Spa</strong>
                       <p>{review.reply.content}</p>
                       <span>{review.reply.createdAt}</span>
                     </div>

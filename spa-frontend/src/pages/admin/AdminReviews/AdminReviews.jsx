@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react"
+import React, { useEffect, useMemo, useRef, useState } from "react"
 import {
   Search,
   Filter,
@@ -14,105 +14,25 @@ import {
   UserRound,
   Sparkles,
   AlertTriangle,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Info,
+  AlertCircle,
+  ArrowUpDown,
 } from "lucide-react"
+
+import {
+  getAdminReviewDetailApi,
+  getAdminReviewsApi,
+  replyAdminReviewApi,
+} from "../../../services/adminReviewApi"
+
 import "./AdminReviews.css"
 
 const statusOptions = ["Đã phản hồi", "Chưa phản hồi"]
 const ratingOptions = ["5 sao", "4 sao", "3 sao", "2 sao", "1 sao"]
 const timeOptions = ["Tất cả", "Hôm nay", "7 ngày gần đây", "30 ngày gần đây"]
-
-const initialReviews = [
-  {
-    idDanhGia: 1,
-    maDanhGia: "DG001",
-    idKhachHang: 1,
-    tenKhachHang: "Nguyễn Thị Hoa",
-    idDichVu: 1,
-    tenDichVu: "Chăm sóc da mặt cơ bản",
-    soSao: 5,
-    noiDung:
-      "Dịch vụ rất tốt, nhân viên nhiệt tình, không gian sạch sẽ và thư giãn.",
-    hinhAnh: [
-      "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=500&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=500&auto=format&fit=crop",
-    ],
-    ngayDanhGia: "2023-11-20T14:30:00",
-    trangThai: "Đã phản hồi",
-    phanHoi: {
-      noiDungPhanHoi:
-        "Cảm ơn chị Hoa đã tin tưởng Lumière Spa. Rất mong được tiếp tục phục vụ chị trong những lần sau.",
-      ngayTao: "2023-11-20T16:10:00",
-      ngayCapNhat: null,
-    },
-  },
-  {
-    idDanhGia: 2,
-    maDanhGia: "DG002",
-    idKhachHang: 2,
-    tenKhachHang: "Trần Văn Nam",
-    idDichVu: 3,
-    tenDichVu: "Massage Body Thái",
-    soSao: 4,
-    noiDung:
-      "Kỹ thuật viên làm tốt, nhưng phòng hơi lạnh. Mong spa điều chỉnh nhiệt độ phù hợp hơn.",
-    hinhAnh: [],
-    ngayDanhGia: "2023-11-19T10:15:00",
-    trangThai: "Chưa phản hồi",
-    phanHoi: null,
-  },
-  {
-    idDanhGia: 3,
-    maDanhGia: "DG003",
-    idKhachHang: 3,
-    tenKhachHang: "Lê Mai Anh",
-    idDichVu: 4,
-    tenDichVu: "Tắm trắng phi thuyền",
-    soSao: 5,
-    noiDung:
-      "Da sáng lên hẳn sau 1 liệu trình. Rất ưng cách tư vấn của nhân viên.",
-    hinhAnh: [
-      "https://images.unsplash.com/photo-1519415510236-718bdfcd89c8?w=500&auto=format&fit=crop",
-    ],
-    ngayDanhGia: "2023-11-18T16:45:00",
-    trangThai: "Chưa phản hồi",
-    phanHoi: null,
-  },
-  {
-    idDanhGia: 4,
-    maDanhGia: "DG004",
-    idKhachHang: 4,
-    tenKhachHang: "Phạm Thu Thuỷ",
-    idDichVu: 2,
-    tenDichVu: "Điều trị mụn chuyên sâu",
-    soSao: 3,
-    noiDung:
-      "Lúc nặn mụn hơi đau, hy vọng lần sau nhân viên thao tác nhẹ hơn.",
-    hinhAnh: [],
-    ngayDanhGia: "2023-11-15T09:00:00",
-    trangThai: "Đã phản hồi",
-    phanHoi: {
-      noiDungPhanHoi:
-        "Lumière Spa xin ghi nhận góp ý của chị. Spa sẽ nhắc kỹ thuật viên điều chỉnh thao tác nhẹ nhàng hơn.",
-      ngayTao: "2023-11-15T11:20:00",
-      ngayCapNhat: null,
-    },
-  },
-  {
-    idDanhGia: 5,
-    maDanhGia: "DG005",
-    idKhachHang: 5,
-    tenKhachHang: "Hoàng Minh Tuấn",
-    idDichVu: 1,
-    tenDichVu: "Chăm sóc da mặt cơ bản",
-    soSao: 2,
-    noiDung:
-      "Mình phải chờ hơi lâu so với giờ đặt lịch. Dịch vụ ổn nhưng trải nghiệm chưa tốt.",
-    hinhAnh: [],
-    ngayDanhGia: "2023-11-10T18:20:00",
-    trangThai: "Chưa phản hồi",
-    phanHoi: null,
-  },
-]
 
 const formatDateTime = (value) => {
   if (!value) return "Chưa cập nhật"
@@ -156,6 +76,27 @@ const isInTimeRange = (dateValue, range) => {
   return true
 }
 
+const getReviewCodeNumber = (review) => {
+  const code = review?.maDanhGia || ""
+  const numberPart = code.replace(/\D/g, "")
+
+  return Number(numberPart || review?.idDanhGia || 0)
+}
+
+const getReviewDateTimestamp = (review) => {
+  const date = new Date(review?.ngayDanhGia || "")
+
+  if (Number.isNaN(date.getTime())) return 0
+
+  return date.getTime()
+}
+
+const getInitial = (name) => {
+  if (!name) return "?"
+
+  return name.trim().charAt(0).toUpperCase()
+}
+
 function RatingStars({ value }) {
   return (
     <div className="admin-review-stars">
@@ -163,8 +104,8 @@ function RatingStars({ value }) {
         <Star
           key={index}
           size={16}
-          className={index < value ? "filled" : "empty"}
-          fill={index < value ? "currentColor" : "none"}
+          className={index < Number(value || 0) ? "filled" : "empty"}
+          fill={index < Number(value || 0) ? "currentColor" : "none"}
         />
       ))}
     </div>
@@ -172,29 +113,126 @@ function RatingStars({ value }) {
 }
 
 function AdminReviews() {
-  const [reviews, setReviews] = useState(initialReviews)
+  const [reviews, setReviews] = useState([])
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
 
   const [searchText, setSearchText] = useState("")
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [ratingFilter, setRatingFilter] = useState("Tất cả")
   const [statusFilter, setStatusFilter] = useState("Tất cả")
   const [timeFilter, setTimeFilter] = useState("Tất cả")
+  const [sortOption, setSortOption] = useState("default")
 
   const [selectedReview, setSelectedReview] = useState(null)
   const [replyTarget, setReplyTarget] = useState(null)
   const [replyContent, setReplyContent] = useState("")
   const [formError, setFormError] = useState("")
-  const [successMessage, setSuccessMessage] = useState("")
+
+  const [toast, setToast] = useState({
+    show: false,
+    type: "success",
+    title: "",
+    message: "",
+  })
+
+  const toastTimeoutRef = useRef(null)
+
+  const fetchReviews = async () => {
+    try {
+      setIsLoading(true)
+      setErrorMessage("")
+
+      const data = await getAdminReviewsApi()
+
+      setReviews(Array.isArray(data) ? data : [])
+    } catch (error) {
+      setErrorMessage(error.message || "Không thể tải danh sách đánh giá.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchReviews()
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const showToast = ({
+    type = "success",
+    title = "Thành công",
+    message = "",
+  }) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+
+    setToast({
+      show: true,
+      type,
+      title,
+      message,
+    })
+
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast((prev) => ({
+        ...prev,
+        show: false,
+      }))
+    }, 3000)
+  }
+
+  const closeToast = () => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+
+    setToast((prev) => ({
+      ...prev,
+      show: false,
+    }))
+  }
+
+  const renderToastIcon = () => {
+    if (toast.type === "success") {
+      return <CheckCircle2 size={22} />
+    }
+
+    if (toast.type === "error") {
+      return <XCircle size={22} />
+    }
+
+    if (toast.type === "warning") {
+      return <AlertCircle size={22} />
+    }
+
+    return <Info size={22} />
+  }
 
   const filteredReviews = useMemo(() => {
     const keyword = searchText.trim().toLowerCase()
 
-    return reviews.filter((review) => {
+    const filtered = reviews.filter((review) => {
+      const maDanhGia = review.maDanhGia || ""
+      const tenKhachHang = review.tenKhachHang || ""
+      const tenDichVu = review.tenDichVu || ""
+      const noiDung = review.noiDung || ""
+
       const matchKeyword =
-        review.maDanhGia.toLowerCase().includes(keyword) ||
-        review.tenKhachHang.toLowerCase().includes(keyword) ||
-        review.tenDichVu.toLowerCase().includes(keyword) ||
-        review.noiDung.toLowerCase().includes(keyword)
+        maDanhGia.toLowerCase().includes(keyword) ||
+        tenKhachHang.toLowerCase().includes(keyword) ||
+        tenDichVu.toLowerCase().includes(keyword) ||
+        noiDung.toLowerCase().includes(keyword)
 
       const matchRating =
         ratingFilter === "Tất cả" || `${review.soSao} sao` === ratingFilter
@@ -206,21 +244,74 @@ function AdminReviews() {
 
       return matchKeyword && matchRating && matchStatus && matchTime
     })
-  }, [reviews, searchText, ratingFilter, statusFilter, timeFilter])
 
-  const showSuccess = (message) => {
-    setSuccessMessage(message)
+    if (sortOption === "default") {
+      return filtered
+    }
 
-    setTimeout(() => {
-      setSuccessMessage("")
-    }, 2200)
-  }
+    return [...filtered].sort((a, b) => {
+      const codeA = getReviewCodeNumber(a)
+      const codeB = getReviewCodeNumber(b)
+
+      const customerA = (a.tenKhachHang || "").toLowerCase()
+      const customerB = (b.tenKhachHang || "").toLowerCase()
+
+      const serviceA = (a.tenDichVu || "").toLowerCase()
+      const serviceB = (b.tenDichVu || "").toLowerCase()
+
+      const dateA = getReviewDateTimestamp(a)
+      const dateB = getReviewDateTimestamp(b)
+
+      const ratingA = Number(a.soSao || 0)
+      const ratingB = Number(b.soSao || 0)
+
+      if (sortOption === "code-desc") return codeB - codeA
+      if (sortOption === "code-asc") return codeA - codeB
+
+      if (sortOption === "customer-asc") {
+        return customerA.localeCompare(customerB, "vi")
+      }
+
+      if (sortOption === "customer-desc") {
+        return customerB.localeCompare(customerA, "vi")
+      }
+
+      if (sortOption === "service-asc") {
+        return serviceA.localeCompare(serviceB, "vi")
+      }
+
+      if (sortOption === "rating-desc") return ratingB - ratingA
+      if (sortOption === "rating-asc") return ratingA - ratingB
+
+      if (sortOption === "date-desc") return dateB - dateA
+      if (sortOption === "date-asc") return dateA - dateB
+
+      return 0
+    })
+  }, [
+    reviews,
+    searchText,
+    ratingFilter,
+    statusFilter,
+    timeFilter,
+    sortOption,
+  ])
 
   const handleResetFilter = () => {
     setSearchText("")
     setRatingFilter("Tất cả")
     setStatusFilter("Tất cả")
     setTimeFilter("Tất cả")
+    setSortOption("default")
+  }
+
+  const handleOpenDetail = async (review) => {
+    try {
+      const detail = await getAdminReviewDetailApi(review.idDanhGia)
+      setSelectedReview(detail)
+    } catch {
+      setSelectedReview(review)
+    }
   }
 
   const handleOpenReply = (review) => {
@@ -230,12 +321,14 @@ function AdminReviews() {
   }
 
   const handleCloseReply = () => {
+    if (isSaving) return
+
     setReplyTarget(null)
     setReplyContent("")
     setFormError("")
   }
 
-  const handleSubmitReply = () => {
+  const handleSubmitReply = async () => {
     const trimmedReply = replyContent.trim()
 
     if (!trimmedReply) {
@@ -250,34 +343,109 @@ function AdminReviews() {
 
     const isEditingReply = replyTarget?.trangThai === "Đã phản hồi"
 
-    setReviews((prev) =>
-      prev.map((review) =>
-        review.idDanhGia === replyTarget.idDanhGia
-          ? {
-              ...review,
-              trangThai: "Đã phản hồi",
-              phanHoi: {
-                noiDungPhanHoi: trimmedReply,
-                ngayTao: review.phanHoi?.ngayTao || new Date().toISOString(),
-                ngayCapNhat: isEditingReply ? new Date().toISOString() : null,
-              },
-            }
-          : review
-      )
-    )
+    try {
+      setIsSaving(true)
+      setFormError("")
 
-    handleCloseReply()
-    showSuccess(
-      isEditingReply
-        ? "Cập nhật phản hồi thành công."
-        : "Gửi phản hồi thành công."
+      const updatedReview = await replyAdminReviewApi(replyTarget.idDanhGia, {
+        noiDungPhanHoi: trimmedReply,
+      })
+
+      setReviews((prev) =>
+        prev.map((review) =>
+          review.idDanhGia === updatedReview.idDanhGia
+            ? updatedReview
+            : review
+        )
+      )
+
+      if (
+        selectedReview &&
+        selectedReview.idDanhGia === updatedReview.idDanhGia
+      ) {
+        setSelectedReview(updatedReview)
+      }
+
+      handleCloseReply()
+
+      showToast({
+        type: "success",
+        title: isEditingReply ? "Cập nhật thành công" : "Phản hồi thành công",
+        message: isEditingReply
+          ? "Phản hồi đánh giá đã được cập nhật."
+          : "Phản hồi đánh giá đã được gửi.",
+      })
+    } catch (error) {
+      const message = error.message || "Không thể gửi phản hồi đánh giá."
+
+      setFormError(message)
+
+      showToast({
+        type: "error",
+        title: "Lưu thất bại",
+        message,
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="admin-reviews-page">
+        <section className="admin-reviews-card">
+          <div className="admin-review-empty">
+            <Loader2 size={20} />
+            Đang tải danh sách đánh giá...
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="admin-reviews-page">
+        <section className="admin-reviews-card">
+          <div className="admin-review-empty">
+            <p>{errorMessage}</p>
+
+            <button
+              type="button"
+              className="admin-review-reset-btn"
+              onClick={fetchReviews}
+            >
+              <RotateCcw size={16} />
+              Tải lại
+            </button>
+          </div>
+        </section>
+      </div>
     )
   }
 
   return (
     <div className="admin-reviews-page">
-      {successMessage && (
-        <div className="admin-review-success-toast">{successMessage}</div>
+      {toast.show && (
+        <div className={`admin-toast admin-toast--${toast.type}`}>
+          <div className="admin-toast__icon">{renderToastIcon()}</div>
+
+          <div className="admin-toast__content">
+            <div className="admin-toast__title">{toast.title}</div>
+            <div className="admin-toast__message">{toast.message}</div>
+          </div>
+
+          <button
+            type="button"
+            className="admin-toast__close"
+            onClick={closeToast}
+            aria-label="Đóng thông báo"
+          >
+            ×
+          </button>
+
+          <span className="admin-toast__progress" />
+        </div>
       )}
 
       <section className="admin-reviews-toolbar">
@@ -304,6 +472,29 @@ function AdminReviews() {
             <Filter size={18} strokeWidth={2.3} />
             Lọc
           </button>
+
+          <div className="admin-reviews-sort">
+            <label>
+              <ArrowUpDown size={15} />
+              Sắp xếp
+            </label>
+
+            <select
+              value={sortOption}
+              onChange={(event) => setSortOption(event.target.value)}
+            >
+              <option value="default">Mặc định</option>
+              <option value="code-desc">Mã ĐG giảm dần</option>
+              <option value="code-asc">Mã ĐG tăng dần</option>
+              <option value="customer-asc">Khách hàng A - Z</option>
+              <option value="customer-desc">Khách hàng Z - A</option>
+              <option value="service-asc">Dịch vụ A - Z</option>
+              <option value="rating-desc">Số sao cao nhất</option>
+              <option value="rating-asc">Số sao thấp nhất</option>
+              <option value="date-desc">Mới nhất</option>
+              <option value="date-asc">Cũ nhất</option>
+            </select>
+          </div>
         </div>
       </section>
 
@@ -400,13 +591,26 @@ function AdminReviews() {
 
                     <td>
                       <div className="admin-review-customer">
-                        <div className="admin-review-avatar">
-                          {review.tenKhachHang.charAt(0)}
-                        </div>
+                        {review.avatar ? (
+                          <img
+                            src={review.avatar}
+                            alt={review.tenKhachHang}
+                            className="admin-review-avatar-img"
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none"
+                            }}
+                          />
+                        ) : (
+                          <div className="admin-review-avatar">
+                            {getInitial(review.tenKhachHang)}
+                          </div>
+                        )}
 
                         <div>
                           <h4>{review.tenKhachHang}</h4>
-                          <p>KH{String(review.idKhachHang).padStart(3, "0")}</p>
+                          <p>
+                            KH{String(review.idKhachHang || "").padStart(3, "0")}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -436,7 +640,7 @@ function AdminReviews() {
                         <button
                           type="button"
                           className="admin-review-action-btn view"
-                          onClick={() => setSelectedReview(review)}
+                          onClick={() => handleOpenDetail(review)}
                           title="Xem chi tiết"
                         >
                           <Eye size={17} />
@@ -502,9 +706,20 @@ function AdminReviews() {
 
             <div className="admin-review-detail-body">
               <div className="admin-review-detail-hero">
-                <div className="admin-review-detail-avatar">
-                  {selectedReview.tenKhachHang.charAt(0)}
-                </div>
+                {selectedReview.avatar ? (
+                  <img
+                    src={selectedReview.avatar}
+                    alt={selectedReview.tenKhachHang}
+                    className="admin-review-detail-avatar-img"
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none"
+                    }}
+                  />
+                ) : (
+                  <div className="admin-review-detail-avatar">
+                    {getInitial(selectedReview.tenKhachHang)}
+                  </div>
+                )}
 
                 <div>
                   <h3>{selectedReview.tenKhachHang}</h3>
@@ -558,16 +773,16 @@ function AdminReviews() {
 
               <div className="admin-review-content-box">
                 <h3>Nội dung nhận xét</h3>
-                <p>{selectedReview.noiDung}</p>
+                <p>{selectedReview.noiDung || "Khách hàng chưa nhập nhận xét."}</p>
               </div>
 
               <div className="admin-review-images-box">
                 <div className="admin-review-section-title">
                   <h3>Hình ảnh đính kèm</h3>
-                  <span>{selectedReview.hinhAnh.length} ảnh</span>
+                  <span>{selectedReview.hinhAnh?.length || 0} ảnh</span>
                 </div>
 
-                {selectedReview.hinhAnh.length > 0 ? (
+                {selectedReview.hinhAnh?.length > 0 ? (
                   <div className="admin-review-images-grid">
                     {selectedReview.hinhAnh.map((image, index) => (
                       <img
@@ -616,10 +831,8 @@ function AdminReviews() {
                 type="button"
                 className="admin-review-primary-btn"
                 onClick={() => {
-                  setReplyTarget(selectedReview)
+                  handleOpenReply(selectedReview)
                   setSelectedReview(null)
-                  setReplyContent(selectedReview.phanHoi?.noiDungPhanHoi || "")
-                  setFormError("")
                 }}
               >
                 {selectedReview.trangThai === "Đã phản hồi" ? (
@@ -657,6 +870,7 @@ function AdminReviews() {
                 type="button"
                 className="admin-review-close-btn"
                 onClick={handleCloseReply}
+                disabled={isSaving}
               >
                 <X size={20} />
               </button>
@@ -681,7 +895,7 @@ function AdminReviews() {
 
               <div className="admin-review-customer-comment">
                 <h4>Nội dung đánh giá</h4>
-                <p>{replyTarget.noiDung}</p>
+                <p>{replyTarget.noiDung || "Khách hàng chưa nhập nhận xét."}</p>
               </div>
 
               <div className="admin-review-form-group">
@@ -690,6 +904,7 @@ function AdminReviews() {
                   rows="5"
                   placeholder="Nhập nội dung phản hồi cho khách hàng..."
                   value={replyContent}
+                  disabled={isSaving}
                   onChange={(event) => {
                     setReplyContent(event.target.value)
                     if (formError) setFormError("")
@@ -707,6 +922,7 @@ function AdminReviews() {
                 type="button"
                 className="admin-review-cancel-btn"
                 onClick={handleCloseReply}
+                disabled={isSaving}
               >
                 Huỷ
               </button>
@@ -715,11 +931,14 @@ function AdminReviews() {
                 type="button"
                 className="admin-review-primary-btn"
                 onClick={handleSubmitReply}
+                disabled={isSaving}
               >
                 <Send size={17} />
-                {replyTarget.trangThai === "Đã phản hồi"
-                  ? "Lưu thay đổi"
-                  : "Gửi phản hồi"}
+                {isSaving
+                  ? "Đang lưu..."
+                  : replyTarget.trangThai === "Đã phản hồi"
+                    ? "Lưu thay đổi"
+                    : "Gửi phản hồi"}
               </button>
             </div>
           </div>

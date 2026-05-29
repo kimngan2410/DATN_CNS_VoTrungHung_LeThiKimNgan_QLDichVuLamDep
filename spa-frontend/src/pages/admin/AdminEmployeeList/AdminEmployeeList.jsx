@@ -22,6 +22,7 @@ import {
   XCircle,
   Info,
   AlertCircle,
+  ArrowUpDown,
 } from "lucide-react"
 
 import {
@@ -146,6 +147,24 @@ const isValidEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+const getEmployeeCodeNumber = (employee) => {
+  const code = employee?.maNV || ""
+
+  const numberPart = code.replace(/\D/g, "")
+
+  return Number(numberPart || employee?.idNhanVien || 0)
+}
+
+const getDateTimestamp = (dateValue) => {
+  if (!dateValue) return 0
+
+  const date = new Date(dateValue)
+
+  if (Number.isNaN(date.getTime())) return 0
+
+  return date.getTime()
+}
+
 const getStatusClass = (status) => {
   if (status === "Đang làm") {
     return "admin-employee-status active"
@@ -172,6 +191,8 @@ function AdminEmployees() {
   const [statusFilter, setStatusFilter] = useState("Tất cả")
   const [monthFilter, setMonthFilter] = useState("Tất cả")
   const [yearFilter, setYearFilter] = useState("Tất cả")
+  const [sortOption, setSortOption] = useState("default")
+
 
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [editingEmployee, setEditingEmployee] = useState(null)
@@ -225,7 +246,7 @@ function AdminEmployees() {
   const filteredEmployees = useMemo(() => {
     const keyword = searchText.trim().toLowerCase()
 
-    return employees.filter((employee) => {
+    const filtered = employees.filter((employee) => {
       const maNV = employee.maNV || ""
       const hoTen = employee.hoTen || ""
       const email = employee.email || ""
@@ -263,6 +284,65 @@ function AdminEmployees() {
         matchYear
       )
     })
+
+    if (sortOption === "default") {
+      return filtered
+    }
+
+    return [...filtered].sort((a, b) => {
+      const codeA = getEmployeeCodeNumber(a)
+      const codeB = getEmployeeCodeNumber(b)
+
+      const nameA = (a.hoTen || "").toLowerCase()
+      const nameB = (b.hoTen || "").toLowerCase()
+
+      const roleA = (a.chucVu || "").toLowerCase()
+      const roleB = (b.chucVu || "").toLowerCase()
+
+      const startDateA = getDateTimestamp(a.ngayVaoLam)
+      const startDateB = getDateTimestamp(b.ngayVaoLam)
+
+      const createdAtA = getDateTimestamp(a.ngayTao)
+      const createdAtB = getDateTimestamp(b.ngayTao)
+
+      if (sortOption === "code-desc") {
+        return codeB - codeA
+      }
+
+      if (sortOption === "code-asc") {
+        return codeA - codeB
+      }
+
+      if (sortOption === "name-asc") {
+        return nameA.localeCompare(nameB, "vi")
+      }
+
+      if (sortOption === "name-desc") {
+        return nameB.localeCompare(nameA, "vi")
+      }
+
+      if (sortOption === "role-asc") {
+        return roleA.localeCompare(roleB, "vi")
+      }
+
+      if (sortOption === "start-desc") {
+        return startDateB - startDateA
+      }
+
+      if (sortOption === "start-asc") {
+        return startDateA - startDateB
+      }
+
+      if (sortOption === "created-desc") {
+        return createdAtB - createdAtA
+      }
+
+      if (sortOption === "created-asc") {
+        return createdAtA - createdAtB
+      }
+
+      return 0
+    })
   }, [
     employees,
     searchText,
@@ -271,6 +351,7 @@ function AdminEmployees() {
     statusFilter,
     monthFilter,
     yearFilter,
+    sortOption,
   ])
 
   const showToast = ({
@@ -391,6 +472,7 @@ function AdminEmployees() {
     setStatusFilter("Tất cả")
     setMonthFilter("Tất cả")
     setYearFilter("Tất cả")
+    setSortOption("default")
   }
 
   const handleOpenCreateForm = () => {
@@ -597,7 +679,9 @@ function AdminEmployees() {
         showToast({
           type: "success",
           title: "Xoá thành công",
-          message: result.message || "Nhân viên đã được xoá khỏi danh sách.",
+          message:
+            result.message ||
+            "Nhân viên đã được xoá vĩnh viễn khỏi hệ thống.",
         })
       } catch (error) {
         const message = error.message || "Không thể xoá nhân viên."
@@ -670,6 +754,29 @@ function AdminEmployees() {
             <Filter size={18} strokeWidth={2.3} />
             Lọc
           </button>
+
+          <div className="admin-employees-sort">
+            <label>
+              <ArrowUpDown size={15} />
+              Sắp xếp
+            </label>
+
+            <select
+              value={sortOption}
+              onChange={(event) => setSortOption(event.target.value)}
+            >
+              <option value="default">Mặc định</option>
+              <option value="code-desc">Mã NV giảm dần</option>
+              <option value="code-asc">Mã NV tăng dần</option>
+              <option value="name-asc">Tên A - Z</option>
+              <option value="name-desc">Tên Z - A</option>
+              <option value="role-asc">Chức vụ A - Z</option>
+              <option value="start-desc">Ngày vào làm mới nhất</option>
+              <option value="start-asc">Ngày vào làm cũ nhất</option>
+              <option value="created-desc">Ngày tạo mới nhất</option>
+              <option value="created-asc">Ngày tạo cũ nhất</option>
+            </select>
+          </div>
         </div>
 
         <button
@@ -866,7 +973,7 @@ function AdminEmployees() {
                           type="button"
                           className="admin-employee-action-btn delete"
                           onClick={() => setDeleteTarget(employee)}
-                          title="Xoá"
+                          title="Xoá vĩnh viễn"
                         >
                           <Trash2 size={17} />
                         </button>
@@ -1271,12 +1378,12 @@ function AdminEmployees() {
               <AlertTriangle size={24} />
             </div>
 
-            <h2>Xác nhận xoá nhân viên</h2>
+            <h2>Xác nhận xoá vĩnh viễn nhân viên</h2>
 
             <p>
-              Bạn có chắc chắn muốn xoá nhân viên{" "}
-              <strong>{deleteTarget.hoTen}</strong> không? Thao tác này không
-              thể hoàn tác.
+              Bạn có chắc chắn muốn xoá vĩnh viễn nhân viên{" "}
+              <strong>{deleteTarget.hoTen}</strong> không? Chỉ nên xoá khi đây là
+              nhân viên được tạo nhầm và chưa có dữ liệu liên quan trong hệ thống.
             </p>
 
             <div className="admin-employee-delete-actions">
@@ -1295,7 +1402,7 @@ function AdminEmployees() {
                 onClick={handleConfirmDelete}
                 disabled={isDeleting}
               >
-                {isDeleting ? "Đang xoá..." : "Xoá nhân viên"}
+                {isDeleting ? "Đang xoá..." : "Xoá vĩnh viễn"}
               </button>
             </div>
           </div>

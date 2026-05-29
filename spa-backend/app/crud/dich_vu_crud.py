@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.danh_muc_dich_vu import DanhMucDichVu
@@ -10,6 +11,7 @@ from app.models.hinh_anh_danh_gia import HinhAnhDanhGia
 from app.models.phan_hoi_danh_gia import PhanHoiDanhGia
 from app.models.khach_hang import KhachHang
 from app.models.tai_khoan import TaiKhoan
+from app.models.chi_tiet_hoa_don import ChiTietHoaDon
 
 # Nếu file model của bạn tên khác thì sửa lại dòng import này cho đúng.
 # Thường sẽ là app.models.chi_tiet_lich_hen
@@ -329,6 +331,16 @@ def check_service_used_in_appointments(db: Session, id_dich_vu: int):
 
     return used_count > 0
 
+def check_service_used_in_invoices(db: Session, id_dich_vu: int):
+    used_count = (
+        db.query(func.count(ChiTietHoaDon.idChiTietHD))
+        .filter(ChiTietHoaDon.idDichVu == id_dich_vu)
+        .scalar()
+        or 0
+    )
+
+    return used_count > 0
+
 
 def get_admin_service_images(db: Session, id_dich_vu: int):
     images = (
@@ -384,9 +396,15 @@ def build_admin_service_response(db: Session, service: DichVu):
         "createdAt": format_date(service.ngayTao),
         "shortDescription": service.moTaNgan or "",
         "detailDescription": service.moTaChiTiet or "",
-        "isUsedInAppointments": check_service_used_in_appointments(
-            db=db,
-            id_dich_vu=int(service.idDichVu),
+        "isUsedInAppointments": (
+            check_service_used_in_appointments(
+                db=db,
+                id_dich_vu=int(service.idDichVu),
+            )
+            or check_service_used_in_invoices(
+                db=db,
+                id_dich_vu=int(service.idDichVu),
+            )
         ),
         "images": images if images else [DEFAULT_SERVICE_IMAGE],
     }
@@ -543,17 +561,29 @@ def delete_admin_service(db: Session, id_dich_vu: int):
             detail="Không tìm thấy dịch vụ",
         )
 
+    if normalize_service_status(service.trangThai) != "Ngừng cung cấp":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Vui lòng chuyển trạng thái sang "Ngừng cung cấp" trước khi xoá',
+        )
+
     if check_service_used_in_appointments(db, id_dich_vu):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Không thể xoá dịch vụ đang được sử dụng trong lịch hẹn",
+            detail=(
+                "Không thể xoá dịch vụ vì dịch vụ này đã được sử dụng trong lịch hẹn. "
+                'Vui lòng giữ trạng thái "Ngừng cung cấp" để lưu lịch sử.'
+            ),
         )
 
-        if normalize_service_status(service.trangThai) != "Ngừng cung cấp":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail='Vui lòng chuyển trạng thái sang "Ngừng cung cấp" trước khi xoá',
-            )
+    if check_service_used_in_invoices(db, id_dich_vu):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Không thể xoá dịch vụ vì dịch vụ này đã phát sinh hoá đơn. "
+                'Vui lòng giữ trạng thái "Ngừng cung cấp" để bảo toàn lịch sử doanh thu.'
+            ),
+        )
 
     try:
         db.query(HinhAnhDichVu).filter(
@@ -568,8 +598,20 @@ def delete_admin_service(db: Session, id_dich_vu: int):
             "service": None,
         }
 
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Không thể xoá dịch vụ vì dịch vụ này đã có dữ liệu liên quan. "
+                'Vui lòng chuyển hoặc giữ trạng thái "Ngừng cung cấp".'
+            ),
+        )
+
     except Exception as error:
         db.rollback()
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi xoá dịch vụ: {str(error)}",

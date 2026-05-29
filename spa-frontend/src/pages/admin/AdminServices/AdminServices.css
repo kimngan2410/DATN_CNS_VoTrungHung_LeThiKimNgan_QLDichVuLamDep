@@ -925,9 +925,16 @@
 }
 
 .admin-services-sort label {
-  color: var(--admin-muted, #8a7f72);
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--admin-muted);
+  font-size: 13px;
   font-weight: 600;
+}
+
+.admin-services-sort label svg {
+  color: var(--admin-muted);
 }
 
 .admin-services-sort select {

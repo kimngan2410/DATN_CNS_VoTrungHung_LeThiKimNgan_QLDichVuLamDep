@@ -35,7 +35,7 @@
 }
 
 .service-review-summary__score strong {
-  font-size: 42px;
+  font-size: 40px;
   font-weight: 600;
   line-height: 1;
 }
@@ -66,7 +66,7 @@
   background: #ffffff;
   color: #3f3a37;
   border-radius: 8px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: 0.25s ease;
@@ -123,7 +123,7 @@
 .service-review-item h3 {
   margin: 0 0 6px;
   color: #20233b;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -156,7 +156,7 @@
 .service-review-item__content {
   margin: 22px 0 0;
   color: #20233b;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.75;
 }
 
@@ -187,19 +187,20 @@
 .service-review-item__reply strong {
   display: block;
   color: #3f3a37;
-  font-size: 16px;
+  font-size: 15px;
   margin-bottom: 8px;
+  font-weight: 600;
 }
 
 .service-review-item__reply p {
   margin: 0 0 8px;
   color: #5f5752;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.65;
 }
 
 .service-review-item__reply span {
-  font-size: 13px;
+  font-size: 12px;
   color: #9a8f87;
 }
 

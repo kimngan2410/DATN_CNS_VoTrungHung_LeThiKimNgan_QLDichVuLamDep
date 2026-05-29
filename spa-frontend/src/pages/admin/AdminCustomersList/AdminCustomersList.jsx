@@ -13,6 +13,7 @@ import {
   RotateCcw,
   ReceiptText,
   Download,
+  ArrowUpDown,
 } from "lucide-react"
 
 import {
@@ -457,7 +458,10 @@ function AdminCustomers() {
         </button>
 
         <div className="admin-customers-sort">
-          <label>Sắp xếp</label>
+          <label>
+            <ArrowUpDown size={15} />
+            Sắp xếp
+          </label>
 
           <select
             value={sortOption}
