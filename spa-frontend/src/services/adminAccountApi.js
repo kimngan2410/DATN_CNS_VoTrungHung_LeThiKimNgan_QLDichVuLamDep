@@ -127,3 +127,12 @@ export async function updateAdminAccountStatusApi(idTaiKhoan, status) {
 
   return normalizeAccount(data)
 }
+
+export async function deleteAdminAccountApi(idTaiKhoan) {
+  const response = await fetch(`${API_BASE_URL}/tai-khoan/admin/${idTaiKhoan}`, {
+    method: "DELETE",
+    headers: getAdminHeaders(),
+  })
+
+  return handleResponse(response, "Không thể xoá tài khoản.")
+}

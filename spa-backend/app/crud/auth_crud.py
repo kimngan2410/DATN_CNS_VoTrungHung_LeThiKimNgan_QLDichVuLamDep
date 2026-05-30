@@ -340,8 +340,13 @@ def authenticate_user(db: Session, email: str, password: str):
     if not tai_khoan:
         return None
 
-    if tai_khoan.trangThai == "KHOA":
-        return None
+    trang_thai = (tai_khoan.trangThai or "").strip().upper()
+
+    if trang_thai == "KHOA":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản đã bị khóa. Vui lòng liên hệ Serenity Spa để được hỗ trợ.",
+        )
     
     if tai_khoan.loaiTK != "KHACH_HANG":
         raise HTTPException(

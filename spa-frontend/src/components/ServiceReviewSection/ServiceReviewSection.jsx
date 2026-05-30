@@ -186,9 +186,13 @@ function ServiceReviewSection({ reviewData }) {
 
                   {review.reply && (
                     <div className="service-review-item__reply">
-                      <strong>Phản hồi từ Serenity Spa</strong>
-                      <p>{review.reply.content}</p>
-                      <span>{review.reply.createdAt}</span>
+                      <div className="service-review-item__reply-accent"></div>
+
+                      <div className="service-review-item__reply-content">
+                        <strong>Phản hồi từ Serenity Spa</strong>
+                        <p>{review.reply.content}</p>
+                        <span>{review.reply.createdAt}</span>
+                      </div>
                     </div>
                   )}
                 </article>

@@ -26,6 +26,7 @@ import "./StaffCustomersList.css";
 const statusOptions = ["Tất cả", "Đang hoạt động", "Tạm khoá"];
 const genderOptions = ["Tất cả", "Nam", "Nữ", "Khác", "Chưa cập nhật"];
 const customerTypeOptions = ["Tất cả", "VIP", "Thường"];
+const HISTORY_PREVIEW_LIMIT = 5;
 
 const currentYear = new Date().getFullYear();
 const startYear = 2015;
@@ -116,6 +117,7 @@ function StaffCustomers() {
   const [createdMonthFilter, setCreatedMonthFilter] = useState("Tất cả");
 
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [historyModal, setHistoryModal] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [formError, setFormError] = useState("");
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
@@ -277,6 +279,11 @@ function StaffCustomers() {
     } finally {
       setIsCreatingCustomer(false);
     }
+  };
+
+  const handleCloseDetailModal = () => {
+    setSelectedCustomer(null);
+    setHistoryModal(null);
   };
 
   return (
@@ -518,7 +525,7 @@ function StaffCustomers() {
       {selectedCustomer && (
         <div
           className="staff-customers-modal-overlay"
-          onClick={() => setSelectedCustomer(null)}
+          onClick={handleCloseDetailModal}
         >
           <div
             className="staff-customers-detail-modal"
@@ -547,7 +554,7 @@ function StaffCustomers() {
               <button
                 type="button"
                 className="staff-customers-close-btn"
-                onClick={() => setSelectedCustomer(null)}
+                onClick={handleCloseDetailModal}
               >
                 <X size={20} />
               </button>
@@ -659,68 +666,101 @@ function StaffCustomers() {
 
               <div className="staff-customers-history-grid">
                 <div className="staff-customers-history-card">
-                  <h3>Lịch hẹn gần đây</h3>
+                  <div className="staff-customers-history-card-header">
+                    <h3>Lịch hẹn gần đây</h3>
 
-                  {(selectedCustomer.appointments || []).length === 0 ? (
-                    <p className="staff-customers-empty-history">
-                      Chưa có lịch hẹn nào.
-                    </p>
-                  ) : (
-                    <div className="staff-customers-history-list">
-                      {selectedCustomer.appointments.map((appointment) => (
-                        <div
-                          className="staff-customers-history-item"
-                          key={appointment.id}
-                        >
-                          <div>
-                            <strong>{appointment.id}</strong>
-                            <p>{appointment.services}</p>
-                          </div>
+                    {selectedCustomer.appointments?.length > HISTORY_PREVIEW_LIMIT && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setHistoryModal({
+                            title: "Tất cả lịch hẹn",
+                            type: "appointments",
+                            data: selectedCustomer.appointments || [],
+                          })
+                        }
+                      >
+                        Xem tất cả
+                      </button>
+                    )}
+                  </div>
 
-                          <div className="staff-customers-history-meta">
-                            <span>
-                              {appointment.date} · {appointment.time}
-                            </span>
-                            <em
-                              className={`staff-customers-appointment-status ${getAppointmentStatusClass(
-                                appointment.status
-                              )}`}
-                            >
-                              {appointment.status}
-                            </em>
+                  <div className="staff-customers-history-list">
+                    {selectedCustomer.appointments?.length > 0 ? (
+                      selectedCustomer.appointments
+                        .slice(0, HISTORY_PREVIEW_LIMIT)
+                        .map((appointment) => (
+                          <div className="staff-customers-history-item" key={appointment.id}>
+                            <div>
+                              <strong>{appointment.id}</strong>
+                              <p>{appointment.services || "Dịch vụ"}</p>
+                            </div>
+
+                            <div className="staff-customers-history-meta">
+                              <span>
+                                {appointment.date} · {appointment.time}
+                              </span>
+
+                              <em
+                                className={`staff-customers-appointment-status ${getAppointmentStatusClass(
+                                  appointment.status
+                                )}`}
+                              >
+                                {appointment.status}
+                              </em>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))
+                    ) : (
+                      <p className="staff-customers-empty-history">
+                        Chưa có lịch hẹn nào.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="staff-customers-history-card">
-                  <h3>Lịch sử sử dụng dịch vụ</h3>
+                  <div className="staff-customers-history-card-header">
+                    <h3>Lịch sử sử dụng dịch vụ</h3>
 
-                  {(selectedCustomer.serviceHistory || []).length === 0 ? (
-                    <p className="staff-customers-empty-history">
-                      Chưa có lịch sử sử dụng dịch vụ.
-                    </p>
-                  ) : (
-                    <div className="staff-customers-history-list">
-                      {selectedCustomer.serviceHistory.map((history) => (
-                        <div
-                          className="staff-customers-history-item"
-                          key={history.id}
-                        >
-                          <div>
-                            <strong>{history.serviceName}</strong>
-                            <p>{history.date}</p>
-                          </div>
+                    {selectedCustomer.serviceHistory?.length > HISTORY_PREVIEW_LIMIT && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setHistoryModal({
+                            title: "Tất cả dịch vụ đã sử dụng",
+                            type: "services",
+                            data: selectedCustomer.serviceHistory || [],
+                          })
+                        }
+                      >
+                        Xem tất cả
+                      </button>
+                    )}
+                  </div>
 
-                          <div className="staff-customers-history-meta right">
-                            <span>{formatMoney(history.amount)}</span>
+                  <div className="staff-customers-history-list">
+                    {selectedCustomer.serviceHistory?.length > 0 ? (
+                      selectedCustomer.serviceHistory
+                        .slice(0, HISTORY_PREVIEW_LIMIT)
+                        .map((service) => (
+                          <div className="staff-customers-history-item" key={service.id}>
+                            <div>
+                              <strong>{service.serviceName}</strong>
+                              <p>{service.date}</p>
+                            </div>
+
+                            <div className="staff-customers-history-meta right">
+                              <span>{formatMoney(service.amount)}</span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))
+                    ) : (
+                      <p className="staff-customers-empty-history">
+                        Chưa có lịch sử sử dụng dịch vụ.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -729,10 +769,86 @@ function StaffCustomers() {
               <button
                 type="button"
                 className="staff-customers-secondary-btn"
-                onClick={() => setSelectedCustomer(null)}
+                onClick={handleCloseDetailModal}
               >
                 Đóng
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedCustomer && historyModal && (
+        <div
+          className="staff-customers-history-modal-overlay"
+          onClick={() => setHistoryModal(null)}
+        >
+          <div
+            className="staff-customers-history-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="staff-customers-history-modal-header">
+              <div>
+                <h2>{historyModal.title}</h2>
+                <p>{selectedCustomer.fullName}</p>
+              </div>
+
+              <button
+                type="button"
+                className="staff-customers-close-btn"
+                onClick={() => setHistoryModal(null)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="staff-customers-history-modal-list">
+              {historyModal.data.length > 0 ? (
+                historyModal.data.map((item) => (
+                  <div className="staff-customers-history-modal-item" key={item.id}>
+                    {historyModal.type === "appointments" ? (
+                      <>
+                        <div>
+                          <strong>{item.id}</strong>
+                          <p>{item.services || "Dịch vụ"}</p>
+                        </div>
+
+                        <div className="staff-customers-history-meta">
+                          <span>
+                            {item.date} · {item.time}
+                          </span>
+
+                          <em
+                            className={`staff-customers-appointment-status ${getAppointmentStatusClass(
+                              item.status
+                            )}`}
+                          >
+                            {item.status}
+                          </em>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <strong>{item.serviceName}</strong>
+                          <p>{item.date}</p>
+                        </div>
+
+                        <div className="staff-customers-history-meta right">
+                          <span>{formatMoney(item.amount)}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="staff-customers-history-modal-item">
+                  <div>
+                    <strong>Chưa có dữ liệu</strong>
+                    <p>Không có dữ liệu để hiển thị.</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

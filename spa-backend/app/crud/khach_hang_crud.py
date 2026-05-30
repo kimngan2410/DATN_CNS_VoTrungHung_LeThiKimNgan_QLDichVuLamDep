@@ -194,14 +194,21 @@ def get_customer_total_spent(db: Session, id_tai_khoan: int):
     return float(total or 0)
 
 
-def get_customer_recent_appointments(db: Session, id_tai_khoan: int):
-    appointments = (
+def get_customer_recent_appointments(
+    db: Session,
+    id_tai_khoan: int,
+    limit: int | None = None,
+):
+    query = (
         db.query(LichHen)
         .filter(LichHen.idTaiKhoan == id_tai_khoan)
         .order_by(LichHen.thoiGianBatDau.desc())
-        .limit(5)
-        .all()
     )
+
+    if limit:
+        query = query.limit(limit)
+
+    appointments = query.all()
 
     return [
         {
@@ -214,9 +221,12 @@ def get_customer_recent_appointments(db: Session, id_tai_khoan: int):
         for item in appointments
     ]
 
-
-def get_customer_service_history_for_staff(db: Session, id_tai_khoan: int):
-    rows = (
+def get_customer_service_history_for_staff(
+    db: Session,
+    id_tai_khoan: int,
+    limit: int | None = None,
+):
+    query = (
         db.query(ChiTietLichHen, LichHen, DichVu)
         .join(LichHen, LichHen.idLichHen == ChiTietLichHen.idLichHen)
         .join(DichVu, DichVu.idDichVu == ChiTietLichHen.idDichVu)
@@ -225,10 +235,12 @@ def get_customer_service_history_for_staff(db: Session, id_tai_khoan: int):
             LichHen.trangThai == COMPLETED_APPOINTMENT_STATUS,
         )
         .order_by(LichHen.thoiGianBatDau.desc())
-        .limit(8)
-        .all()
     )
 
+    if limit:
+        query = query.limit(limit)
+
+    rows = query.all()
     result = []
 
     for chi_tiet, lich_hen, dich_vu in rows:

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps.auth_deps import require_admin
 from app.crud.tai_khoan_crud import (
     create_admin_account,
+    delete_admin_account,
     get_admin_account_or_404,
     get_admin_accounts,
     build_admin_account_response,
@@ -108,5 +109,21 @@ def update_admin_account_status_api(
         db=db,
         id_tai_khoan=id_tai_khoan,
         status_value=payload.status,
+        current_admin_id=current_admin_id,
+    )
+
+@router.delete(
+    "/admin/{id_tai_khoan}",
+)
+def delete_admin_account_api(
+    id_tai_khoan: int,
+    current_admin: dict = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    current_admin_id = get_current_admin_id(current_admin)
+
+    return delete_admin_account(
+        db=db,
+        id_tai_khoan=id_tai_khoan,
         current_admin_id=current_admin_id,
     )

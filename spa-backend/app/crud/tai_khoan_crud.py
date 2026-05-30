@@ -2,6 +2,7 @@ from urllib.parse import quote_plus
 
 from fastapi import HTTPException, status
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
@@ -428,4 +429,54 @@ def update_admin_account_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi cập nhật trạng thái tài khoản: {str(error)}",
+        )
+    
+def delete_admin_account(
+    db: Session,
+    id_tai_khoan: int,
+    current_admin_id: int,
+):
+    account = get_admin_account_or_404(db, id_tai_khoan)
+
+    if int(account.idTaiKhoan) == int(current_admin_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Không thể xoá chính tài khoản admin đang đăng nhập",
+        )
+
+    customer, employee = get_related_profile(db, account)
+
+    try:
+        if customer:
+            db.delete(customer)
+            db.flush()
+
+        if employee:
+            db.delete(employee)
+            db.flush()
+
+        db.delete(account)
+        db.commit()
+
+        return {
+            "message": "Xoá tài khoản thành công",
+        }
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Không thể xoá tài khoản vì tài khoản này đã có dữ liệu liên quan. "
+                "Vui lòng khóa tài khoản thay vì xoá."
+            ),
+        )
+
+    except Exception as error:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Lỗi xoá tài khoản: {str(error)}",
         )

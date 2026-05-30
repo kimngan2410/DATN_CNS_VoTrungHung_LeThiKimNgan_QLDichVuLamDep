@@ -15,12 +15,18 @@ import {
   UserRound,
   CheckCircle2,
   AlertCircle,
+  XCircle,
+  Info,
   ArrowUpDown,
   Loader2,
+  MoreVertical,
+  Trash2,
+  EyeOff,
 } from "lucide-react"
 
 import {
   createAdminAccountApi,
+  deleteAdminAccountApi,
   getAdminAccountsApi,
   updateAdminAccountApi,
   updateAdminAccountStatusApi,
@@ -35,8 +41,7 @@ const emptyForm = {
   role: "Lễ tân",
   status: "Hoạt động",
   password: "TK@123456",
-  relatedUser: "",
-  note: "",
+  confirmPassword: "TK@123456",
 }
 
 const getAccountCodeNumber = (account) => {
@@ -98,9 +103,21 @@ function AdminAccounts() {
 
   const [modalType, setModalType] = useState(null)
   const [selectedAccount, setSelectedAccount] = useState(null)
+  const [openActionMenuId, setOpenActionMenuId] = useState(null)
+  const [actionMenuPosition, setActionMenuPosition] = useState({
+    top: 0,
+    left: 0,
+  })
   const [formData, setFormData] = useState(emptyForm)
   const [errorMessage, setErrorMessage] = useState("")
-  const [toast, setToast] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [toast, setToast] = useState({
+    show: false,
+    type: "success",
+    title: "",
+    message: "",
+  })
 
   const fetchAccounts = async () => {
     try {
@@ -120,6 +137,20 @@ function AdminAccounts() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAccounts()
+  }, [])
+
+  useEffect(() => {
+    const closeMenu = () => {
+      setOpenActionMenuId(null)
+    }
+
+    window.addEventListener("scroll", closeMenu, true)
+    window.addEventListener("resize", closeMenu)
+
+    return () => {
+      window.removeEventListener("scroll", closeMenu, true)
+      window.removeEventListener("resize", closeMenu)
+    }
   }, [])
 
   const filteredAccounts = useMemo(() => {
@@ -186,12 +217,47 @@ function AdminAccounts() {
     })
   }, [accounts, searchValue, roleFilter, statusFilter, sortOption])
 
-  const showToast = (message) => {
-    setToast(message)
+  const showToast = ({
+    type = "success",
+    title = "Thành công",
+    message = "",
+  }) => {
+    setToast({
+      show: true,
+      type,
+      title,
+      message,
+    })
 
     setTimeout(() => {
-      setToast("")
-    }, 2600)
+      setToast((prev) => ({
+        ...prev,
+        show: false,
+      }))
+    }, 3000)
+  }
+
+  const closeToast = () => {
+    setToast((prev) => ({
+      ...prev,
+      show: false,
+    }))
+  }
+
+  const renderToastIcon = () => {
+    if (toast.type === "success") {
+      return <CheckCircle2 size={22} />
+    }
+
+    if (toast.type === "error") {
+      return <XCircle size={22} />
+    }
+
+    if (toast.type === "warning") {
+      return <AlertCircle size={22} />
+    }
+
+    return <Info size={22} />
   }
 
   const openCreateModal = () => {
@@ -199,17 +265,21 @@ function AdminAccounts() {
     setSelectedAccount(null)
     setFormData(emptyForm)
     setErrorMessage("")
+    setShowPassword(false)
+    setShowConfirmPassword(false)
   }
 
   const openViewModal = (account) => {
     setModalType("view")
     setSelectedAccount(account)
     setErrorMessage("")
+    setOpenActionMenuId(null)
   }
 
   const openEditModal = (account) => {
     setModalType("edit")
     setSelectedAccount(account)
+    setOpenActionMenuId(null)
     setFormData({
       fullName: account.fullName || "",
       email: account.email || "",
@@ -217,16 +287,18 @@ function AdminAccounts() {
       role: account.role || "Khách hàng",
       status: account.status || "Hoạt động",
       password: "",
-      relatedUser: account.relatedUser || "",
-      note: account.note || "",
+      confirmPassword: "",
     })
     setErrorMessage("")
+    setShowPassword(false)
+    setShowConfirmPassword(false)
   }
 
   const openStatusModal = (account) => {
     setSelectedAccount(account)
     setModalType(account.status === "Hoạt động" ? "lock" : "unlock")
     setErrorMessage("")
+    setOpenActionMenuId(null)
   }
 
   const closeModal = () => {
@@ -236,6 +308,8 @@ function AdminAccounts() {
     setSelectedAccount(null)
     setFormData(emptyForm)
     setErrorMessage("")
+    setShowPassword(false)
+    setShowConfirmPassword(false)
   }
 
   const handleChange = (event) => {
@@ -296,6 +370,28 @@ function AdminAccounts() {
       return "Vui lòng chọn trạng thái."
     }
 
+    if (modalType === "create") {
+      if (!formData.password.trim()) {
+        return "Vui lòng nhập mật khẩu."
+      }
+
+      if (!formData.confirmPassword.trim()) {
+        return "Vui lòng nhập lại mật khẩu."
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        return "Mật khẩu nhập lại không khớp."
+      }
+
+      if (formData.password.length < 6) {
+        return "Mật khẩu phải có ít nhất 6 ký tự."
+      }
+
+      if (new TextEncoder().encode(formData.password).length > 72) {
+        return "Mật khẩu không được vượt quá 72 bytes."
+      }
+    }
+
     return ""
   }
 
@@ -320,15 +416,17 @@ function AdminAccounts() {
         role: formData.role,
         status: formData.status,
         password: formData.password || "TK@123456",
-        relatedUser: formData.relatedUser.trim(),
-        note: formData.note.trim(),
       }
 
       if (modalType === "create") {
         const createdAccount = await createAdminAccountApi(payload)
 
         setAccounts((prev) => [createdAccount, ...prev])
-        showToast("Cấp tài khoản mới thành công.")
+        showToast({
+          type: "success",
+          title: "Tạo thành công",
+          message: "Tài khoản mới đã được cấp thành công.",
+        })
         closeModal()
         return
       }
@@ -347,11 +445,23 @@ function AdminAccounts() {
           )
         )
 
-        showToast("Cập nhật thông tin tài khoản thành công.")
+        showToast({
+          type: "success",
+          title: "Cập nhật thành công",
+          message: "Thông tin tài khoản đã được cập nhật.",
+        })
         closeModal()
       }
     } catch (error) {
-      setErrorMessage(error.message || "Không thể lưu tài khoản.")
+      const message = error.message || "Không thể lưu tài khoản."
+
+      setErrorMessage(message)
+
+      showToast({
+        type: "error",
+        title: "Lưu thất bại",
+        message,
+      })
     } finally {
       setIsSaving(false)
     }
@@ -379,15 +489,86 @@ function AdminAccounts() {
         )
       )
 
-      showToast(
-        nextStatus === "Khóa"
-          ? "Khóa tài khoản thành công."
-          : "Mở khóa tài khoản thành công."
-      )
+      showToast({
+        type: "success",
+        title: nextStatus === "Khóa" ? "Khóa thành công" : "Mở khóa thành công",
+        message:
+          nextStatus === "Khóa"
+            ? "Tài khoản đã được khóa và không thể đăng nhập."
+            : "Tài khoản đã được mở khóa và có thể đăng nhập lại.",
+      })
 
       closeModal()
     } catch (error) {
-      showToast(error.message || "Không thể cập nhật trạng thái tài khoản.")
+      showToast({
+        type: "error",
+        title: "Cập nhật thất bại",
+        message: error.message || "Không thể cập nhật trạng thái tài khoản.",
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const toggleActionMenu = (accountId, event) => {
+    const buttonRect = event.currentTarget.getBoundingClientRect()
+    const menuWidth = 190
+    const menuHeight = 180
+    const menuGap = 8
+
+    const hasEnoughBottomSpace =
+      window.innerHeight - buttonRect.bottom > menuHeight + menuGap
+
+    const nextTop = hasEnoughBottomSpace
+      ? buttonRect.bottom + menuGap
+      : buttonRect.top - menuHeight - menuGap
+
+    const nextLeft = Math.max(
+      12,
+      buttonRect.right - menuWidth
+    )
+
+    setActionMenuPosition({
+      top: Math.max(12, nextTop),
+      left: nextLeft,
+    })
+
+    setOpenActionMenuId((prev) => (prev === accountId ? null : accountId))
+  }
+
+  const openDeleteModal = (account) => {
+    setSelectedAccount(account)
+    setModalType("delete")
+    setErrorMessage("")
+    setOpenActionMenuId(null)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!selectedAccount) return
+
+    try {
+      setIsSaving(true)
+
+      const result = await deleteAdminAccountApi(selectedAccount.idTaiKhoan)
+
+      setAccounts((prev) =>
+        prev.filter(
+          (account) => account.idTaiKhoan !== selectedAccount.idTaiKhoan
+        )
+      )
+
+      showToast({
+        type: "success",
+        title: "Xoá thành công",
+        message: result.message || "Tài khoản tạo nhầm đã được xoá khỏi hệ thống.",
+      })
+      closeModal()
+    } catch (error) {
+      showToast({
+        type: "error",
+        title: "Xoá thất bại",
+        message: error.message || "Không thể xoá tài khoản.",
+      })
     } finally {
       setIsSaving(false)
     }
@@ -435,10 +616,25 @@ function AdminAccounts() {
 
   return (
     <section className="account-page">
-      {toast && (
-        <div className="account-toast">
-          <CheckCircle2 size={18} />
-          <span>{toast}</span>
+      {toast.show && (
+        <div className={`admin-toast admin-toast--${toast.type}`}>
+          <div className="admin-toast__icon">{renderToastIcon()}</div>
+
+          <div className="admin-toast__content">
+            <div className="admin-toast__title">{toast.title}</div>
+            <div className="admin-toast__message">{toast.message}</div>
+          </div>
+
+          <button
+            type="button"
+            className="admin-toast__close"
+            onClick={closeToast}
+            aria-label="Đóng thông báo"
+          >
+            ×
+          </button>
+
+          <span className="admin-toast__progress" />
         </div>
       )}
 
@@ -650,45 +846,67 @@ function AdminAccounts() {
                     </td>
 
                     <td>
-                      <div className="account-actions">
+                      <div className="account-actions-menu-wrap">
                         <button
                           type="button"
-                          className="account-icon-btn"
-                          title="Xem chi tiết"
-                          onClick={() => openViewModal(account)}
+                          className="account-more-btn"
+                          title="Thao tác"
+                          onClick={(event) => toggleActionMenu(account.idTaiKhoan, event)}
                         >
-                          <Eye size={18} />
+                          <MoreVertical size={18} />
                         </button>
 
-                        <button
-                          type="button"
-                          className="account-icon-btn"
-                          title="Cập nhật"
-                          onClick={() => openEditModal(account)}
-                        >
-                          <Pencil size={18} />
-                        </button>
+                        {openActionMenuId === account.idTaiKhoan && (
+                          <div
+                            className="account-actions-dropdown"
+                            style={{
+                              top: `${actionMenuPosition.top}px`,
+                              left: `${actionMenuPosition.left}px`,
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => openViewModal(account)}
+                            >
+                              <Eye size={16} />
+                              Xem chi tiết
+                            </button>
 
-                        <button
-                          type="button"
-                          className={
-                            account.status === "Hoạt động"
-                              ? "account-icon-btn danger"
-                              : "account-icon-btn success"
-                          }
-                          title={
-                            account.status === "Hoạt động"
-                              ? "Khóa tài khoản"
-                              : "Mở khóa tài khoản"
-                          }
-                          onClick={() => openStatusModal(account)}
-                        >
-                          {account.status === "Hoạt động" ? (
-                            <Lock size={18} />
-                          ) : (
-                            <Unlock size={18} />
-                          )}
-                        </button>
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(account)}
+                            >
+                              <Pencil size={16} />
+                              Cập nhật
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => openStatusModal(account)}
+                            >
+                              {account.status === "Hoạt động" ? (
+                                <>
+                                  <Lock size={16} />
+                                  Khóa tài khoản
+                                </>
+                              ) : (
+                                <>
+                                  <Unlock size={16} />
+                                  Mở khóa tài khoản
+                                </>
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              className="danger"
+                              onClick={() => openDeleteModal(account)}
+                            >
+                              <Trash2 size={16} />
+                              Xoá tài khoản
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -805,40 +1023,60 @@ function AdminAccounts() {
                 </div>
 
                 {modalType === "create" && (
-                  <div className="account-form-group">
-                    <label>Mật khẩu mặc định</label>
-                    <input
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="VD: TK@123456"
-                      disabled={isSaving}
-                    />
-                  </div>
+                  <>
+                    <div className="account-form-group">
+                      <label>Mật khẩu</label>
+
+                      <div className="account-password-field">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          placeholder="Nhập mật khẩu"
+                          disabled={isSaving}
+                        />
+
+                        <button
+                          type="button"
+                          className="account-password-toggle"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          disabled={isSaving}
+                          aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="account-form-group">
+                      <label>Nhập lại mật khẩu</label>
+
+                      <div className="account-password-field">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          name="confirmPassword"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          placeholder="Nhập lại mật khẩu"
+                          disabled={isSaving}
+                        />
+
+                        <button
+                          type="button"
+                          className="account-password-toggle"
+                          onClick={() => setShowConfirmPassword((prev) => !prev)}
+                          disabled={isSaving}
+                          aria-label={
+                            showConfirmPassword ? "Ẩn mật khẩu nhập lại" : "Hiện mật khẩu nhập lại"
+                          }
+                        >
+                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
-
-                <div className="account-form-group">
-                  <label>Liên kết người dùng</label>
-                  <input
-                    name="relatedUser"
-                    value={formData.relatedUser}
-                    onChange={handleChange}
-                    placeholder="VD: NV001 hoặc KH0001"
-                    disabled
-                  />
-                </div>
-              </div>
-
-              <div className="account-form-group">
-                <label>Ghi chú</label>
-                <textarea
-                  name="note"
-                  value={formData.note}
-                  onChange={handleChange}
-                  placeholder="Nhập ghi chú nếu có"
-                  rows="3"
-                  disabled={isSaving}
-                />
               </div>
 
               <div className="account-modal-actions">
@@ -1035,6 +1273,44 @@ function AdminAccounts() {
                   : modalType === "lock"
                     ? "Xác nhận khóa"
                     : "Xác nhận mở khóa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalType === "delete" && selectedAccount && (
+        <div className="account-modal-overlay">
+          <div className="account-confirm-modal">
+            <div className="account-confirm-icon danger">
+              <Trash2 size={28} />
+            </div>
+
+            <h2>Xoá tài khoản?</h2>
+
+            <p>
+              Bạn có chắc chắn muốn xoá tài khoản{" "}
+              <strong>{selectedAccount.fullName}</strong> không? Chỉ nên xoá nếu đây
+              là tài khoản được tạo nhầm và chưa có dữ liệu liên quan.
+            </p>
+
+            <div className="account-modal-actions center">
+              <button
+                type="button"
+                className="account-secondary-btn"
+                onClick={closeModal}
+                disabled={isSaving}
+              >
+                Hủy
+              </button>
+
+              <button
+                type="button"
+                className="account-danger-btn"
+                onClick={handleConfirmDelete}
+                disabled={isSaving}
+              >
+                {isSaving ? "Đang xoá..." : "Xác nhận xoá"}
               </button>
             </div>
           </div>

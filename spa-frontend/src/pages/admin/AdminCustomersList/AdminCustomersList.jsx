@@ -27,6 +27,7 @@ const API_ORIGIN =
   import.meta.env.VITE_API_ORIGIN || "http://127.0.0.1:8000"
 
 const SPA_OPENING_YEAR = 2020
+const HISTORY_PREVIEW_LIMIT = 5
 
 const monthOptions = [
   { value: "Tất cả", label: "Tất cả" },
@@ -195,6 +196,27 @@ const getCustomerSortNumber = (customer) => {
   const numberText = String(code).replace(/\D/g, "")
 
   return Number(numberText || customer?.idKhachHang || 0)
+}
+
+const getAppointmentStatusClass = (status) => {
+  switch (status) {
+    case "Chờ xác nhận":
+      return "pending"
+    case "Đã xác nhận":
+      return "confirmed"
+    case "Đã check-in":
+      return "checked"
+    case "Đang thực hiện":
+      return "doing"
+    case "Đã hoàn thành":
+      return "completed"
+    case "Đã huỷ":
+      return "cancelled"
+    case "Không đến":
+      return "no-show"
+    default:
+      return ""
+  }
 }
 
 function AdminCustomers() {
@@ -774,100 +796,104 @@ function AdminCustomers() {
             <div className="admin-customer-history-grid">
               <div className="admin-history-card">
                 <div className="admin-history-card-header">
-                  <h3>Lịch sử lịch hẹn</h3>
+                  <h3>Lịch hẹn gần đây</h3>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setHistoryModal({
-                        title: "Tất cả lịch sử lịch hẹn",
-                        type: "appointments",
-                        data: getAppointments(selectedCustomer),
-                      })
-                    }
-                    disabled={getAppointments(selectedCustomer).length === 0}
-                  >
-                    Xem tất cả
-                  </button>
+                  {getAppointments(selectedCustomer).length >
+                    HISTORY_PREVIEW_LIMIT && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setHistoryModal({
+                          title: "Tất cả lịch hẹn",
+                          type: "appointments",
+                          data: getAppointments(selectedCustomer),
+                        })
+                      }
+                    >
+                      Xem tất cả
+                    </button>
+                  )}
                 </div>
 
-                <div className="admin-history-list">
-                  {getAppointments(selectedCustomer).length > 0 ? (
-                    getAppointments(selectedCustomer)
-                      .slice(0, 2)
+                {getAppointments(selectedCustomer).length > 0 ? (
+                  <div className="admin-history-list">
+                    {getAppointments(selectedCustomer)
+                      .slice(0, HISTORY_PREVIEW_LIMIT)
                       .map((appointment) => (
                         <div
                           className="admin-history-item"
                           key={appointment.id}
                         >
                           <div>
-                            <h4>{appointment.services || "Dịch vụ"}</h4>
-
-                            <p>
-                              {formatDateDisplay(appointment.date)} •{" "}
-                              {appointment.time || "Chưa cập nhật"}
-                            </p>
+                            <strong>{appointment.id}</strong>
+                            <p>{appointment.services || "Dịch vụ"}</p>
                           </div>
 
-                          <span>{appointment.status}</span>
+                          <div className="admin-history-meta">
+                            <span>
+                              {formatDateDisplay(appointment.date)} ·{" "}
+                              {appointment.time || "Chưa cập nhật"}
+                            </span>
+
+                            <em
+                              className={`admin-appointment-status ${getAppointmentStatusClass(
+                                appointment.status
+                              )}`}
+                            >
+                              {appointment.status || "Chưa cập nhật"}
+                            </em>
+                          </div>
                         </div>
-                      ))
-                  ) : (
-                    <div className="admin-history-item">
-                      <div>
-                        <h4>Chưa có lịch hẹn</h4>
-                        <p>Khách hàng chưa phát sinh lịch hẹn.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="admin-empty-history">Chưa có lịch hẹn nào.</p>
+                )}
               </div>
 
               <div className="admin-history-card">
                 <div className="admin-history-card-header">
-                  <h3>Dịch vụ đã sử dụng</h3>
+                  <h3>Lịch sử sử dụng dịch vụ</h3>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setHistoryModal({
-                        title: "Tất cả dịch vụ đã sử dụng",
-                        type: "services",
-                        data: getServiceUsageHistory(selectedCustomer),
-                      })
-                    }
-                    disabled={
-                      getServiceUsageHistory(selectedCustomer).length === 0
-                    }
-                  >
-                    Xem tất cả
-                  </button>
+                  {getServiceUsageHistory(selectedCustomer).length >
+                    HISTORY_PREVIEW_LIMIT && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setHistoryModal({
+                          title: "Tất cả dịch vụ đã sử dụng",
+                          type: "services",
+                          data: getServiceUsageHistory(selectedCustomer),
+                        })
+                      }
+                    >
+                      Xem tất cả
+                    </button>
+                  )}
                 </div>
 
-                <div className="admin-history-list">
-                  {getServiceUsageHistory(selectedCustomer).length > 0 ? (
-                    getServiceUsageHistory(selectedCustomer)
-                      .slice(0, 2)
+                {getServiceUsageHistory(selectedCustomer).length > 0 ? (
+                  <div className="admin-history-list">
+                    {getServiceUsageHistory(selectedCustomer)
+                      .slice(0, HISTORY_PREVIEW_LIMIT)
                       .map((service) => (
                         <div className="admin-history-item" key={service.id}>
                           <div>
-                            <h4>{service.serviceName}</h4>
-
+                            <strong>{service.serviceName}</strong>
                             <p>{formatDateDisplay(service.date)}</p>
                           </div>
 
-                          <strong>{formatMoney(service.amount)}</strong>
+                          <div className="admin-history-meta right">
+                            <span>{formatMoney(service.amount)}</span>
+                          </div>
                         </div>
-                      ))
-                  ) : (
-                    <div className="admin-history-item">
-                      <div>
-                        <h4>Chưa sử dụng dịch vụ</h4>
-                        <p>Chưa có dịch vụ đã hoàn thành.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="admin-empty-history">
+                    Chưa có lịch sử sử dụng dịch vụ.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -905,24 +931,35 @@ function AdminCustomers() {
                     {historyModal.type === "appointments" ? (
                       <>
                         <div>
-                          <h4>{item.services || "Dịch vụ"}</h4>
-
-                          <p>
-                            {formatDateDisplay(item.date)} •{" "}
-                            {item.time || "Chưa cập nhật"}
-                          </p>
+                          <strong>{item.id}</strong>
+                          <p>{item.services || "Dịch vụ"}</p>
                         </div>
 
-                        <span>{item.status}</span>
+                        <div className="admin-history-meta">
+                          <span>
+                            {formatDateDisplay(item.date)} ·{" "}
+                            {item.time || "Chưa cập nhật"}
+                          </span>
+
+                          <em
+                            className={`admin-appointment-status ${getAppointmentStatusClass(
+                              item.status
+                            )}`}
+                          >
+                            {item.status || "Chưa cập nhật"}
+                          </em>
+                        </div>
                       </>
                     ) : (
                       <>
                         <div>
-                          <h4>{item.serviceName}</h4>
+                          <strong>{item.serviceName}</strong>
                           <p>{formatDateDisplay(item.date)}</p>
                         </div>
 
-                        <strong>{formatMoney(item.amount)}</strong>
+                        <div className="admin-history-meta right">
+                          <span>{formatMoney(item.amount)}</span>
+                        </div>
                       </>
                     )}
                   </div>
@@ -930,7 +967,7 @@ function AdminCustomers() {
               ) : (
                 <div className="admin-history-modal-item">
                   <div>
-                    <h4>Chưa có dữ liệu</h4>
+                    <strong>Chưa có dữ liệu</strong>
                     <p>Không có dữ liệu để hiển thị.</p>
                   </div>
                 </div>
