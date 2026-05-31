@@ -347,6 +347,31 @@ def update_admin_account(db: Session, id_tai_khoan: int, payload, current_admin_
 
         customer, employee = get_related_profile(db, account)
 
+        password = str(getattr(payload, "password", "") or "").strip()
+
+        if password:
+            role = get_role_from_account(account, customer, employee)
+
+            if role == "Khách hàng":
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Không thể cập nhật mật khẩu của tài khoản khách hàng tại trang quản trị",
+                )
+
+            if len(password) < 6:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Mật khẩu phải có ít nhất 6 ký tự",
+                )
+
+            if len(password.encode("utf-8")) > 72:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Mật khẩu không được vượt quá 72 bytes",
+                )
+
+            account.matKhau = hash_password(password)
+
         if account.loaiTK == "KHACH_HANG":
             if payload.role != "Khách hàng":
                 raise HTTPException(

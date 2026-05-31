@@ -31,14 +31,39 @@ function OAuthCallbackPage() {
     const accessToken = params.get("access_token")
     const tokenType = params.get("token_type") || "bearer"
     const userRaw = params.get("user")
+    const oauthError =
+      params.get("oauth_error") ||
+      params.get("error") ||
+      ""
+
+    if (oauthError) {
+      const decodedError = decodeURIComponent(oauthError)
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessage("Đăng nhập thất bại. Đang quay lại trang đăng nhập...")
+
+      timer = setTimeout(() => {
+        navigate(
+          `/dang-nhap?oauth_error=${encodeURIComponent(decodedError)}`,
+          { replace: true }
+        )
+      }, 1200)
+
+      return () => {
+        if (timer) clearTimeout(timer)
+      }
+    }
 
     if (!accessToken || !userRaw) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessage("Đăng nhập thất bại. Đang quay lại trang đăng nhập...")
 
       timer = setTimeout(() => {
-        navigate("/dang-nhap", { replace: true })
-      }, 1600)
+        navigate(
+          `/dang-nhap?oauth_error=${encodeURIComponent("Đăng nhập Google thất bại.")}`,
+          { replace: true }
+        )
+      }, 1200)
 
       return () => {
         if (timer) clearTimeout(timer)

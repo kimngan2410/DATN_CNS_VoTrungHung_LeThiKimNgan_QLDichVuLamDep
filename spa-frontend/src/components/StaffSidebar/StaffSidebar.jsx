@@ -10,7 +10,7 @@ import {
   LogOut,
   X,
 } from "lucide-react";
-import { logout } from "../../services/authApi";
+import { logoutStaff } from "../../services/authApi";
 import "./StaffSidebar.css";
 import spaLogo from "../../assets/images/logo_footer.png";
 
@@ -55,7 +55,7 @@ function StaffSidebar() {
   };
 
   const handleLogout = () => {
-    logout();
+    logoutStaff();
 
     localStorage.removeItem("staffRememberMe");
     localStorage.removeItem("staffRememberedEmail");

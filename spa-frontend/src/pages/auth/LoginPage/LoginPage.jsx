@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
 import FloatingChat from "../../../components/FloatingChat/FloatingChat"
@@ -35,9 +35,31 @@ import "./LoginPage.css"
 
 function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [loginError, setLoginError] = useState("")
   const [isLoggingIn, setIsLoggingIn] = useState(false)
+
+  useEffect(() => {
+    const oauthError =
+      searchParams.get("oauth_error") ||
+      searchParams.get("error") ||
+      ""
+
+    if (!oauthError) return
+
+    const decodedError = decodeURIComponent(oauthError)
+
+    if (decodedError.includes("Tài khoản đã bị khóa")) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoginError(
+        "Tài khoản đã bị khóa. Vui lòng liên hệ Serenity Spa để được hỗ trợ."
+      )
+      return
+    }
+
+    setLoginError(decodedError || "Đăng nhập Google thất bại.")
+  }, [searchParams])
 
   const [isEnteringHome, setIsEnteringHome] = useState(false)
   const [loginSuccessMessage, setLoginSuccessMessage] = useState(

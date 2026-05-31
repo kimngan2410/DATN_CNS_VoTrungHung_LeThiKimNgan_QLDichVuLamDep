@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
-  CalendarDays,
   Download,
   CreditCard,
+  CalendarDays,
   CalendarCheck,
   UsersRound,
   Sparkles,
@@ -12,6 +12,7 @@ import {
   Clock3,
   WalletCards,
   ArrowUpRight,
+  PackageOpen,
 } from "lucide-react"
 import {
   Area,
@@ -27,360 +28,159 @@ import {
   XAxis,
   YAxis,
 } from "recharts"
+
+import { getAdminOverviewApi } from "../../../services/adminOverviewApi"
 import "./AdminOverview.css"
 
 const ADMIN_GOLD = "#d7a93f"
 
-const periodOptions = [
-  { value: "today", label: "Hôm nay" },
-  { value: "month", label: "Tháng này" },
-  { value: "quarter", label: "Quý này" },
-  { value: "year", label: "Năm nay" },
-]
-
-const overviewData = {
-  today: {
-    label: "Hôm nay",
-    compareText: "so với hôm qua",
-    summary: {
-      revenue: 28500000,
-      appointments: 24,
-      registeredCustomers: 7,
-      usedServices: 38,
-      paidInvoices: 18,
-      completionRate: 84,
-    },
-    growth: {
-      revenue: "+8.5%",
-      appointments: "+5.2%",
-      registeredCustomers: "+11.4%",
-      usedServices: "+6.8%",
-      paidInvoices: "+7.1%",
-    },
-    revenueTrend: [
-      { label: "8h", revenue: 2500000 },
-      { label: "10h", revenue: 4200000 },
-      { label: "12h", revenue: 3800000 },
-      { label: "14h", revenue: 5600000 },
-      { label: "16h", revenue: 7400000 },
-      { label: "18h", revenue: 5000000 },
-    ],
-    customerGrowth: [
-      { label: "T2", value: 4 },
-      { label: "T3", value: 5 },
-      { label: "T4", value: 6 },
-      { label: "T5", value: 5 },
-      { label: "T6", value: 7 },
-      { label: "T7", value: 7 },
-    ],
-    topServices: [
-      { name: "Chăm sóc da mặt", value: 9, revenue: 8100000, color: "#d7a93f" },
-      { name: "Massage body", value: 7, revenue: 5600000, color: "#4d4a4b" },
-      { name: "Gội đầu dưỡng sinh", value: 6, revenue: 2400000, color: "#ead6a0" },
-      { name: "Điều trị mụn", value: 5, revenue: 4250000, color: "#f4ead0" },
-    ],
-    paymentMethods: [
-      { name: "Chuyển khoản", value: 10, amount: 16500000 },
-      { name: "Tiền mặt", value: 6, amount: 8200000 },
-      { name: "Thẻ ngân hàng", value: 2, amount: 3800000 },
-    ],
-    recentInvoices: [
-      {
-        id: "HD001",
-        customer: "Nguyễn Thị Hoa",
-        method: "Chuyển khoản",
-        amount: 750000,
-        paidAt: "09:30",
-        status: "Đã thanh toán",
-      },
-      {
-        id: "HD002",
-        customer: "Trần Văn Nam",
-        method: "Tiền mặt",
-        amount: 500000,
-        paidAt: "10:15",
-        status: "Đã thanh toán",
-      },
-      {
-        id: "HD003",
-        customer: "Phạm Thu Thủy",
-        method: "Thẻ ngân hàng",
-        amount: 1200000,
-        paidAt: "14:20",
-        status: "Đã thanh toán",
-      },
-    ],
-  },
-
-  month: {
-    label: "Tháng này",
-    compareText: "so với tháng trước",
-    summary: {
-      revenue: 795000000,
-      appointments: 186,
-      registeredCustomers: 48,
-      usedServices: 312,
-      paidInvoices: 154,
-      completionRate: 86,
-    },
-    growth: {
-      revenue: "+12.5%",
-      appointments: "+9.4%",
-      registeredCustomers: "+15.2%",
-      usedServices: "+7.6%",
-      paidInvoices: "+10.3%",
-    },
-    revenueTrend: [
-      { label: "T1", revenue: 40000000 },
-      { label: "T2", revenue: 30000000 },
-      { label: "T3", revenue: 50000000 },
-      { label: "T4", revenue: 45000000 },
-      { label: "T5", revenue: 60000000 },
-      { label: "T6", revenue: 55000000 },
-      { label: "T7", revenue: 70000000 },
-      { label: "T8", revenue: 85000000 },
-      { label: "T9", revenue: 76000000 },
-      { label: "T10", revenue: 90000000 },
-      { label: "T11", revenue: 86000000 },
-      { label: "T12", revenue: 110000000 },
-    ],
-    customerGrowth: [
-      { label: "T7", value: 28 },
-      { label: "T8", value: 35 },
-      { label: "T9", value: 32 },
-      { label: "T10", value: 41 },
-      { label: "T11", value: 45 },
-      { label: "T12", value: 48 },
-    ],
-    topServices: [
-      { name: "Chăm sóc da mặt", value: 78, revenue: 156000000, color: "#d7a93f" },
-      { name: "Massage body", value: 64, revenue: 96000000, color: "#4d4a4b" },
-      { name: "Gội đầu dưỡng sinh", value: 58, revenue: 58000000, color: "#ead6a0" },
-      { name: "Tắm trắng", value: 32, revenue: 192000000, color: "#f4ead0" },
-    ],
-    paymentMethods: [
-      { name: "Chuyển khoản", value: 82, amount: 438000000 },
-      { name: "Tiền mặt", value: 51, amount: 239000000 },
-      { name: "Thẻ ngân hàng", value: 21, amount: 118000000 },
-    ],
-    recentInvoices: [
-      {
-        id: "HD128",
-        customer: "Nguyễn Thị Hoa",
-        method: "Chuyển khoản",
-        amount: 750000,
-        paidAt: "04/05/2026",
-        status: "Đã thanh toán",
-      },
-      {
-        id: "HD129",
-        customer: "Trần Văn Nam",
-        method: "Tiền mặt",
-        amount: 500000,
-        paidAt: "05/05/2026",
-        status: "Đã thanh toán",
-      },
-      {
-        id: "HD130",
-        customer: "Lê Mai Anh",
-        method: "Thẻ ngân hàng",
-        amount: 850000,
-        paidAt: "06/05/2026",
-        status: "Đã thanh toán",
-      },
-    ],
-  },
-
-  quarter: {
-    label: "Quý này",
-    compareText: "so với quý trước",
-    summary: {
-      revenue: 1986000000,
-      appointments: 524,
-      registeredCustomers: 135,
-      usedServices: 862,
-      paidInvoices: 438,
-      completionRate: 88,
-    },
-    growth: {
-      revenue: "+18.5%",
-      appointments: "+11.2%",
-      registeredCustomers: "+17.4%",
-      usedServices: "+10.8%",
-      paidInvoices: "+13.6%",
-    },
-    revenueTrend: [
-      { label: "Tháng 1", revenue: 530000000 },
-      { label: "Tháng 2", revenue: 661000000 },
-      { label: "Tháng 3", revenue: 795000000 },
-    ],
-    customerGrowth: [
-      { label: "T1", value: 38 },
-      { label: "T2", value: 49 },
-      { label: "T3", value: 48 },
-    ],
-    topServices: [
-      { name: "Chăm sóc da mặt", value: 190, revenue: 380000000, color: "#d7a93f" },
-      { name: "Massage body", value: 156, revenue: 234000000, color: "#4d4a4b" },
-      { name: "Gội đầu dưỡng sinh", value: 145, revenue: 145000000, color: "#ead6a0" },
-      { name: "Tắm trắng", value: 88, revenue: 528000000, color: "#f4ead0" },
-    ],
-    paymentMethods: [
-      { name: "Chuyển khoản", value: 236, amount: 1080000000 },
-      { name: "Tiền mặt", value: 142, amount: 586000000 },
-      { name: "Thẻ ngân hàng", value: 60, amount: 320000000 },
-    ],
-    recentInvoices: [
-      {
-        id: "HD301",
-        customer: "Phạm Thu Thủy",
-        method: "Chuyển khoản",
-        amount: 1200000,
-        paidAt: "03/05/2026",
-        status: "Đã thanh toán",
-      },
-      {
-        id: "HD302",
-        customer: "Hoàng Minh Tuấn",
-        method: "Tiền mặt",
-        amount: 650000,
-        paidAt: "05/05/2026",
-        status: "Đã thanh toán",
-      },
-      {
-        id: "HD303",
-        customer: "Đỗ Khánh Linh",
-        method: "Thẻ ngân hàng",
-        amount: 950000,
-        paidAt: "07/05/2026",
-        status: "Đã thanh toán",
-      },
-    ],
-  },
-
-  year: {
-    label: "Năm nay",
-    compareText: "so với năm trước",
-    summary: {
-      revenue: 6842000000,
-      appointments: 1860,
-      registeredCustomers: 524,
-      usedServices: 3048,
-      paidInvoices: 1540,
-      completionRate: 87,
-    },
-    growth: {
-      revenue: "+23.1%",
-      appointments: "+16.7%",
-      registeredCustomers: "+19.8%",
-      usedServices: "+14.3%",
-      paidInvoices: "+18.2%",
-    },
-    revenueTrend: [
-      { label: "T1", revenue: 420000000 },
-      { label: "T2", revenue: 390000000 },
-      { label: "T3", revenue: 510000000 },
-      { label: "T4", revenue: 495000000 },
-      { label: "T5", revenue: 580000000 },
-      { label: "T6", revenue: 560000000 },
-      { label: "T7", revenue: 615000000 },
-      { label: "T8", revenue: 680000000 },
-      { label: "T9", revenue: 640000000 },
-      { label: "T10", revenue: 710000000 },
-      { label: "T11", revenue: 720000000 },
-      { label: "T12", revenue: 795000000 },
-    ],
-    customerGrowth: [
-      { label: "T1", value: 35 },
-      { label: "T2", value: 39 },
-      { label: "T3", value: 42 },
-      { label: "T4", value: 40 },
-      { label: "T5", value: 44 },
-      { label: "T6", value: 47 },
-      { label: "T7", value: 43 },
-      { label: "T8", value: 45 },
-      { label: "T9", value: 46 },
-      { label: "T10", value: 50 },
-      { label: "T11", value: 55 },
-      { label: "T12", value: 58 },
-    ],
-    topServices: [
-      { name: "Chăm sóc da mặt", value: 612, revenue: 1224000000, color: "#d7a93f" },
-      { name: "Massage body", value: 486, revenue: 729000000, color: "#4d4a4b" },
-      { name: "Gội đầu dưỡng sinh", value: 452, revenue: 452000000, color: "#ead6a0" },
-      { name: "Tắm trắng", value: 302, revenue: 1812000000, color: "#f4ead0" },
-    ],
-    paymentMethods: [
-      { name: "Chuyển khoản", value: 812, amount: 3620000000 },
-      { name: "Tiền mặt", value: 524, amount: 2050000000 },
-      { name: "Thẻ ngân hàng", value: 204, amount: 1172000000 },
-    ],
-    recentInvoices: [
-      {
-        id: "HD901",
-        customer: "Nguyễn Thị Hoa",
-        method: "Chuyển khoản",
-        amount: 750000,
-        paidAt: "04/05/2026",
-        status: "Đã thanh toán",
-      },
-      {
-        id: "HD902",
-        customer: "Phạm Thu Thủy",
-        method: "Tiền mặt",
-        amount: 1200000,
-        paidAt: "08/05/2026",
-        status: "Đã thanh toán",
-      },
-      {
-        id: "HD903",
-        customer: "Lê Mai Anh",
-        method: "Thẻ ngân hàng",
-        amount: 850000,
-        paidAt: "10/05/2026",
-        status: "Đã thanh toán",
-      },
-    ],
-  },
-}
-
-const recentActivities = [
+const OVERVIEW_PERIOD_OPTIONS = [
   {
-    title: "Thanh toán hoá đơn",
-    desc: "Hoá đơn HD128 đã được thanh toán thành công",
-    time: "30 phút trước",
+    value: "date",
+    label: "Ngày",
+    inputLabel: "Chọn ngày",
   },
   {
-    title: "Thêm lịch hẹn mới",
-    desc: "Khách hàng vừa đặt lịch chăm sóc da mặt",
-    time: "1 giờ trước",
+    value: "week",
+    label: "Tuần",
+    inputLabel: "Chọn tuần",
   },
   {
-    title: "Cập nhật dịch vụ",
-    desc: "Dịch vụ Massage body đã cập nhật giá và thời lượng",
-    time: "2 giờ trước",
+    value: "month",
+    label: "Tháng",
+    inputLabel: "Chọn tháng",
   },
   {
-    title: "Tạo tài khoản nhân viên",
-    desc: "Tài khoản lễ tân mới đã được tạo trong hệ thống",
-    time: "3 giờ trước",
+    value: "year",
+    label: "Năm",
+    inputLabel: "Chọn năm",
   },
 ]
 
-const formatMoney = (value) => {
-  return `${Number(value).toLocaleString("vi-VN")} đ`
+const defaultOverviewData = {
+  period: "date",
+  label: "Hôm nay",
+  compareText: "",
+  startDate: "",
+  endDate: "",
+  summary: {
+    revenue: 0,
+    appointments: 0,
+    registeredCustomers: 0,
+    usedServices: 0,
+    paidInvoices: 0,
+    completionRate: 0,
+  },
+  growth: {
+    revenue: "0%",
+    appointments: "0%",
+    registeredCustomers: "0%",
+    usedServices: "0%",
+    paidInvoices: "0%",
+  },
+  revenueTrend: [],
+  customerGrowth: [],
+  topServices: [],
+  paymentMethods: [],
+  recentInvoices: [],
+  recentActivities: [],
 }
 
-const formatCompactMoney = (value) => {
-  if (value >= 1000000000) {
-    return `${(value / 1000000000).toFixed(2)}B đ`
+const formatMoney = (value = 0) => {
+  return `${Number(value || 0).toLocaleString("vi-VN")} đ`
+}
+
+const formatCompactMoney = (value = 0) => {
+  const numberValue = Number(value || 0)
+
+  if (numberValue >= 1000000000) {
+    return `${(numberValue / 1000000000).toFixed(2)}B đ`
   }
 
-  if (value >= 1000000) {
-    return `${Math.round(value / 1000000)}M đ`
+  if (numberValue >= 1000000) {
+    return `${Math.round(numberValue / 1000000)}M đ`
   }
 
-  return formatMoney(value)
+  return formatMoney(numberValue)
+}
+
+const padNumber = (value) => {
+  return String(value).padStart(2, "0")
+}
+
+const getDateInputValue = (date = new Date()) => {
+  return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(
+    date.getDate()
+  )}`
+}
+
+const getMonthInputValue = (date = new Date()) => {
+  return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}`
+}
+
+const getWeekInputValue = (date = new Date()) => {
+  const tempDate = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+  )
+
+  const dayNumber = tempDate.getUTCDay() || 7
+  tempDate.setUTCDate(tempDate.getUTCDate() + 4 - dayNumber)
+
+  const yearStart = new Date(Date.UTC(tempDate.getUTCFullYear(), 0, 1))
+  const weekNumber = Math.ceil(((tempDate - yearStart) / 86400000 + 1) / 7)
+
+  return `${tempDate.getUTCFullYear()}-W${padNumber(weekNumber)}`
+}
+
+const getDefaultFilterValue = (period) => {
+  const now = new Date()
+
+  if (period === "week") return getWeekInputValue(now)
+  if (period === "month") return getMonthInputValue(now)
+  if (period === "year") return String(now.getFullYear())
+
+  return getDateInputValue(now)
+}
+
+const getFilterInputType = (period) => {
+  if (period === "week") return "week"
+  if (period === "month") return "month"
+  if (period === "year") return "number"
+
+  return "date"
+}
+
+const formatDateVN = (dateText) => {
+  if (!dateText) return ""
+
+  if (dateText.includes("-W")) return dateText
+
+  if (!dateText.includes("-")) return dateText
+
+  const parts = dateText.split("-")
+
+  if (parts.length === 3) {
+    const [year, month, day] = parts
+    return `${day}/${month}/${year}`
+  }
+
+  if (parts.length === 2) {
+    const [year, month] = parts
+    return `${month}/${year}`
+  }
+
+  return dateText
+}
+
+const getErrorMessage = (error) => {
+  if (typeof error?.message === "string") return error.message
+  if (typeof error === "string") return error
+
+  try {
+    return JSON.stringify(error)
+  } catch {
+    return "Không thể tải dữ liệu tổng quan."
+  }
 }
 
 function RevenueTooltip({ active, payload, label }) {
@@ -405,13 +205,79 @@ function BarTooltip({ active, payload, label }) {
   )
 }
 
-function AdminOverview() {
-  const [period, setPeriod] = useState("month")
+function EmptyState({ message }) {
+  return (
+    <div className="admin-overview-empty-card">
+      <div className="admin-overview-empty-icon">
+        <PackageOpen size={45} />
+      </div>
 
-  const currentData = useMemo(() => overviewData[period], [period])
+      <p>{message}</p>
+    </div>
+  )
+}
+
+function AdminOverview() {
+  const [selectedPeriod, setSelectedPeriod] = useState("date")
+  const [selectedFilterValue, setSelectedFilterValue] = useState(
+    getDefaultFilterValue("date")
+  )
+  const filterInputRef = useRef(null)
+
+  const [overviewData, setOverviewData] = useState(defaultOverviewData)
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState("")
+
+  const activePeriodOption =
+    OVERVIEW_PERIOD_OPTIONS.find((option) => option.value === selectedPeriod) ||
+    OVERVIEW_PERIOD_OPTIONS[0]
+
+  const handleChangePeriod = (periodValue) => {
+    setSelectedPeriod(periodValue)
+    setSelectedFilterValue(getDefaultFilterValue(periodValue))
+  }
+
+  const fetchOverview = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setErrorMessage("")
+
+      const data = await getAdminOverviewApi(selectedPeriod, selectedFilterValue)
+
+      setOverviewData({
+        ...defaultOverviewData,
+        ...data,
+        summary: {
+          ...defaultOverviewData.summary,
+          ...(data?.summary || {}),
+        },
+        growth: {
+          ...defaultOverviewData.growth,
+          ...(data?.growth || {}),
+        },
+        revenueTrend: data?.revenueTrend || [],
+        customerGrowth: data?.customerGrowth || [],
+        topServices: data?.topServices || [],
+        paymentMethods: data?.paymentMethods || [],
+        recentInvoices: data?.recentInvoices || [],
+        recentActivities: data?.recentActivities || [],
+      })
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [selectedPeriod, selectedFilterValue])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchOverview()
+  }, [fetchOverview])
+
+  const currentData = useMemo(() => overviewData || defaultOverviewData, [overviewData])
 
   const totalPaymentAmount = currentData.paymentMethods.reduce(
-    (sum, item) => sum + item.amount,
+    (sum, item) => sum + Number(item.amount || 0),
     0
   )
 
@@ -452,6 +318,8 @@ function AdminOverview() {
     const lines = [
       ["Báo cáo tổng quan"],
       ["Thời gian", currentData.label],
+      ["Từ ngày", currentData.startDate || ""],
+      ["Đến ngày", currentData.endDate || ""],
       ["Tổng doanh thu", currentData.summary.revenue],
       ["Tổng lịch hẹn", currentData.summary.appointments],
       ["Khách hàng đăng ký", currentData.summary.registeredCustomers],
@@ -480,40 +348,142 @@ function AdminOverview() {
 
     const link = document.createElement("a")
     link.href = url
-    link.download = `tong-quan-${period}.csv`
+    link.download = `tong-quan-${selectedPeriod}-${selectedFilterValue}.csv`
     link.click()
 
     URL.revokeObjectURL(url)
   }
 
-  return (
-    <div className="admin-overview-page">
-      <section className="admin-overview-toolbar">
-        <div className="admin-overview-period">
-          <CalendarDays size={18} />
-          <span>Thời gian:</span>
+  const renderFilterCard = () => (
+    <section className="admin-overview-toolbar admin-overview-filter-toolbar">
+      <div className="admin-overview-filter-info">
+        <strong>{currentData.label || activePeriodOption.label}</strong>
 
-          <select
-            value={period}
-            onChange={(event) => setPeriod(event.target.value)}
-          >
-            {periodOptions.map((option) => (
-              <option value={option.value} key={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+        {currentData.startDate && currentData.endDate ? (
+          <p>
+            {currentData.startDate === currentData.endDate
+              ? formatDateVN(currentData.startDate)
+              : `${formatDateVN(currentData.startDate)} đến ${formatDateVN(
+                  currentData.endDate
+                )}`}
+          </p>
+        ) : (
+          <p>{formatDateVN(selectedFilterValue)}</p>
+        )}
+      </div>
+
+      <div className="admin-overview-filter-actions">
+        <div className="admin-overview-period-tabs">
+          {OVERVIEW_PERIOD_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={
+                selectedPeriod === option.value
+                  ? "admin-overview-period-tab active"
+                  : "admin-overview-period-tab"
+              }
+              onClick={() => handleChangePeriod(option.value)}
+              disabled={isLoading}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <div
+          className="admin-overview-date-picker"
+          onClick={handleOpenFilterPicker}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault()
+              handleOpenFilterPicker()
+            }
+          }}
+        >
+          <span>{activePeriodOption.inputLabel}</span>
+
+          <strong className="admin-overview-date-display">
+            {formatDateVN(selectedFilterValue)}
+          </strong>
+
+          <CalendarDays className="admin-overview-date-icon" size={18} />
+
+          <input
+            ref={filterInputRef}
+            type={getFilterInputType(selectedPeriod)}
+            value={selectedFilterValue}
+            min={selectedPeriod === "year" ? "2020" : undefined}
+            max={selectedPeriod === "year" ? "2100" : undefined}
+            onChange={(event) => setSelectedFilterValue(event.target.value)}
+            disabled={isLoading}
+          />
         </div>
 
         <button
           type="button"
           className="admin-overview-export-btn"
           onClick={handleExportOverview}
+          disabled={isLoading}
         >
           <Download size={17} />
           Xuất báo cáo
         </button>
-      </section>
+      </div>
+    </section>
+  )
+
+  const handleOpenFilterPicker = () => {
+    const input = filterInputRef.current
+
+    if (!input || isLoading) return
+
+    if (typeof input.showPicker === "function") {
+      input.showPicker()
+      return
+    }
+
+    input.focus()
+    input.click()
+  }
+
+  if (isLoading) {
+    return (
+      <div className="admin-overview-page">
+        {renderFilterCard()}
+
+        <div className="admin-overview-state-card">
+          Đang tải dữ liệu tổng quan...
+        </div>
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="admin-overview-page">
+        {renderFilterCard()}
+
+        <div className="admin-overview-state-card">
+          <p>{errorMessage}</p>
+
+          <button
+            type="button"
+            className="admin-overview-export-btn"
+            onClick={fetchOverview}
+          >
+            Tải lại
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="admin-overview-page">
+      {renderFilterCard()}
 
       <section className="admin-overview-hero">
         <div className="admin-overview-hero-content">
@@ -647,39 +617,45 @@ function AdminOverview() {
             </div>
           </div>
 
-          <div className="admin-overview-donut">
-            <ResponsiveContainer width="100%" height={170}>
-              <PieChart>
-                <Pie
-                  data={currentData.topServices}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={54}
-                  outerRadius={78}
-                  paddingAngle={5}
-                >
-                  {currentData.topServices.map((entry) => (
-                    <Cell key={entry.name} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="admin-overview-service-list">
-            {currentData.topServices.map((item) => (
-              <div className="admin-overview-service-row" key={item.name}>
-                <div>
-                  <span style={{ backgroundColor: item.color }}></span>
-                  {item.name}
-                </div>
-
-                <strong>{item.value}</strong>
+          {currentData.topServices.length > 0 ? (
+            <>
+              <div className="admin-overview-donut">
+                <ResponsiveContainer width="100%" height={170}>
+                  <PieChart>
+                    <Pie
+                      data={currentData.topServices}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={54}
+                      outerRadius={78}
+                      paddingAngle={5}
+                    >
+                      {currentData.topServices.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
+
+              <div className="admin-overview-service-list">
+                {currentData.topServices.map((item) => (
+                  <div className="admin-overview-service-row" key={item.name}>
+                    <div>
+                      <span style={{ backgroundColor: item.color }}></span>
+                      {item.name}
+                    </div>
+
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <EmptyState message="Chưa có dữ liệu dịch vụ." />
+          )}
         </div>
 
         <div className="admin-overview-card admin-overview-invoice-card">
@@ -706,28 +682,35 @@ function AdminOverview() {
             <div>
               <span>TB/hoá đơn</span>
               <strong>
-                {formatCompactMoney(
-                  Math.round(
-                    currentData.summary.revenue / currentData.summary.paidInvoices
-                  )
-                )}
+                {currentData.summary.paidInvoices > 0
+                  ? formatCompactMoney(
+                      Math.round(
+                        currentData.summary.revenue /
+                          currentData.summary.paidInvoices
+                      )
+                    )
+                  : "0 đ"}
               </strong>
             </div>
           </div>
 
           <div className="admin-overview-recent-invoices">
-            {currentData.recentInvoices.map((invoice) => (
-              <div className="admin-overview-invoice-row" key={invoice.id}>
-                <div>
-                  <h4>{invoice.id}</h4>
-                  <p>
-                    {invoice.customer} • {invoice.method}
-                  </p>
-                </div>
+            {currentData.recentInvoices.length > 0 ? (
+              currentData.recentInvoices.map((invoice) => (
+                <div className="admin-overview-invoice-row" key={invoice.id}>
+                  <div>
+                    <h4>{invoice.id}</h4>
+                    <p>
+                      {invoice.customer} • {invoice.method}
+                    </p>
+                  </div>
 
-                <strong>{formatMoney(invoice.amount)}</strong>
-              </div>
-            ))}
+                  <strong>{formatMoney(invoice.amount)}</strong>
+                </div>
+              ))
+            ) : (
+              <EmptyState message="Chưa có hoá đơn đã thanh toán." />
+            )}
           </div>
         </div>
 
@@ -790,26 +773,35 @@ function AdminOverview() {
           </div>
 
           <div className="admin-overview-payment-list">
-            {currentData.paymentMethods.map((method) => {
-              const percent = Math.round((method.amount / totalPaymentAmount) * 100)
+            {currentData.paymentMethods.length > 0 ? (
+              currentData.paymentMethods.map((method) => {
+                const percent =
+                  totalPaymentAmount > 0
+                    ? Math.round(
+                        (Number(method.amount || 0) / totalPaymentAmount) * 100
+                      )
+                    : 0
 
-              return (
-                <div className="admin-overview-payment-row" key={method.name}>
-                  <div className="admin-overview-payment-top">
-                    <span>{method.name}</span>
-                    <strong>
-                      {method.value} giao dịch · {percent}%
-                    </strong>
+                return (
+                  <div className="admin-overview-payment-row" key={method.name}>
+                    <div className="admin-overview-payment-top">
+                      <span>{method.name}</span>
+                      <strong>
+                        {method.value} giao dịch · {percent}%
+                      </strong>
+                    </div>
+
+                    <div className="admin-overview-progress">
+                      <div style={{ width: `${percent}%` }}></div>
+                    </div>
+
+                    <p>{formatMoney(method.amount)}</p>
                   </div>
-
-                  <div className="admin-overview-progress">
-                    <div style={{ width: `${percent}%` }}></div>
-                  </div>
-
-                  <p>{formatMoney(method.amount)}</p>
-                </div>
-              )
-            })}
+                )
+              })
+            ) : (
+              <EmptyState message="Chưa có dữ liệu thanh toán." />
+            )}
           </div>
         </div>
 
@@ -824,20 +816,24 @@ function AdminOverview() {
           </div>
 
           <div className="admin-overview-activity-list">
-            {recentActivities.map((activity, index) => (
-              <div className="admin-overview-activity-item" key={index}>
-                <div className="admin-overview-activity-icon">
-                  <Clock3 size={18} />
-                </div>
+            {currentData.recentActivities.length > 0 ? (
+              currentData.recentActivities.map((activity, index) => (
+                <div className="admin-overview-activity-item" key={index}>
+                  <div className="admin-overview-activity-icon">
+                    <Clock3 size={18} />
+                  </div>
 
-                <div>
-                  <h4>{activity.title}</h4>
-                  <p>{activity.desc}</p>
-                </div>
+                  <div>
+                    <h4>{activity.title}</h4>
+                    <p>{activity.desc}</p>
+                  </div>
 
-                <span>{activity.time}</span>
-              </div>
-            ))}
+                  <span>{activity.time}</span>
+                </div>
+              ))
+            ) : (
+              <EmptyState message="Chưa có hoạt động gần đây." />
+            )}
           </div>
         </div>
       </section>

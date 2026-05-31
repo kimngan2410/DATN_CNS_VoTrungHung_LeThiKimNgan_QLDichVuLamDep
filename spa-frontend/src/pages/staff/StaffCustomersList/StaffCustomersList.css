@@ -1055,6 +1055,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  padding: 16px 20px 20px;
 }
 
 .staff-customers-history-modal-item {

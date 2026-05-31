@@ -370,24 +370,33 @@ function AdminAccounts() {
       return "Vui lòng chọn trạng thái."
     }
 
-    if (modalType === "create") {
-      if (!formData.password.trim()) {
+    const password = formData.password.trim()
+    const confirmPassword = formData.confirmPassword.trim()
+
+    const isCustomerAccount =
+      modalType === "edit" && formData.role === "Khách hàng"
+
+    const isChangingPassword =
+      modalType === "edit" && !isCustomerAccount && (password || confirmPassword)
+
+    if (modalType === "create" || isChangingPassword) {
+      if (!password) {
         return "Vui lòng nhập mật khẩu."
       }
 
-      if (!formData.confirmPassword.trim()) {
+      if (!confirmPassword) {
         return "Vui lòng nhập lại mật khẩu."
       }
 
-      if (formData.password !== formData.confirmPassword) {
+      if (password !== confirmPassword) {
         return "Mật khẩu nhập lại không khớp."
       }
 
-      if (formData.password.length < 6) {
+      if (password.length < 6) {
         return "Mật khẩu phải có ít nhất 6 ký tự."
       }
 
-      if (new TextEncoder().encode(formData.password).length > 72) {
+      if (new TextEncoder().encode(password).length > 72) {
         return "Mật khẩu không được vượt quá 72 bytes."
       }
     }
@@ -415,7 +424,18 @@ function AdminAccounts() {
         phone: formData.phone.trim(),
         role: formData.role,
         status: formData.status,
-        password: formData.password || "TK@123456",
+      }
+
+      if (modalType === "create") {
+        payload.password = formData.password.trim()
+      }
+
+      if (
+        modalType === "edit" &&
+        formData.role !== "Khách hàng" &&
+        formData.password.trim()
+      ) {
+        payload.password = formData.password.trim()
       }
 
       if (modalType === "create") {
@@ -448,7 +468,10 @@ function AdminAccounts() {
         showToast({
           type: "success",
           title: "Cập nhật thành công",
-          message: "Thông tin tài khoản đã được cập nhật.",
+          message:
+            formData.role !== "Khách hàng" && formData.password.trim()
+              ? "Thông tin và mật khẩu tài khoản đã được cập nhật."
+              : "Thông tin tài khoản đã được cập nhật.",
         })
         closeModal()
       }
@@ -579,6 +602,10 @@ function AdminAccounts() {
     setStatusFilter("Tất cả")
     setSortOption("default")
   }
+
+  const canEditPassword =
+    modalType === "create" ||
+    (modalType === "edit" && formData.role !== "Khách hàng")
 
   if (isLoading) {
     return (
@@ -1022,10 +1049,12 @@ function AdminAccounts() {
                   </select>
                 </div>
 
-                {modalType === "create" && (
+                {canEditPassword && (
                   <>
                     <div className="account-form-group">
-                      <label>Mật khẩu</label>
+                      <label>
+                        {modalType === "create" ? "Mật khẩu" : "Mật khẩu mới"}
+                      </label>
 
                       <div className="account-password-field">
                         <input
@@ -1033,7 +1062,11 @@ function AdminAccounts() {
                           name="password"
                           value={formData.password}
                           onChange={handleChange}
-                          placeholder="Nhập mật khẩu"
+                          placeholder={
+                            modalType === "create"
+                              ? "Nhập mật khẩu"
+                              : "Để trống nếu không đổi mật khẩu"
+                          }
                           disabled={isSaving}
                         />
 
@@ -1050,7 +1083,11 @@ function AdminAccounts() {
                     </div>
 
                     <div className="account-form-group">
-                      <label>Nhập lại mật khẩu</label>
+                      <label>
+                        {modalType === "create"
+                          ? "Nhập lại mật khẩu"
+                          : "Nhập lại mật khẩu mới"}
+                      </label>
 
                       <div className="account-password-field">
                         <input
@@ -1058,7 +1095,11 @@ function AdminAccounts() {
                           name="confirmPassword"
                           value={formData.confirmPassword}
                           onChange={handleChange}
-                          placeholder="Nhập lại mật khẩu"
+                          placeholder={
+                            modalType === "create"
+                              ? "Nhập lại mật khẩu"
+                              : "Nhập lại mật khẩu mới"
+                          }
                           disabled={isSaving}
                         />
 
@@ -1068,7 +1109,9 @@ function AdminAccounts() {
                           onClick={() => setShowConfirmPassword((prev) => !prev)}
                           disabled={isSaving}
                           aria-label={
-                            showConfirmPassword ? "Ẩn mật khẩu nhập lại" : "Hiện mật khẩu nhập lại"
+                            showConfirmPassword
+                              ? "Ẩn mật khẩu nhập lại"
+                              : "Hiện mật khẩu nhập lại"
                           }
                         >
                           {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}

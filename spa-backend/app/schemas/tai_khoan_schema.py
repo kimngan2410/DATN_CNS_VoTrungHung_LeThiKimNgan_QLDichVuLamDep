@@ -38,8 +38,7 @@ class AdminAccountUpdateRequest(BaseModel):
     phone: Optional[str] = ""
     role: str
     status: str
-    relatedUser: Optional[str] = ""
-    note: Optional[str] = ""
+    password: Optional[str] = ""
 
 
 class AdminAccountStatusRequest(BaseModel):

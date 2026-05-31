@@ -73,6 +73,156 @@
 }
 
 /* =========================
+   FILTER TOOLBAR
+========================= */
+
+.admin-overview-filter-toolbar {
+  min-height: 118px;
+  padding: 22px 24px;
+  border-radius: 18px;
+  align-items: center;
+}
+
+.admin-overview-filter-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.admin-overview-filter-info strong {
+  color: var(--admin-text);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.admin-overview-filter-info p {
+  margin: 0;
+  color: #7a6f62;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.admin-overview-filter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-overview-period-tabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-overview-period-tab {
+  height: 45px;
+  min-width: 86px;
+  padding: 0 22px;
+  border: 1px solid #eadcc7;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--admin-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-overview-period-tab:hover {
+  background: var(--admin-primary-light);
+  border-color: rgba(215, 169, 63, 0.55);
+  color: var(--admin-primary-dark);
+}
+
+.admin-overview-period-tab.active {
+  background: var(--admin-dark);
+  border-color: var(--admin-dark);
+  color: var(--admin-primary);
+  box-shadow: 0 12px 24px rgba(77, 74, 75, 0.16);
+}
+
+.admin-overview-date-picker {
+  position: relative;
+  height: 48px;
+  min-width: 260px;
+  padding: 0 48px 0 18px;
+  border: 1px solid #eadcc7;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: var(--admin-primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.admin-overview-date-picker span {
+  color: var(--admin-primary-dark);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-overview-date-display {
+  color: var(--admin-text);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-overview-date-icon {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--admin-primary-dark);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.admin-overview-date-picker input {
+  position: absolute;
+  top: 50%;
+  left: 40px;
+  width: 28px;
+  height: 42px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 3;
+  transform: translateY(-50%);
+  margin-top: 10px;
+}
+
+.admin-overview-date-picker input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 18px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.admin-overview-filter-actions .admin-overview-export-btn {
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.admin-overview-filter-actions .admin-overview-export-btn:hover {
+  background: var(--admin-primary-dark);
+  color: #ffffff;
+}
+
+/* =========================
    HERO
 ========================= */
 
@@ -514,26 +664,26 @@
 ========================= */
 
 .admin-overview-activity-card {
-  grid-column: auto;
+  grid-column: 1 / -1;
 }
 
 .admin-overview-activity-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   margin-top: 14px;
 }
 
 .admin-overview-activity-item {
-  min-height: 70px;
-  padding: 12px;
+  min-height: 78px;
+  padding: 14px 18px;
   border: 1px solid var(--admin-border);
-  border-radius: 13px;
+  border-radius: 14px;
   background: #ffffff;
   display: grid;
-  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr) 150px;
   align-items: center;
-  gap: 11px;
+  gap: 14px;
 }
 
 .admin-overview-activity-icon {
@@ -552,14 +702,14 @@
   margin: 0;
   color: var(--admin-text);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
 }
 
 .admin-overview-activity-item p {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
   color: #64748b;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.35;
   white-space: nowrap;
@@ -568,12 +718,13 @@
 }
 
 .admin-overview-activity-item > span {
-  grid-column: 2;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
   color: #94a3b8;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   white-space: nowrap;
-  margin-top: 3px;
 }
 
 /* =========================
@@ -635,6 +786,35 @@
     align-items: stretch;
   }
 
+  .admin-overview-filter-toolbar {
+    align-items: stretch;
+  }
+
+  .admin-overview-filter-actions {
+    justify-content: flex-start;
+  }
+
+  .admin-overview-period-tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-overview-period-tab {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-overview-date-picker {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-overview-filter-actions .admin-overview-export-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .admin-overview-period {
     flex-wrap: wrap;
   }
@@ -672,12 +852,14 @@
   }
 
   .admin-overview-activity-item {
-    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-columns: 42px minmax(0, 1fr);
   }
 
   .admin-overview-activity-item > span {
     grid-column: 2;
-    margin-top: -5px;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: 4px;
   }
 }
 
@@ -694,4 +876,58 @@
   .admin-overview-bar-chart {
     height: 220px;
   }
+}
+
+.admin-overview-state-card {
+  min-height: 180px;
+  padding: 26px;
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  background: var(--admin-card);
+  box-shadow: var(--admin-shadow);
+  color: var(--admin-text);
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.admin-overview-empty-card {
+  min-height: 190px;
+  padding: 42px 24px;
+  color: #dd9932;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.admin-overview-empty-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: #ffffff;
+  color: var(--admin-primary-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-overview-empty-card p {
+  max-width: 260px;
+  margin-top: 15px;
+  color: var(--admin-primary-dark);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.admin-overview-payment-card {
+  grid-column: 1 / -1;
 }
