@@ -264,9 +264,32 @@ def to_decimal(value) -> Decimal:
     return Decimal(str(value or 0))
 
 
-def generate_invoice_code() -> str:
-    now = datetime.now()
-    return f"HD{now.strftime('%Y%m%d%H%M%S%f')}"
+def generate_invoice_code(db: Session, paid_at: datetime | None = None) -> str:
+    payment_time = paid_at or datetime.now()
+
+    year_short = payment_time.strftime("%y")
+    payment_date = payment_time.strftime("%d%m")
+
+    prefix = f"HD{year_short}{payment_date}"
+
+    latest_invoice = (
+        db.query(HoaDon)
+        .filter(HoaDon.maHD.like(f"{prefix}%"))
+        .order_by(HoaDon.maHD.desc())
+        .first()
+    )
+
+    next_number = 1
+
+    if latest_invoice and latest_invoice.maHD:
+        try:
+            latest_number_text = latest_invoice.maHD.replace(prefix, "")
+            latest_number = int(latest_number_text)
+            next_number = latest_number + 1
+        except ValueError:
+            next_number = 1
+
+    return f"{prefix}{next_number:06d}"
 
 
 def get_customer_by_account_id(db: Session, id_tai_khoan: int):

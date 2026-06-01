@@ -289,7 +289,7 @@
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .revenue-report-change.up {
@@ -321,7 +321,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .revenue-report-tooltip {
@@ -410,8 +410,8 @@
 
 .revenue-report-modal-summary strong {
   color: var(--admin-text);
-  font-size: 18px;
-  font-weight: 900;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .revenue-report-detail-title {
@@ -428,7 +428,7 @@
 .revenue-report-detail-title span {
   color: var(--admin-muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .revenue-report-category-item {
@@ -532,4 +532,21 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.revenue-report-change.neutral {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.revenue-report-summary-card span.up {
+  color: #16a34a;
+}
+
+.revenue-report-summary-card span.down {
+  color: #dc2626;
+}
+
+.revenue-report-summary-card span.neutral {
+  color: #64748b;
 }

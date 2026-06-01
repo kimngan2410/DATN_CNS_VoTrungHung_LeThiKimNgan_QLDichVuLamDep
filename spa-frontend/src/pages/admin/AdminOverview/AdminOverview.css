@@ -169,7 +169,7 @@
 .admin-overview-date-display {
   color: var(--admin-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
