@@ -9,6 +9,7 @@ import {
   CircleCheckBig,
   CircleMinus,
   TrendingUp,
+  Star,
 } from "lucide-react"
 import {
   Bar,
@@ -34,6 +35,8 @@ const sortOptions = [
   "Doanh thu cao nhất",
   "Số khách cao nhất",
   "Thời lượng cao nhất",
+  "Số sao cao nhất",
+  "Lượt đánh giá cao nhất",
   "Tên dịch vụ A-Z",
 ]
 
@@ -54,6 +57,8 @@ const defaultReportData = {
     totalCustomers: 0,
     totalDuration: 0,
     totalRevenue: 0,
+    totalReviews: 0,
+    averageRating: 0,
   },
   chartData: [],
   services: [],
@@ -72,6 +77,14 @@ const formatDuration = (minutes = 0) => {
   if (minute === 0) return `${hour} giờ`
 
   return `${hour} giờ ${minute} phút`
+}
+
+const formatDateVN = (dateValue) => {
+  if (!dateValue) return ""
+
+  const [year, month, day] = dateValue.split("-")
+
+  return `${day}/${month}/${year}`
 }
 
 const getTodayInputValue = () => {
@@ -196,6 +209,8 @@ function ServiceUsageReport() {
         "Số khách sử dụng",
         "Tổng thời lượng phục vụ",
         "Doanh thu tham khảo",
+        "Lượt đánh giá",
+        "Số sao TB",
         "Trạng thái dịch vụ",
         "Cập nhật gần nhất",
       ],
@@ -207,6 +222,8 @@ function ServiceUsageReport() {
         item.customerCount,
         item.totalDuration,
         item.revenue,
+        item.reviewCount || 0,
+        item.averageRating || 0,
         item.serviceStatus,
         item.lastUsedAt || "",
       ]),
@@ -218,6 +235,8 @@ function ServiceUsageReport() {
       ["Tổng số khách", summary.totalCustomers],
       ["Tổng thời lượng phục vụ", summary.totalDuration],
       ["Tổng doanh thu tham khảo", summary.totalRevenue],
+      ["Tổng lượt đánh giá", summary.totalReviews],
+      ["Số sao trung bình", summary.averageRating],
     ]
 
     const csv = "\uFEFF" + lines.map((row) => row.join(",")).join("\n")
@@ -236,24 +255,28 @@ function ServiceUsageReport() {
     <div className="service-usage-page">
       <section className="service-usage-filter-card">
         <div className="service-usage-filter-left">
-          <div className="service-usage-filter-item">
+          <label className="service-usage-date-picker">
             <CalendarDays size={17} />
+            <span>{formatDateVN(fromDate)}</span>
+
             <input
               type="date"
               value={fromDate}
               onChange={(event) => setFromDate(event.target.value)}
             />
-          </div>
+          </label>
 
           <span className="service-usage-date-separator">-</span>
 
-          <div className="service-usage-filter-item">
+          <label className="service-usage-date-picker">
+            <span>{formatDateVN(toDate)}</span>
+
             <input
               type="date"
               value={toDate}
               onChange={(event) => setToDate(event.target.value)}
             />
-          </div>
+          </label>
 
           <div className="service-usage-search">
             <Search size={17} />
@@ -396,6 +419,16 @@ function ServiceUsageReport() {
               <h2>{summary.totalUsage}</h2>
               <span>{formatMoney(summary.totalRevenue)} doanh thu tham khảo</span>
             </div>
+
+            <div className="service-usage-summary-card">
+              <div className="service-usage-summary-icon">
+                <Star size={22} />
+              </div>
+
+              <p>Đánh giá dịch vụ</p>
+              <h2>{summary.averageRating || 0}/5</h2>
+              <span>{summary.totalReviews || 0} lượt đánh giá trong kỳ</span>
+            </div>
           </section>
 
           <section className="service-usage-chart-card">
@@ -482,6 +515,8 @@ function ServiceUsageReport() {
                     <th>Số khách</th>
                     <th>Tổng thời lượng</th>
                     <th>Doanh thu</th>
+                    <th>Đánh giá</th>
+                    <th>Sao TB</th>
                     <th>Trạng thái</th>
                   </tr>
                 </thead>
@@ -517,6 +552,15 @@ function ServiceUsageReport() {
                           {formatMoney(service.revenue)}
                         </td>
 
+                        <td>{service.reviewCount || 0}</td>
+
+                        <td>
+                          <span className="service-usage-rating">
+                            <Star size={14} />
+                            {service.averageRating ? `${service.averageRating}/5` : "Chưa có"}
+                          </span>
+                        </td>
+
                         <td>
                           <span
                             className={
@@ -532,7 +576,7 @@ function ServiceUsageReport() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="9">
+                      <td colSpan="11">
                         <div className="service-usage-empty">
                           Chưa có dữ liệu dịch vụ phù hợp
                         </div>
@@ -548,6 +592,8 @@ function ServiceUsageReport() {
                     <td>{summary.totalCustomers}</td>
                     <td>{formatDuration(summary.totalDuration)}</td>
                     <td>{formatMoney(summary.totalRevenue)}</td>
+                    <td>{summary.totalReviews || 0}</td>
+                    <td>{summary.averageRating ? `${summary.averageRating}/5` : "0/5"}</td>
                     <td>
                       {summary.usedServices} đã dùng ·{" "}
                       {summary.unusedServices} chưa dùng

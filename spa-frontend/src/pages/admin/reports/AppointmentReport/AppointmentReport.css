@@ -495,3 +495,140 @@
     grid-template-columns: 1fr;
   }
 }
+
+.appointment-report-state-card {
+  min-height: 140px;
+  margin-bottom: 18px;
+  padding: 24px;
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  background: var(--admin-card);
+  box-shadow: var(--admin-shadow);
+  color: var(--admin-text);
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.appointment-report-state-card p {
+  margin: 0;
+}
+
+.appointment-report-modal-service-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.appointment-report-modal-service-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+}
+
+.appointment-report-modal-service-table thead {
+  background: #fbfaf8;
+}
+
+.appointment-report-modal-service-table th {
+  height: 42px;
+  padding: 0 12px;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.appointment-report-modal-service-table td {
+  height: 48px;
+  padding: 10px 12px;
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid #f1eee8;
+}
+
+.appointment-report-modal-service-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.appointment-report-money {
+  color: var(--admin-primary-dark) !important;
+  font-weight: 800 !important;
+  white-space: nowrap;
+}
+
+.appointment-report-modal-service-total {
+  min-height: 54px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--admin-border);
+  background: #fffdf8;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.appointment-report-modal-service-total span {
+  color: var(--admin-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.appointment-report-modal-service-total strong {
+  color: var(--admin-primary-dark);
+  font-size: 18px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.appointment-report-date-picker {
+  position: relative;
+  height: 38px;
+  min-width: 150px;
+  padding: 0 38px 0 11px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--admin-primary-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.appointment-report-date-picker span {
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.appointment-report-date-picker input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.appointment-report-date-picker input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}

@@ -568,3 +568,75 @@
     width: 170px;
   }
 }
+
+.staff-overview-date-picker {
+  position: relative;
+  height: 42px;
+  min-width: 300px;
+  padding: 0 46px 0 20px;
+  border: 1px solid #eadfcb;
+  border-radius: 999px;
+  background: #fffaf2;
+  color: var(--staff-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+}
+
+.staff-overview-date-picker span {
+  color: #7e6118;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.staff-overview-date-picker strong {
+  color: var(--staff-text);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.staff-overview-date-icon {
+  position: absolute;
+  right: 17px;
+  color: #111827;
+  pointer-events: none;
+}
+
+.staff-overview-date-picker input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.staff-overview-date-picker input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .staff-overview-date-picker {
+    width: 100%;
+    min-width: 0;
+    border-radius: 14px;
+    justify-content: flex-start;
+  }
+}
+
+.staff-overview-date-icon {
+  position: absolute;
+  right: 16px;
+  color: #111827;
+  pointer-events: none;
+}

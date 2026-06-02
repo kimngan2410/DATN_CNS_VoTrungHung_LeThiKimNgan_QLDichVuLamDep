@@ -17,6 +17,7 @@ from app.api.v1.endpoints import admin_tong_quan
 from app.api.v1.endpoints import admin_revenue_report
 from app.api.v1.endpoints import admin_invoice_report
 from app.api.v1.endpoints import admin_service_usage_report
+from app.api.v1.endpoints import admin_appointment_report
 
 api_router = APIRouter()
 
@@ -49,4 +50,10 @@ api_router.include_router(
     admin_service_usage_report.router,
     prefix="/admin-service-usage-report",
     tags=["Admin - Service Usage Report"],
+)
+
+api_router.include_router(
+    admin_appointment_report.router,
+    prefix="/admin-appointment-report",
+    tags=["Admin - Appointment Report"],
 )

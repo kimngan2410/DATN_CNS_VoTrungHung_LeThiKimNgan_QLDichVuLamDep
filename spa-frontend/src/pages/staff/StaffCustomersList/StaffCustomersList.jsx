@@ -3,7 +3,6 @@ import {
   Search,
   UserRound,
   Filter,
-  Plus,
   X,
   Phone,
   Mail,
@@ -13,13 +12,11 @@ import {
   ClipboardList,
   Wallet,
   RotateCcw,
+  ArrowUpDown,
 } from "lucide-react";
 
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
-import {
-  createStaffCustomerApi,
-  getStaffCustomersApi,
-} from "../../../services/staffCustomerApi";
+import { getStaffCustomersApi } from "../../../services/staffCustomerApi";
 
 import "./StaffCustomersList.css";
 
@@ -57,6 +54,30 @@ const createdMonthOptions = [
 
 const formatMoney = (value) => {
   return `${Number(value || 0).toLocaleString("vi-VN")} đ`;
+};
+
+const getCreatedAtTimestamp = (customer) => {
+  const createdAt = customer?.createdAt;
+
+  if (!createdAt || createdAt === "Chưa cập nhật") return 0;
+
+  if (createdAt.includes("/")) {
+    const [day, month, year] = createdAt.split("/");
+    return new Date(`${year}-${month}-${day}`).getTime();
+  }
+
+  if (createdAt.includes("-")) {
+    return new Date(createdAt).getTime();
+  }
+
+  return 0;
+};
+
+const getCustomerSortNumber = (customer) => {
+  const code = String(customer?.id || customer?.maKH || "");
+  const numberText = code.replace(/\D/g, "");
+
+  return Number(numberText || customer?.idKhachHang || 0);
 };
 
 const getCustomerStatusClass = (status) => {
@@ -115,22 +136,10 @@ function StaffCustomers() {
   const [customerTypeFilter, setCustomerTypeFilter] = useState("Tất cả");
   const [createdYearFilter, setCreatedYearFilter] = useState("Tất cả");
   const [createdMonthFilter, setCreatedMonthFilter] = useState("Tất cả");
+  const [sortOption, setSortOption] = useState("default");
 
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [historyModal, setHistoryModal] = useState(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [formError, setFormError] = useState("");
-  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
-
-  const [newCustomer, setNewCustomer] = useState({
-    fullName: "",
-    phone: "",
-    email: "",
-    gender: "Nữ",
-    birthday: "",
-    loaiKH: "Thường",
-    status: "Đang hoạt động",
-  });
 
   useEffect(() => {
     const fetchCustomers = async () => {
@@ -154,7 +163,7 @@ function StaffCustomers() {
   }, []);
 
   const filteredCustomers = useMemo(() => {
-    return customers.filter((customer) => {
+    const filtered = customers.filter((customer) => {
       const keyword = searchTerm.trim().toLowerCase();
 
       const customerId = String(customer.id || "").toLowerCase();
@@ -198,6 +207,37 @@ function StaffCustomers() {
         matchesCreatedMonth
       );
     });
+
+    if (sortOption === "default") {
+      return filtered;
+    }
+
+    return [...filtered].sort((a, b) => {
+      const codeA = getCustomerSortNumber(a);
+      const codeB = getCustomerSortNumber(b);
+
+      const nameA = (a.fullName || "").toLowerCase();
+      const nameB = (b.fullName || "").toLowerCase();
+
+      const createdAtA = getCreatedAtTimestamp(a);
+      const createdAtB = getCreatedAtTimestamp(b);
+
+      if (sortOption === "code-desc") return codeB - codeA;
+      if (sortOption === "code-asc") return codeA - codeB;
+
+      if (sortOption === "name-asc") {
+        return nameA.localeCompare(nameB, "vi");
+      }
+
+      if (sortOption === "name-desc") {
+        return nameB.localeCompare(nameA, "vi");
+      }
+
+      if (sortOption === "created-desc") return createdAtB - createdAtA;
+      if (sortOption === "created-asc") return createdAtA - createdAtB;
+
+      return 0;
+    });
   }, [
     customers,
     searchTerm,
@@ -206,79 +246,17 @@ function StaffCustomers() {
     customerTypeFilter,
     createdYearFilter,
     createdMonthFilter,
+    sortOption,
   ]);
 
   const handleResetFilter = () => {
+    setSearchTerm("");
     setStatusFilter("Tất cả");
     setGenderFilter("Tất cả");
     setCustomerTypeFilter("Tất cả");
     setCreatedYearFilter("Tất cả");
     setCreatedMonthFilter("Tất cả");
-  };
-
-  const handleOpenAddModal = () => {
-    setIsAddModalOpen(true);
-    setFormError("");
-  };
-
-  const handleCloseAddModal = () => {
-    setIsAddModalOpen(false);
-    setFormError("");
-
-    setNewCustomer({
-      fullName: "",
-      phone: "",
-      email: "",
-      gender: "Nữ",
-      birthday: "",
-      loaiKH: "Thường",
-      status: "Đang hoạt động",
-    });
-  };
-
-  const handleChangeNewCustomer = (field, value) => {
-    setNewCustomer((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    setFormError("");
-  };
-
-  const handleAddCustomer = async () => {
-    if (isCreatingCustomer) return;
-
-    const fullName = newCustomer.fullName.trim();
-    const phone = newCustomer.phone.trim();
-    const email = newCustomer.email.trim();
-
-    if (!fullName || !phone) {
-      setFormError("Vui lòng nhập họ tên và số điện thoại khách hàng.");
-      return;
-    }
-
-    try {
-      setIsCreatingCustomer(true);
-      setFormError("");
-
-      const result = await createStaffCustomerApi({
-        fullName,
-        phone,
-        email: email || null,
-        gender: newCustomer.gender,
-        birthday: newCustomer.birthday || null,
-        loaiKH: newCustomer.loaiKH,
-        status: newCustomer.status,
-      });
-
-      setCustomers((prev) => [result.customer, ...prev]);
-      setSelectedCustomer(result.customer);
-      handleCloseAddModal();
-    } catch (error) {
-      setFormError(error.message || "Không thể thêm khách hàng.");
-    } finally {
-      setIsCreatingCustomer(false);
-    }
+    setSortOption("default");
   };
 
   const handleCloseDetailModal = () => {
@@ -318,14 +296,25 @@ function StaffCustomers() {
               </button>
             </div>
 
-            <button
-              type="button"
-              className="staff-customers-create-btn"
-              onClick={handleOpenAddModal}
-            >
-              <Plus size={18} />
-              <span>Thêm khách hàng</span>
-            </button>
+            <div className="staff-customers-sort">
+              <label>
+                <ArrowUpDown size={15} />
+                Sắp xếp
+              </label>
+
+              <select
+                value={sortOption}
+                onChange={(event) => setSortOption(event.target.value)}
+              >
+                <option value="default">Mặc định</option>
+                <option value="code-desc">Mã KH giảm dần</option>
+                <option value="code-asc">Mã KH tăng dần</option>
+                <option value="name-asc">Tên A - Z</option>
+                <option value="name-desc">Tên Z - A</option>
+                <option value="created-desc">Ngày tạo mới nhất</option>
+                <option value="created-asc">Ngày tạo cũ nhất</option>
+              </select>
+            </div>
           </div>
 
           {isFilterOpen && (
@@ -849,155 +838,6 @@ function StaffCustomers() {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isAddModalOpen && (
-        <div
-          className="staff-customers-modal-overlay"
-          onClick={handleCloseAddModal}
-        >
-          <div
-            className="staff-customers-form-modal"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="staff-customers-modal-header">
-              <div>
-                <h2>Thêm khách hàng</h2>
-                <p>Nhập thông tin cơ bản để tạo hồ sơ khách hàng mới.</p>
-              </div>
-
-              <button
-                type="button"
-                className="staff-customers-close-btn"
-                onClick={handleCloseAddModal}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="staff-customers-form-body">
-              {formError && (
-                <div className="staff-customers-form-error">{formError}</div>
-              )}
-
-              <div className="staff-customers-form-grid">
-                <div className="staff-customers-form-group full">
-                  <label>Họ tên khách hàng</label>
-                  <input
-                    type="text"
-                    placeholder="Nhập họ tên"
-                    value={newCustomer.fullName}
-                    onChange={(event) =>
-                      handleChangeNewCustomer("fullName", event.target.value)
-                    }
-                    disabled={isCreatingCustomer}
-                  />
-                </div>
-
-                <div className="staff-customers-form-group">
-                  <label>Số điện thoại</label>
-                  <input
-                    type="text"
-                    placeholder="Nhập số điện thoại"
-                    value={newCustomer.phone}
-                    onChange={(event) =>
-                      handleChangeNewCustomer("phone", event.target.value)
-                    }
-                    disabled={isCreatingCustomer}
-                  />
-                </div>
-
-                <div className="staff-customers-form-group">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    placeholder="Nhập email"
-                    value={newCustomer.email}
-                    onChange={(event) =>
-                      handleChangeNewCustomer("email", event.target.value)
-                    }
-                    disabled={isCreatingCustomer}
-                  />
-                </div>
-
-                <div className="staff-customers-form-group">
-                  <label>Giới tính</label>
-                  <select
-                    value={newCustomer.gender}
-                    onChange={(event) =>
-                      handleChangeNewCustomer("gender", event.target.value)
-                    }
-                    disabled={isCreatingCustomer}
-                  >
-                    <option value="Nữ">Nữ</option>
-                    <option value="Nam">Nam</option>
-                    <option value="Khác">Khác</option>
-                  </select>
-                </div>
-
-                <div className="staff-customers-form-group">
-                  <label>Ngày sinh</label>
-                  <input
-                    type="date"
-                    value={newCustomer.birthday}
-                    onChange={(event) =>
-                      handleChangeNewCustomer("birthday", event.target.value)
-                    }
-                    disabled={isCreatingCustomer}
-                  />
-                </div>
-
-                <div className="staff-customers-form-group">
-                  <label>Loại khách hàng</label>
-                  <select
-                    value={newCustomer.loaiKH}
-                    onChange={(event) =>
-                      handleChangeNewCustomer("loaiKH", event.target.value)
-                    }
-                    disabled={isCreatingCustomer}
-                  >
-                    <option value="Thường">Thường</option>
-                    <option value="VIP">VIP</option>
-                  </select>
-                </div>
-
-                <div className="staff-customers-form-group">
-                  <label>Trạng thái tài khoản</label>
-                  <select
-                    value={newCustomer.status}
-                    onChange={(event) =>
-                      handleChangeNewCustomer("status", event.target.value)
-                    }
-                    disabled={isCreatingCustomer}
-                  >
-                    <option value="Đang hoạt động">Đang hoạt động</option>
-                    <option value="Tạm khoá">Tạm khoá</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="staff-customers-modal-footer">
-              <button
-                type="button"
-                className="staff-customers-secondary-btn"
-                onClick={handleCloseAddModal}
-                disabled={isCreatingCustomer}
-              >
-                Huỷ
-              </button>
-
-              <button
-                type="button"
-                className="staff-customers-primary-btn"
-                onClick={handleAddCustomer}
-                disabled={isCreatingCustomer}
-              >
-                {isCreatingCustomer ? "Đang lưu..." : "Lưu khách hàng"}
-              </button>
             </div>
           </div>
         </div>

@@ -4,9 +4,11 @@ from sqlalchemy import distinct, func, or_
 from sqlalchemy.orm import Session
 
 from app.models.chi_tiet_hoa_don import ChiTietHoaDon
+from app.models.chi_tiet_lich_hen import ChiTietLichHen
 from app.models.danh_muc_dich_vu import DanhMucDichVu
 from app.models.dich_vu import DichVu
 from app.models.hoa_don import HoaDon
+from app.models.danh_gia import DanhGia
 
 
 PAID_STATUS = "Đã thanh toán"
@@ -116,9 +118,36 @@ def get_service_usage_map(db: Session, start: datetime, end: datetime):
 
     return usage_map
 
+def get_service_review_map(db: Session, start: datetime, end: datetime):
+    rows = (
+        db.query(
+            ChiTietLichHen.idDichVu.label("idDichVu"),
+            func.count(DanhGia.idDanhGia).label("reviewCount"),
+            func.coalesce(func.avg(DanhGia.soSao), 0).label("averageRating"),
+        )
+        .join(ChiTietLichHen, ChiTietLichHen.idChiTietLH == DanhGia.idChiTietLH)
+        .filter(
+            DanhGia.trangThaiHienThi == "Hiển thị",
+            DanhGia.ngayDanhGia >= start,
+            DanhGia.ngayDanhGia < end,
+        )
+        .group_by(ChiTietLichHen.idDichVu)
+        .all()
+    )
+
+    review_map = {}
+
+    for row in rows:
+        review_map[int(row.idDichVu)] = {
+            "reviewCount": int(row.reviewCount or 0),
+            "averageRating": round(float(row.averageRating or 0), 1),
+        }
+
+    return review_map
 
 def build_service_rows(db: Session, start: datetime, end: datetime):
     usage_map = get_service_usage_map(db, start, end)
+    review_map = get_service_review_map(db, start, end)
 
     rows = (
         db.query(DichVu, DanhMucDichVu)
@@ -140,6 +169,14 @@ def build_service_rows(db: Session, start: datetime, end: datetime):
             },
         )
 
+        review_data = review_map.get(
+            int(service.idDichVu),
+            {
+                "reviewCount": 0,
+                "averageRating": 0,
+            },
+        )
+
         usage_count = usage_data["usageCount"]
         total_duration = usage_count * int(service.thoiLuongPhut or 0)
         service_status = normalize_service_status(service.trangThai)
@@ -154,6 +191,8 @@ def build_service_rows(db: Session, start: datetime, end: datetime):
                 "customerCount": usage_data["customerCount"],
                 "totalDuration": total_duration,
                 "revenue": usage_data["revenue"],
+                "reviewCount": review_data["reviewCount"],
+                "averageRating": review_data["averageRating"],
                 "serviceStatus": service_status,
                 "usageStatus": get_usage_status(usage_count),
                 "lastUsedAt": usage_data["lastUsedAt"],
@@ -217,6 +256,16 @@ def sort_services(services: list[dict], sort_by: str):
     if sort_by == "Thời lượng cao nhất":
         return sorted(services, key=lambda item: item["totalDuration"], reverse=True)
 
+    if sort_by == "Số sao cao nhất":
+        return sorted(
+            services,
+            key=lambda item: (item["averageRating"], item["reviewCount"]),
+            reverse=True,
+        )
+
+    if sort_by == "Lượt đánh giá cao nhất":
+        return sorted(services, key=lambda item: item["reviewCount"], reverse=True)
+
     if sort_by == "Tên dịch vụ A-Z":
         return sorted(services, key=lambda item: item["serviceName"].lower())
 
@@ -233,6 +282,22 @@ def build_summary(services: list[dict]):
     total_duration = sum(item["totalDuration"] for item in services)
     total_revenue = sum(item["revenue"] for item in services)
 
+    total_reviews = sum(item["reviewCount"] for item in services)
+
+    rated_services = [
+        item for item in services if item["reviewCount"] > 0
+    ]
+
+    average_rating = (
+        round(
+            sum(item["averageRating"] * item["reviewCount"] for item in rated_services)
+            / total_reviews,
+            1,
+        )
+        if total_reviews > 0
+        else 0
+    )
+
     return {
         "totalServices": total_services,
         "usedServices": used_services,
@@ -241,6 +306,8 @@ def build_summary(services: list[dict]):
         "totalCustomers": total_customers,
         "totalDuration": total_duration,
         "totalRevenue": total_revenue,
+        "totalReviews": total_reviews,
+        "averageRating": average_rating,
     }
 
 
@@ -270,6 +337,8 @@ def build_admin_service_usage_report(
         "Doanh thu cao nhất",
         "Số khách cao nhất",
         "Thời lượng cao nhất",
+        "Số sao cao nhất",
+        "Lượt đánh giá cao nhất",
         "Tên dịch vụ A-Z",
     ]
 

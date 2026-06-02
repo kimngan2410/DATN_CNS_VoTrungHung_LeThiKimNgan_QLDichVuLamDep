@@ -592,3 +592,46 @@
 .invoice-report-state-card p {
   margin: 0;
 }
+
+.invoice-report-date-picker {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 38px 0 10px;
+  border: 1px solid var(--admin-border);
+  border-radius: 11px;
+  background: #ffffff;
+  color: var(--admin-primary-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.invoice-report-date-picker span {
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.invoice-report-date-picker input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.invoice-report-date-picker input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}

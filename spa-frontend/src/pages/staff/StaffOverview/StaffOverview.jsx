@@ -7,6 +7,7 @@ import {
   Loader2,
   UserCheck,
   Wallet,
+  CalendarDays,
 } from "lucide-react";
 
 import {
@@ -40,6 +41,50 @@ const formatAxisMoney = (value) => {
   }
 
   return value.toLocaleString("vi-VN");
+};
+
+const formatDateVN = (dateValue) => {
+  if (!dateValue) return "";
+
+  const [year, month, day] = dateValue.split("-");
+
+  if (!year || !month || !day) return dateValue;
+
+  return `${day}/${month}/${year}`;
+};
+
+const formatMonthVN = (monthValue) => {
+  if (!monthValue) return "";
+
+  const [year, month] = monthValue.split("-");
+
+  if (!year || !month) return monthValue;
+
+  const date = new Date(Number(year), Number(month) - 1, 1);
+
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const formatWeekVN = (weekValue) => {
+  if (!weekValue) return "";
+
+  const [year, week] = weekValue.split("-W");
+
+  if (!year || !week) return weekValue;
+
+  return `Week ${Number(week)}, ${year}`;
+};
+
+const getFilterDisplayValue = (period, value) => {
+  if (period === "date") return formatDateVN(value);
+  if (period === "week") return formatWeekVN(value);
+  if (period === "month") return formatMonthVN(value);
+  if (period === "year") return value;
+
+  return value;
 };
 
 const defaultOverviewData = {
@@ -314,8 +359,14 @@ function StaffOverview() {
           ))}
         </div>
 
-        <div className="staff-overview-date-filter">
-          <label>{activePeriodOption.inputLabel}</label>
+        <label className="staff-overview-date-picker">
+          <span>{activePeriodOption.inputLabel}</span>
+
+          <strong>
+            {getFilterDisplayValue(selectedPeriod, selectedFilterValue)}
+          </strong>
+
+          <CalendarDays className="staff-overview-date-icon" size={18} />
 
           <input
             type={getFilterInputType(selectedPeriod)}
@@ -324,7 +375,7 @@ function StaffOverview() {
             max={selectedPeriod === "year" ? "2100" : undefined}
             onChange={(event) => setSelectedFilterValue(event.target.value)}
           />
-        </div>
+        </label>
       </div>
     </div>
   );

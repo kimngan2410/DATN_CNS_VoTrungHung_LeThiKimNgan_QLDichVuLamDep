@@ -64,6 +64,14 @@ const formatDateTime = (dateValue) => {
   })
 }
 
+const formatDateVN = (dateValue) => {
+  if (!dateValue) return ""
+
+  const [year, month, day] = dateValue.split("-")
+
+  return `${day}/${month}/${year}`
+}
+
 const getTodayInputValue = () => {
   const today = new Date()
   const year = today.getFullYear()
@@ -205,24 +213,28 @@ function InvoiceReport() {
     <div className="invoice-report-page">
       <section className="invoice-report-filter-card">
         <div className="invoice-report-filter-left">
-          <div className="invoice-report-filter-item">
+          <label className="invoice-report-date-picker">
             <CalendarDays size={17} />
+            <span>{formatDateVN(fromDate)}</span>
+
             <input
               type="date"
               value={fromDate}
               onChange={(event) => setFromDate(event.target.value)}
             />
-          </div>
+          </label>
 
           <span className="invoice-report-date-separator">-</span>
 
-          <div className="invoice-report-filter-item">
+          <label className="invoice-report-date-picker">
+            <span>{formatDateVN(toDate)}</span>
+
             <input
               type="date"
               value={toDate}
               onChange={(event) => setToDate(event.target.value)}
             />
-          </div>
+          </label>
 
           <div className="invoice-report-search">
             <Search size={17} />

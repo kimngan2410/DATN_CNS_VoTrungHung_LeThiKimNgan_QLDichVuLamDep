@@ -81,6 +81,14 @@ const formatCompactMoney = (value = 0) => {
   return `${Math.round(numberValue)}`
 }
 
+const formatDateVN = (dateValue) => {
+  if (!dateValue) return ""
+
+  const [year, month, day] = dateValue.split("-")
+
+  return `${day}/${month}/${year}`
+}
+
 const getTodayInputValue = () => {
   const today = new Date()
   const year = today.getFullYear()
@@ -237,24 +245,28 @@ function RevenueReport() {
     <div className="revenue-report-page">
       <section className="revenue-report-filter-card">
         <div className="revenue-report-filter-left">
-          <div className="revenue-report-filter-item">
+          <label className="revenue-report-date-picker">
             <CalendarDays size={17} />
+            <span>{formatDateVN(fromDate)}</span>
+
             <input
               type="date"
               value={fromDate}
               onChange={(event) => setFromDate(event.target.value)}
             />
-          </div>
+          </label>
 
           <span className="revenue-report-date-separator">-</span>
 
-          <div className="revenue-report-filter-item">
+          <label className="revenue-report-date-picker">
+            <span>{formatDateVN(toDate)}</span>
+
             <input
               type="date"
               value={toDate}
               onChange={(event) => setToDate(event.target.value)}
             />
-          </div>
+          </label>
 
           <div className="revenue-report-filter-item">
             <Filter size={17} />
