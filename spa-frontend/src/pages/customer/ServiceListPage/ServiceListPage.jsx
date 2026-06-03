@@ -13,10 +13,8 @@ import Header from "../../../components/Header/Header"
 import Footer from "../../../components/Footer/Footer"
 import FloatingChat from "../../../components/FloatingChat/FloatingChat"
 import ServiceCard from "../../../components/ServiceCard/ServiceCard"
-import {
-  getServiceCategoriesApi,
-  getServicesApi,
-} from "../../../services/serviceApi"
+import { getServiceCategoriesApi } from "../../../services/serviceApi"
+import { searchCustomerServicesApi } from "../../../services/customerServiceSearchApi"
 
 import "./ServiceListPage.css"
 
@@ -67,6 +65,9 @@ function ServiceListPage() {
   const [sortBy, setSortBy] = useState("default")
   const [currentPage, setCurrentPage] = useState(1)
 
+  const [totalServices, setTotalServices] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const keywordFromHeader = params.get("q") || ""
@@ -76,101 +77,61 @@ function ServiceListPage() {
   }, [location.search])
 
   useEffect(() => {
-    const fetchServiceData = async () => {
+    const fetchCategories = async () => {
+      try {
+        const categoryData = await getServiceCategoriesApi()
+        setCategories(Array.isArray(categoryData) ? categoryData : [])
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    fetchCategories()
+  }, [])
+
+  useEffect(() => {
+    const fetchSearchResult = async () => {
       try {
         setIsLoading(true)
         setHasError(false)
 
-        const [categoryData, serviceData] = await Promise.all([
-          getServiceCategoriesApi(),
-          getServicesApi(),
-        ])
+        const data = await searchCustomerServicesApi({
+          keyword: appliedKeyword,
+          category: selectedCategory,
+          priceRange: selectedPriceRange,
+          duration: selectedDuration,
+          sortBy,
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+        })
 
-        setCategories(categoryData)
-        setServices(serviceData)
+        setServices(Array.isArray(data?.services) ? data.services : [])
+        setTotalServices(Number(data?.total || 0))
+        setTotalPages(Number(data?.totalPages || 0))
       } catch (error) {
         console.error(error)
         setHasError(true)
+        setServices([])
+        setTotalServices(0)
+        setTotalPages(0)
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchServiceData()
-  }, [])
-
-  const serviceCategories = useMemo(() => {
-    return ["Tất cả", ...categories.map((category) => category.tenDM)]
-  }, [categories])
-
-  const activeServices = useMemo(() => {
-    return services.filter((service) => service.isActive)
-  }, [services])
-
-  const filteredServices = useMemo(() => {
-    let result = [...activeServices]
-
-    if (appliedKeyword.trim()) {
-      const keyword = appliedKeyword.toLowerCase().trim()
-
-      result = result.filter(
-        (service) =>
-          service.title.toLowerCase().includes(keyword) ||
-          service.category.toLowerCase().includes(keyword) ||
-          service.description.toLowerCase().includes(keyword)
-      )
-    }
-
-    if (selectedCategory !== "Tất cả") {
-      result = result.filter((service) => service.category === selectedCategory)
-    }
-
-    if (selectedPriceRange !== "Tất cả mức giá") {
-      if (selectedPriceRange === "Dưới 500.000đ") {
-        result = result.filter((service) => service.price < 500000)
-      } else if (selectedPriceRange === "500.000đ - 1.000.000đ") {
-        result = result.filter(
-          (service) => service.price >= 500000 && service.price <= 1000000
-        )
-      } else if (selectedPriceRange === "Trên 1.000.000đ") {
-        result = result.filter((service) => service.price > 1000000)
-      }
-    }
-
-    if (selectedDuration !== "Tất cả thời lượng") {
-      if (selectedDuration === "Dưới 60 phút") {
-        result = result.filter((service) => service.duration < 60)
-      } else if (selectedDuration === "60 - 90 phút") {
-        result = result.filter(
-          (service) => service.duration >= 60 && service.duration <= 90
-        )
-      } else if (selectedDuration === "Trên 90 phút") {
-        result = result.filter((service) => service.duration > 90)
-      }
-    }
-
-    if (sortBy === "price-asc") {
-      result.sort((a, b) => a.price - b.price)
-    } else if (sortBy === "price-desc") {
-      result.sort((a, b) => b.price - a.price)
-    }
-
-    return result
+    fetchSearchResult()
   }, [
-    activeServices,
     appliedKeyword,
     selectedCategory,
     selectedPriceRange,
     selectedDuration,
     sortBy,
+    currentPage,
   ])
 
-  const totalPages = Math.ceil(filteredServices.length / ITEMS_PER_PAGE)
-
-  const paginatedServices = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    return filteredServices.slice(startIndex, startIndex + ITEMS_PER_PAGE)
-  }, [filteredServices, currentPage])
+  const serviceCategories = useMemo(() => {
+    return ["Tất cả", ...categories.map((category) => category.tenDM)]
+  }, [categories])
 
   const handleResetFilters = () => {
     setAppliedKeyword("")
@@ -179,18 +140,18 @@ function ServiceListPage() {
     setSelectedDuration("Tất cả thời lượng")
     setSortBy("default")
     setCurrentPage(1)
+
+    const currentUrl = new URL(window.location.href)
+    currentUrl.searchParams.delete("q")
+    window.history.replaceState({}, "", currentUrl.toString())
   }
 
   const goToPage = (page) => {
+    if (page < 1 || page > totalPages) return
+
     setCurrentPage(page)
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages)
-    }
-  }, [currentPage, totalPages])
 
   return (
     <div className="service-page">
@@ -221,6 +182,7 @@ function ServiceListPage() {
 
               <div className="service-filter__group">
                 <h3>Danh mục</h3>
+
                 {serviceCategories.map((option) => (
                   <label key={option} className="service-filter__option">
                     <input
@@ -232,6 +194,7 @@ function ServiceListPage() {
                         setCurrentPage(1)
                       }}
                     />
+
                     <span>{option}</span>
                   </label>
                 ))}
@@ -239,6 +202,7 @@ function ServiceListPage() {
 
               <div className="service-filter__group">
                 <h3>Mức giá</h3>
+
                 {servicePriceRanges.map((option) => (
                   <label key={option} className="service-filter__option">
                     <input
@@ -250,6 +214,7 @@ function ServiceListPage() {
                         setCurrentPage(1)
                       }}
                     />
+
                     <span>{option}</span>
                   </label>
                 ))}
@@ -257,6 +222,7 @@ function ServiceListPage() {
 
               <div className="service-filter__group">
                 <h3>Thời lượng</h3>
+
                 {serviceDurations.map((option) => (
                   <label key={option} className="service-filter__option">
                     <input
@@ -268,6 +234,7 @@ function ServiceListPage() {
                         setCurrentPage(1)
                       }}
                     />
+
                     <span>{option}</span>
                   </label>
                 ))}
@@ -283,18 +250,25 @@ function ServiceListPage() {
             </aside>
 
             <div className="service-list">
-              {!hasError && !isLoading && activeServices.length > 0 && (
+              {!hasError && !isLoading && totalServices > 0 && (
                 <div className="service-list__toolbar">
                   <p>
-                    Hiển thị <strong>{filteredServices.length}</strong> dịch vụ
+                    Hiển thị <strong>{totalServices}</strong> dịch vụ
+                    {appliedKeyword && (
+                      <>
+                        {" "}
+                        với từ khóa <strong>"{appliedKeyword}"</strong>
+                      </>
+                    )}
                   </p>
 
                   <div className="service-list__sort">
                     <label>Sắp xếp</label>
+
                     <select
                       value={sortBy}
-                      onChange={(e) => {
-                        setSortBy(e.target.value)
+                      onChange={(event) => {
+                        setSortBy(event.target.value)
                         setCurrentPage(1)
                       }}
                     >
@@ -320,13 +294,17 @@ function ServiceListPage() {
                   <h3>Không thể truy xuất dữ liệu</h3>
                   <p>Vui lòng thử lại sau.</p>
                 </div>
-              ) : activeServices.length === 0 ? (
+              ) : totalServices === 0 &&
+                !appliedKeyword &&
+                selectedCategory === "Tất cả" &&
+                selectedPriceRange === "Tất cả mức giá" &&
+                selectedDuration === "Tất cả thời lượng" ? (
                 <div className="service-state">
                   <AlertCircle size={32} />
                   <h3>Hiện chưa có dịch vụ nào</h3>
                   <p>Hệ thống chưa có dữ liệu dịch vụ để hiển thị.</p>
                 </div>
-              ) : filteredServices.length === 0 ? (
+              ) : services.length === 0 ? (
                 <div className="service-state">
                   <AlertCircle size={32} />
                   <h3>Không tìm thấy dịch vụ phù hợp</h3>
@@ -335,7 +313,7 @@ function ServiceListPage() {
               ) : (
                 <>
                   <div className="service-list__grid">
-                    {paginatedServices.map((service) => (
+                    {services.map((service) => (
                       <ServiceCard key={service.id} service={service} />
                     ))}
                   </div>

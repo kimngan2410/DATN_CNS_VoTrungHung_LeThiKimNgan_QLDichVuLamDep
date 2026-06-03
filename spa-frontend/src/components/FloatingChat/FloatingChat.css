@@ -76,13 +76,13 @@
 .chat-popup__title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   text-align:left;
 }
 
 .chat-popup__status {
   margin: 0;
-  line-height: 1.15;
+  line-height: 1.45;
   font-size: 13px;
   color: #f0ebe6;
   text-align:left;
@@ -129,7 +129,7 @@
   color: #2f2f2f;
   padding: 12px 16px;
   border-radius: 0 16px 16px 16px;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
   text-align: left;
@@ -310,12 +310,12 @@
 }
 
 .chat-date-divider span {
-  padding: 5px 12px;
+  padding: 8px 15px;
   border-radius: 999px;
   background: #f3f4f6;
   color: #6b7280;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .chat-message__content-wrap {
@@ -494,7 +494,7 @@
   background: transparent;
   color: #111827;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   text-align: left;
   padding: 0 10px;
   cursor: pointer;
@@ -518,4 +518,34 @@
 
 .chat-message--compact + .chat-message {
   margin-top: 6px;
+}
+
+.chat-service-link {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #8d6915;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-message--customer .chat-service-link {
+  color: #8d6915;
+  background: #fffaf0;
+}
+
+.chat-service-link:hover {
+  background: #f8edda;
+}
+
+.chat-message__bubble,
+.message-bubble {
+  white-space: pre-line;
 }

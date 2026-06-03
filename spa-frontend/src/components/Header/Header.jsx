@@ -9,9 +9,11 @@ import {
   UserRound,
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+
 import { navLinks } from "../../data/homeData"
 import logoHeader from "../../assets/images/logo_header.png"
 import { getCurrentUser, logout } from "../../services/authApi"
+import { suggestCustomerServicesApi } from "../../services/customerServiceSearchApi"
 import "./Header.css"
 
 const DEFAULT_AVATAR =
@@ -41,15 +43,40 @@ function getFullAvatarUrl(avatar) {
   return avatar
 }
 
+function getFullImageUrl(image) {
+  if (!image) return ""
+
+  if (
+    image.startsWith("http://") ||
+    image.startsWith("https://") ||
+    image.startsWith("blob:") ||
+    image.startsWith("data:")
+  ) {
+    return image
+  }
+
+  if (image.startsWith("/")) {
+    return `${API_ORIGIN}${image}`
+  }
+
+  return `${API_ORIGIN}/${image}`
+}
+
 function Header() {
   const navigate = useNavigate()
   const location = useLocation()
+
   const accountMenuRef = useRef(null)
+  const searchBoxRef = useRef(null)
 
   const [keyword, setKeyword] = useState("")
   const [currentUser, setCurrentUser] = useState(getCurrentUser())
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const [suggestions, setSuggestions] = useState([])
+  const [isSuggestLoading, setIsSuggestLoading] = useState(false)
+  const [isSuggestOpen, setIsSuggestOpen] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -58,6 +85,7 @@ function Header() {
     setKeyword(q)
     setCurrentUser(getCurrentUser())
     setIsAccountMenuOpen(false)
+    setIsSuggestOpen(false)
   }, [location.search, location.pathname])
 
   useEffect(() => {
@@ -84,6 +112,13 @@ function Header() {
       ) {
         setIsAccountMenuOpen(false)
       }
+
+      if (
+        searchBoxRef.current &&
+        !searchBoxRef.current.contains(event.target)
+      ) {
+        setIsSuggestOpen(false)
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
@@ -93,10 +128,45 @@ function Header() {
     }
   }, [])
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault()
+  useEffect(() => {
+    const trimmedKeyword = keyword.trim()
+
+    if (trimmedKeyword.length < 1) {
+      setSuggestions([])
+      setIsSuggestOpen(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSuggestLoading(true)
+
+        const data = await suggestCustomerServicesApi({
+          keyword: trimmedKeyword,
+          limit: 5,
+        })
+
+        setSuggestions(Array.isArray(data?.services) ? data.services : [])
+        setIsSuggestOpen(true)
+      } catch (error) {
+        console.error(error)
+        setSuggestions([])
+        setIsSuggestOpen(false)
+      } finally {
+        setIsSuggestLoading(false)
+      }
+    }, 250)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [keyword])
+
+  const handleSearchSubmit = (event) => {
+    event.preventDefault()
 
     const trimmedKeyword = keyword.trim()
+    setIsSuggestOpen(false)
 
     if (trimmedKeyword) {
       navigate(`/dich-vu?q=${encodeURIComponent(trimmedKeyword)}`)
@@ -105,13 +175,23 @@ function Header() {
     }
   }
 
+  const handleSelectSuggestion = (service) => {
+    const serviceName = service?.title || ""
+    const serviceId = service?.id
+
+    setKeyword(serviceName)
+    setIsSuggestOpen(false)
+
+    if (serviceId) {
+      navigate(`/dich-vu/${serviceId}`)
+    }
+  }
+
   const handleNotificationClick = () => {
     if (!currentUser) {
       navigate("/dang-nhap")
       return
     }
-
-    // Sau này nếu có popup thông báo nhắc lịch thì mở ở đây
   }
 
   const handleToggleAccountMenu = () => {
@@ -139,7 +219,7 @@ function Header() {
       currentUser?.anhDaiDien ||
       currentUser?.avatarUrl
   )
-    
+
   const userName = currentUser?.hoTen || "Tài khoản"
   const userEmail = currentUser?.email || "email@gmail.com"
 
@@ -166,15 +246,76 @@ function Header() {
           </nav>
 
           <div className="header__actions">
-            <form className="header__search" onSubmit={handleSearchSubmit}>
+            <form
+              ref={searchBoxRef}
+              className="header__search"
+              onSubmit={handleSearchSubmit}
+            >
               <Search size={16} className="header__search-icon" />
 
               <input
                 type="text"
                 placeholder="Tìm kiếm dịch vụ..."
                 value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
+                onChange={(event) => setKeyword(event.target.value)}
+                onFocus={() => {
+                  if (keyword.trim()) {
+                    setIsSuggestOpen(true)
+                  }
+                }}
               />
+
+              {isSuggestOpen && keyword.trim() && (
+                <div className="header__search-suggestions">
+                  {isSuggestLoading ? (
+                    <div className="header__search-suggestion-state">
+                      Đang tìm dịch vụ...
+                    </div>
+                  ) : suggestions.length > 0 ? (
+                    suggestions.map((service) => (
+                      <button
+                        key={service.id}
+                        type="button"
+                        className="header__search-suggestion-card"
+                        onClick={() => handleSelectSuggestion(service)}
+                      >
+                        <div className="header__search-suggestion-card-image">
+                          {service.image ? (
+                            <img
+                              src={getFullImageUrl(service.image)}
+                              alt={service.title}
+                              onError={(event) => {
+                                event.currentTarget.style.display = "none"
+                              }}
+                            />
+                          ) : (
+                            <Search size={18} />
+                          )}
+                        </div>
+
+                        <div className="header__search-suggestion-card-content">
+                          <strong>{service.title}</strong>
+
+                          <div className="header__search-suggestion-card-meta">
+                            <span>{service.category}</span>
+                            <span>{Number(service.price || 0).toLocaleString("vi-VN")} đ</span>
+
+                            {service.duration ? <span>{service.duration} phút</span> : null}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="header__search-suggestion-state">
+                      Không tìm thấy dịch vụ phù hợp
+                    </div>
+                  )}
+
+                  <button type="submit" className="header__search-view-all">
+                    Xem tất cả kết quả cho “{keyword.trim()}”
+                  </button>
+                </div>
+              )}
             </form>
 
             <button

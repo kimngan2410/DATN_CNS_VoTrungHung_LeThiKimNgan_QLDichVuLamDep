@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react"
+import { Link } from "react-router-dom"
 import {
   X,
   Send,
@@ -123,6 +124,40 @@ const applySocketMessageToCustomerConversation = ({
     }
   })
 }
+
+const getServicePathFromUrl = (url = "") => {
+  try {
+    const parsedUrl = new URL(url)
+    return parsedUrl.pathname
+  } catch {
+    const match = String(url).match(/\/dich-vu\/\d+/)
+    return match ? match[0] : url
+  }
+}
+
+const renderMessageContent = (content = "") => {
+  const serviceLinkRegex = /(https?:\/\/[^\s]+\/dich-vu\/\d+)/g
+  const parts = String(content).split(serviceLinkRegex)
+
+  return parts.map((part, index) => {
+    if (serviceLinkRegex.test(part)) {
+      serviceLinkRegex.lastIndex = 0
+
+      return (
+        <Link
+          key={`${part}-${index}`}
+          to={getServicePathFromUrl(part)}
+          className="chat-service-link"
+        >
+          Xem chi tiết dịch vụ
+        </Link>
+      )
+    }
+
+    return <Fragment key={`${part}-${index}`}>{part}</Fragment>
+  })
+}
+
 
 function FloatingChat() {
   const [isOpen, setIsOpen] = useState(false)
@@ -611,7 +646,7 @@ function FloatingChat() {
                               >
                                 {item.daThuHoi
                                   ? "Tin nhắn đã được thu hồi"
-                                  : item.content}
+                                  : renderMessageContent(item.content)}
                               </div>
 
                               {(shouldShowTime || (item.daChinhSua && !item.daThuHoi)) && (

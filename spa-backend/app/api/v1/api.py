@@ -18,6 +18,8 @@ from app.api.v1.endpoints import admin_revenue_report
 from app.api.v1.endpoints import admin_invoice_report
 from app.api.v1.endpoints import admin_service_usage_report
 from app.api.v1.endpoints import admin_appointment_report
+from app.api.v1.endpoints import customer_service_search
+from app.api.v1.endpoints import staff_service_consultation
 
 api_router = APIRouter()
 
@@ -56,4 +58,16 @@ api_router.include_router(
     admin_appointment_report.router,
     prefix="/admin-appointment-report",
     tags=["Admin - Appointment Report"],
+)
+
+api_router.include_router(
+    customer_service_search.router,
+    prefix="/customer-services/search",
+    tags=["Customer - Service Search"],
+)
+
+api_router.include_router(
+    staff_service_consultation.router,
+    prefix="/staff-service-consultation",
+    tags=["Staff - Service Consultation"],
 )

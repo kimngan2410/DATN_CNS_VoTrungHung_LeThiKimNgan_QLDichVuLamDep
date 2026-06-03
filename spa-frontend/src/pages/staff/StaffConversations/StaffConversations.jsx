@@ -13,6 +13,9 @@ import {
   Send,
   MessageCircle,
   MoreVertical,
+  Headset,
+  X,
+  Loader2,
 } from "lucide-react"
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader"
 import { getCurrentStaffUser } from "../../../services/authApi"
@@ -29,6 +32,10 @@ import {
   isSocketOpen,
   sendSocketJson,
 } from "../../../services/conversationSocket"
+import {
+  getStaffConsultationTemplateApi,
+  searchStaffConsultationServicesApi,
+} from "../../../services/staffServiceConsultationApi"
 import "./StaffConversations.css"
 
 const filterOptions = [
@@ -45,6 +52,11 @@ const filterOptions = [
     value: "answered",
   },
 ]
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1"
+
+const API_ORIGIN = API_BASE_URL.replace("/api/v1", "")
 
 const getConversationPreview = (conversation) => {
   if (!conversation?.lastMessage) return ""
@@ -162,6 +174,54 @@ const getConversationStatusFromSocketMessage = (message) => {
   return "unanswered"
 }
 
+const getFullServiceImageUrl = (image) => {
+  if (!image) return ""
+
+  if (
+    image.startsWith("http://") ||
+    image.startsWith("https://") ||
+    image.startsWith("blob:") ||
+    image.startsWith("data:")
+  ) {
+    return image
+  }
+
+  if (image.startsWith("/")) {
+    return `${API_ORIGIN}${image}`
+  }
+
+  return `${API_ORIGIN}/${image}`
+}
+
+const formatMoney = (value = 0) => {
+  return `${Number(value || 0).toLocaleString("vi-VN")} đ`
+}
+
+const renderMessageContent = (content = "") => {
+  const serviceLinkRegex = /(https?:\/\/[^\s]+\/dich-vu\/\d+)/g
+  const parts = String(content).split(serviceLinkRegex)
+
+  return parts.map((part, index) => {
+    if (serviceLinkRegex.test(part)) {
+      serviceLinkRegex.lastIndex = 0
+
+      return (
+        <a
+          key={`${part}-${index}`}
+          href={part}
+          target="_blank"
+          rel="noreferrer"
+          className="message-service-link"
+        >
+          Xem chi tiết dịch vụ
+        </a>
+      )
+    }
+
+    return <Fragment key={`${part}-${index}`}>{part}</Fragment>
+  })
+}
+
 function StaffConversations() {
   const [conversations, setConversations] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -179,6 +239,13 @@ function StaffConversations() {
   const [editingMessageId, setEditingMessageId] = useState(null)
   const [editingText, setEditingText] = useState("")
   const [openMenuMessageId, setOpenMenuMessageId] = useState(null)
+
+  const [isConsultModalOpen, setIsConsultModalOpen] = useState(false)
+  const [consultKeyword, setConsultKeyword] = useState("")
+  const [consultServices, setConsultServices] = useState([])
+  const [isConsultLoading, setIsConsultLoading] = useState(false)
+  const [consultError, setConsultError] = useState("")
+  const [consultCategory, setConsultCategory] = useState("Tất cả")
 
   const messageAreaRef = useRef(null)
   const listSocketRef = useRef(null)
@@ -290,7 +357,9 @@ function StaffConversations() {
           lastMessage: getPreviewFromSocketMessage(socketMessage),
           lastSender: socketMessage.sender,
           lastTime: socketMessage.time,
-          status: getConversationStatusFromSocketMessage(socketMessage) || prev.status,
+          status:
+            getConversationStatusFromSocketMessage(socketMessage) ||
+            prev.status,
           messages: upsertMessageToList(prev.messages || [], socketMessage),
         }
       })
@@ -315,7 +384,9 @@ function StaffConversations() {
             lastMessage: getPreviewFromSocketMessage(socketMessage),
             lastSender: socketMessage.sender,
             lastTime: socketMessage.time,
-            status: getConversationStatusFromSocketMessage(socketMessage) || item.status,
+            status:
+              getConversationStatusFromSocketMessage(socketMessage) ||
+              item.status,
             unread: shouldIncreaseUnread
               ? Number(item.unread || 0) + 1
               : isCurrentOpenConversation
@@ -385,7 +456,11 @@ function StaffConversations() {
         listSocketRef.current = null
       }
     }
-  }, [fetchConversationList, fetchConversationDetail, applySocketMessageToStaffState])
+  }, [
+    fetchConversationList,
+    fetchConversationDetail,
+    applySocketMessageToStaffState,
+  ])
 
   useEffect(() => {
     if (!selectedId) return
@@ -417,11 +492,7 @@ function StaffConversations() {
         ) {
           if (eventData.message) {
             applySocketMessageToStaffState(eventData.message)
-
-            // Resync nhẹ để backend cập nhật đã đọc / thống kê.
-            // Tin nhắn vẫn hiện ngay nhờ state ở trên.
             fetchConversationList({ silent: true })
-
             return
           }
 
@@ -441,7 +512,12 @@ function StaffConversations() {
         detailSocketRef.current = null
       }
     }
-  }, [selectedId, fetchConversationDetail, fetchConversationList, applySocketMessageToStaffState])
+  }, [
+    selectedId,
+    fetchConversationDetail,
+    fetchConversationList,
+    applySocketMessageToStaffState,
+  ])
 
   const filteredConversations = useMemo(() => {
     return conversations.filter((conversation) => {
@@ -495,6 +571,82 @@ function StaffConversations() {
 
   const isOwnMessage = (message) => {
     return Number(message.idNguoiGuiTaiKhoan) === Number(currentStaff?.maTK)
+  }
+
+  const fetchConsultationServices = useCallback(async (keyword = "") => {
+    try {
+      setIsConsultLoading(true)
+      setConsultError("")
+
+      const data = await searchStaffConsultationServicesApi({
+        keyword,
+        limit: 8,
+      })
+
+      setConsultServices(Array.isArray(data?.services) ? data.services : [])
+    } catch (error) {
+      setConsultError(error.message || "Không thể tìm dịch vụ tư vấn.")
+      setConsultServices([])
+    } finally {
+      setIsConsultLoading(false)
+    }
+  }, [])
+
+  const consultCategories = useMemo(() => {
+    const categories = consultServices
+      .map((service) => service.category)
+      .filter(Boolean)
+
+    return ["Tất cả", ...Array.from(new Set(categories))]
+  }, [consultServices])
+
+  const filteredConsultServices = useMemo(() => {
+    if (consultCategory === "Tất cả") {
+      return consultServices
+    }
+
+    return consultServices.filter(
+      (service) => service.category === consultCategory
+    )
+  }, [consultServices, consultCategory])
+
+  const handleOpenConsultModal = () => {
+    setConsultKeyword("")
+    setConsultCategory("Tất cả")
+    setConsultError("")
+    setIsConsultModalOpen(true)
+
+    fetchConsultationServices("")
+  }
+
+  const handleCloseConsultModal = () => {
+    setIsConsultModalOpen(false)
+    setConsultKeyword("")
+    setConsultCategory("Tất cả")
+    setConsultServices([])
+    setConsultError("")
+  }
+
+  const handleSearchConsultServices = () => {
+    setConsultCategory("Tất cả")
+    fetchConsultationServices(consultKeyword.trim())
+  }
+
+  const handleInsertConsultationTemplate = async (service) => {
+    try {
+      setConsultError("")
+
+      const data = await getStaffConsultationTemplateApi({
+        idDichVu: service.idDichVu || service.id,
+        customerConcern: "",
+      })
+
+      setReplyText(data?.messageTemplate || "")
+      setIsConsultModalOpen(false)
+      setErrorMessage("")
+    } catch (error) {
+      setConsultError(error.message || "Không thể chèn mẫu tư vấn.")
+    }
   }
 
   const handleSendMessage = async () => {
@@ -761,7 +913,9 @@ function StaffConversations() {
                         </div>
 
                         <div className="conversation-item-row conversation-item-row-bottom">
-                          <p className="conversation-item-preview">{previewText}</p>
+                          <p className="conversation-item-preview">
+                            {previewText}
+                          </p>
 
                           {isUnread && (
                             <span className="conversation-unread-badge">
@@ -812,10 +966,7 @@ function StaffConversations() {
                   </div>
                 </div>
 
-                <div
-                  className="conversation-message-area"
-                  ref={messageAreaRef}
-                >
+                <div className="conversation-message-area" ref={messageAreaRef}>
                   {isLoadingDetail ? (
                     <div className="conversation-empty">
                       <MessageCircle size={28} />
@@ -839,8 +990,15 @@ function StaffConversations() {
                           currentDateLabel &&
                           currentDateLabel !== previousDateLabel
 
-                        const shouldShowTime = shouldShowMessageTime(messages, index)
-                        const isCompactMessage = isSameMessageGroupWithNext(messages, index)
+                        const shouldShowTime = shouldShowMessageTime(
+                          messages,
+                          index
+                        )
+
+                        const isCompactMessage = isSameMessageGroupWithNext(
+                          messages,
+                          index
+                        )
 
                         return (
                           <Fragment key={message.id}>
@@ -853,7 +1011,9 @@ function StaffConversations() {
                             <div
                               className={[
                                 "message-row",
-                                message.sender === "staff" ? "staff" : "customer",
+                                message.sender === "staff"
+                                  ? "staff"
+                                  : "customer",
                                 isCompactMessage ? "message-row--compact" : "",
                               ].join(" ")}
                             >
@@ -906,18 +1066,25 @@ function StaffConversations() {
                                   >
                                     {message.daThuHoi
                                       ? "Tin nhắn đã được thu hồi"
-                                      : message.content}
+                                      : renderMessageContent(message.content)}
                                   </div>
 
-                                  {(shouldShowTime || (message.daChinhSua && !message.daThuHoi)) && (
+                                  {(shouldShowTime ||
+                                    (message.daChinhSua &&
+                                      !message.daThuHoi)) && (
                                     <div className="message-meta">
                                       {shouldShowTime && (
-                                        <span className="message-time">{message.time}</span>
+                                        <span className="message-time">
+                                          {message.time}
+                                        </span>
                                       )}
 
-                                      {message.daChinhSua && !message.daThuHoi && (
-                                        <span className="message-edited">Đã chỉnh sửa</span>
-                                      )}
+                                      {message.daChinhSua &&
+                                        !message.daThuHoi && (
+                                          <span className="message-edited">
+                                            Đã chỉnh sửa
+                                          </span>
+                                        )}
                                     </div>
                                   )}
 
@@ -984,6 +1151,18 @@ function StaffConversations() {
                     <div className="conversation-error">{errorMessage}</div>
                   )}
 
+                  <div className="conversation-consult-actions">
+                    <button
+                      type="button"
+                      className="conversation-consult-btn"
+                      onClick={handleOpenConsultModal}
+                      disabled={isSending || !selectedConversation}
+                    >
+                      <Headset size={16} />
+                      Tư vấn dịch vụ
+                    </button>
+                  </div>
+
                   <div className="conversation-input-row">
                     <input
                       type="text"
@@ -1021,6 +1200,136 @@ function StaffConversations() {
           </main>
         </div>
       </section>
+
+      {isConsultModalOpen && (
+        <div
+          className="conversation-consult-modal-overlay"
+          onClick={handleCloseConsultModal}
+        >
+          <div
+            className="conversation-consult-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="conversation-consult-modal-header">
+              <div>
+                <h3>Tư vấn dịch vụ</h3>
+                <p>Chọn dịch vụ phù hợp để chèn mẫu tư vấn vào tin nhắn.</p>
+              </div>
+
+              <button type="button" onClick={handleCloseConsultModal}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="conversation-consult-body">
+              <div className="conversation-consult-search-row">
+                <div className="conversation-consult-search">
+                  <Search size={17} />
+
+                  <input
+                    type="text"
+                    value={consultKeyword}
+                    placeholder="Tìm dịch vụ theo tên, danh mục, mô tả..."
+                    onChange={(event) => setConsultKeyword(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        handleSearchConsultServices()
+                      }
+                    }}
+                  />
+                </div>
+
+                <button type="button" onClick={handleSearchConsultServices}>
+                  Tìm
+                </button>
+              </div>
+
+              <div className="conversation-consult-category-tabs">
+                {consultCategories.map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    className={
+                      consultCategory === category
+                        ? "conversation-consult-category-tab active"
+                        : "conversation-consult-category-tab"
+                    }
+                    onClick={() => setConsultCategory(category)}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+
+              {consultError && (
+                <div className="conversation-consult-error">
+                  {consultError}
+                </div>
+              )}
+
+              <div className="conversation-consult-service-list">
+                {isConsultLoading ? (
+                  <div className="conversation-consult-state">
+                    <Loader2
+                      size={24}
+                      className="conversation-consult-loading"
+                    />
+                    <span>Đang tìm dịch vụ...</span>
+                  </div>
+                ) : filteredConsultServices.length > 0 ? (
+                  filteredConsultServices.map((service) => (
+                    <div
+                      key={service.idDichVu || service.id}
+                      className="conversation-consult-service-card"
+                    >
+                      <div className="conversation-consult-service-image">
+                        {service.image ? (
+                          <img
+                            src={getFullServiceImageUrl(service.image)}
+                            alt={service.serviceName}
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none"
+                            }}
+                          />
+                        ) : (
+                          <Headset size={22} />
+                        )}
+                      </div>
+
+                      <div className="conversation-consult-service-info">
+                        <h4>{service.serviceName}</h4>
+
+                        <p>
+                          {service.category} · {formatMoney(service.price)} ·{" "}
+                          {service.duration} phút
+                        </p>
+
+                        {service.description && (
+                          <span>{service.description}</span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        className="conversation-consult-insert-btn"
+                        onClick={() =>
+                          handleInsertConsultationTemplate(service)
+                        }
+                      >
+                        Chèn tư vấn
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="conversation-consult-state">
+                    Chưa có dịch vụ phù hợp với danh mục đã chọn.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
