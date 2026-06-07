@@ -8,6 +8,7 @@ class CustomerServiceSearchResponse(BaseModel):
     category: str
     priceRange: str
     duration: str
+    rating: str
     sortBy: str
     page: int
     limit: int

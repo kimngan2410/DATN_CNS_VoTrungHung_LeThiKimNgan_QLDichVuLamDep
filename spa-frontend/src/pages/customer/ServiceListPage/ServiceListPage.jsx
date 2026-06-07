@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Star,
 } from "lucide-react"
 
 import Header from "../../../components/Header/Header"
@@ -32,6 +33,44 @@ const serviceDurations = [
   "Dưới 60 phút",
   "60 - 90 phút",
   "Trên 90 phút",
+]
+
+const serviceRatings = [
+  {
+    label: "5 sao",
+    value: "5",
+    stars: 5,
+    filled: 5,
+    suffix: "",
+  },
+  {
+    label: "Từ 4 sao trở lên",
+    value: "4",
+    stars: 5,
+    filled: 4,
+    suffix: "trở lên",
+  },
+  {
+    label: "Từ 3 sao trở lên",
+    value: "3",
+    stars: 5,
+    filled: 3,
+    suffix: "trở lên",
+  },
+  {
+    label: "Từ 2 sao trở lên",
+    value: "2",
+    stars: 5,
+    filled: 2,
+    suffix: "trở lên",
+  },
+  {
+    label: "Từ 1 sao trở lên",
+    value: "1",
+    stars: 5,
+    filled: 1,
+    suffix: "trở lên",
+  },
 ]
 
 const sortOptions = [
@@ -62,6 +101,7 @@ function ServiceListPage() {
   const [selectedCategory, setSelectedCategory] = useState("Tất cả")
   const [selectedPriceRange, setSelectedPriceRange] = useState("Tất cả mức giá")
   const [selectedDuration, setSelectedDuration] = useState("Tất cả thời lượng")
+  const [selectedRating, setSelectedRating] = useState("Tất cả")
   const [sortBy, setSortBy] = useState("default")
   const [currentPage, setCurrentPage] = useState(1)
 
@@ -100,6 +140,7 @@ function ServiceListPage() {
           category: selectedCategory,
           priceRange: selectedPriceRange,
           duration: selectedDuration,
+          rating: selectedRating,
           sortBy,
           page: currentPage,
           limit: ITEMS_PER_PAGE,
@@ -120,11 +161,12 @@ function ServiceListPage() {
     }
 
     fetchSearchResult()
-  }, [
+    }, [
     appliedKeyword,
     selectedCategory,
     selectedPriceRange,
     selectedDuration,
+    selectedRating,
     sortBy,
     currentPage,
   ])
@@ -138,6 +180,7 @@ function ServiceListPage() {
     setSelectedCategory("Tất cả")
     setSelectedPriceRange("Tất cả mức giá")
     setSelectedDuration("Tất cả thời lượng")
+    setSelectedRating("Tất cả")
     setSortBy("default")
     setCurrentPage(1)
 
@@ -240,6 +283,50 @@ function ServiceListPage() {
                 ))}
               </div>
 
+              <div className="service-filter__group">
+                <h3>Đánh Giá</h3>
+
+                {serviceRatings.map((option) => (
+                  <label key={option.value} className="service-filter__option">
+                    <input
+                      type="radio"
+                      name="rating"
+                      checked={selectedRating === option.value}
+                      onChange={() => {
+                        setSelectedRating(option.value)
+                        setCurrentPage(1)
+                      }}
+                    />
+
+                    {option.value === "Tất cả" ? (
+                      <span>{option.label}</span>
+                    ) : (
+                      <span className="service-filter__rating-label">
+                        <span className="service-filter__rating-stars">
+                          {Array.from({ length: option.stars }, (_, index) => {
+                            const isFilled = index < option.filled
+
+                            return (
+                              <Star
+                                key={index}
+                                size={16}
+                                fill={isFilled ? "currentColor" : "none"}
+                              />
+                            )
+                          })}
+                        </span>
+
+                        {option.suffix && (
+                          <span className="service-filter__rating-suffix">
+                            {option.suffix}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </label>
+                ))}
+              </div>
+
               <button
                 type="button"
                 className="service-filter__reset"
@@ -298,7 +385,8 @@ function ServiceListPage() {
                 !appliedKeyword &&
                 selectedCategory === "Tất cả" &&
                 selectedPriceRange === "Tất cả mức giá" &&
-                selectedDuration === "Tất cả thời lượng" ? (
+                selectedDuration === "Tất cả thời lượng" &&
+                selectedRating === "Tất cả" ? (
                 <div className="service-state">
                   <AlertCircle size={32} />
                   <h3>Hiện chưa có dịch vụ nào</h3>

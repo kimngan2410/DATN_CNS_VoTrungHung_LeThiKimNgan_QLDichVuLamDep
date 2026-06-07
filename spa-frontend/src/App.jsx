@@ -113,6 +113,8 @@ import AccountProfilePage from "./pages/customer/AccountProfilePage/AccountProfi
 import MyAppointmentsPage from "./pages/customer/MyAppointmentsPage/MyAppointmentsPage"
 import ServiceHistoryPage from "./pages/customer/ServiceHistoryPage/ServiceHistoryPage"
 import OAuthCallbackPage from "./pages/auth/OAuthCallbackPage/OAuthCallbackPage"
+import AboutPage from "./pages/customer/AboutPage/AboutPage";
+import ContactPage from "./pages/customer/ContactPage/ContactPage"
 
 /* STAFF */
 import StaffLayout from "./components/StaffLayout/StaffLayout"
@@ -156,6 +158,8 @@ function App() {
       <Route path="/lich-hen-cua-toi" element={<MyAppointmentsPage />} />
       <Route path="/lich-su-dich-vu" element={<ServiceHistoryPage />} />
       <Route path="/doi-mat-khau" element={<ChangePasswordPage />} />
+      <Route path="/gioi-thieu" element={<AboutPage />} />
+      <Route path="/lien-he" element={<ContactPage />} />
 
       {/* STAFF ROUTES */}
       <Route path="/staff/dang-nhap" element={<StaffLoginGate />} />

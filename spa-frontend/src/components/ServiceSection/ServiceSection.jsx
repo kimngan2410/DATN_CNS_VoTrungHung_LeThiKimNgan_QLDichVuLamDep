@@ -5,21 +5,33 @@ import "./ServiceSection.css"
 
 function ServiceSection({
   title = "Dịch vụ mới",
+  subtitle = "",
   services = [],
   isLoading = false,
   errorMessage = "",
+  variant = "",
 }) {
   const displayServices = services
     .filter((service) => service.isActive !== false)
-    .slice(0, 4)
+    .slice(0, 8)
+
+  const isHomeVariant = variant === "home"
 
   return (
-    <section className="service-section">
+    <section
+      className={`service-section ${
+        isHomeVariant ? "service-section--home" : ""
+      }`}
+    >
       <div className="service-section__container">
         <div className="service-section__top">
-          <div>
+          <div className="service-section__heading">
+            <span className="service-section__label">Best choice services</span>
             <h2 className="service-section__title">{title}</h2>
-            <div className="service-section__line" />
+
+            {subtitle && (
+              <p className="service-section__subtitle">{subtitle}</p>
+            )}
           </div>
 
           <Link to="/dich-vu" className="service-section__view-all">
@@ -43,7 +55,11 @@ function ServiceSection({
         ) : (
           <div className="service-section__grid">
             {displayServices.map((service) => (
-              <ServiceCard key={service.id} service={service} />
+              <ServiceCard
+                key={service.id}
+                service={service}
+                variant={isHomeVariant ? "home" : ""}
+              />
             ))}
           </div>
         )}

@@ -158,7 +158,10 @@ const generateTimeFilterOptions = () => {
 const timeFilterOptions = generateTimeFilterOptions();
 
 const MAX_CONCURRENT_APPOINTMENTS = 5;
-const CHECKIN_REMINDER_MINUTES = 30;
+
+// Cảnh báo lịch chờ xác nhận trước giờ hẹn.
+// Đổi thành 15 nếu muốn cảnh báo trước 15 phút.
+const PENDING_WARNING_MINUTES = 30;
 
 const toMinutes = (time) => {
   if (!time || !time.includes(":")) return 0;
@@ -204,21 +207,12 @@ const getCheckInReminderStatus = (appointment, now = new Date()) => {
   const minutesUntilStart =
     (appointmentStartTime.getTime() - now.getTime()) / 60000;
 
+  // Lịch đã xác nhận chỉ cảnh báo khi đã quá giờ nhưng khách chưa check-in.
   if (minutesUntilStart < 0) {
     return {
       type: "overdue",
       label: "Quá giờ check-in",
       message: "Lịch đã qua giờ hẹn nhưng khách chưa check-in.",
-    };
-  }
-
-  if (minutesUntilStart <= CHECKIN_REMINDER_MINUTES) {
-    return {
-      type: "upcoming",
-      label: "Sắp đến giờ",
-      message: `Còn khoảng ${Math.ceil(
-        minutesUntilStart
-      )} phút đến giờ hẹn, cần gọi khách xác nhận lại.`,
     };
   }
 
@@ -243,12 +237,25 @@ const getPendingOverdueStatus = (appointment, now = new Date()) => {
 
   if (!appointmentStartTime) return null;
 
-  if (appointmentStartTime < now) {
+  const minutesUntilStart =
+    (appointmentStartTime.getTime() - now.getTime()) / 60000;
+
+  if (minutesUntilStart < 0) {
     return {
       type: "pending-overdue",
       label: "Chờ xác nhận quá giờ",
       message:
         "Lịch hẹn đang chờ xác nhận nhưng đã quá thời gian hẹn. Lễ tân cần liên hệ khách và cập nhật Đã xác nhận hoặc Đã huỷ kèm lý do.",
+    };
+  }
+
+  if (minutesUntilStart <= PENDING_WARNING_MINUTES) {
+    return {
+      type: "pending-upcoming",
+      label: "Sắp đến giờ nhưng chưa xác nhận",
+      message: `Còn khoảng ${Math.ceil(
+        minutesUntilStart
+      )} phút đến giờ hẹn nhưng lịch vẫn đang chờ xác nhận. Lễ tân cần gọi khách và cập nhật trạng thái.`,
     };
   }
 
@@ -740,14 +747,22 @@ function StaffAppointments() {
     ).length;
   }, [checkInReminderAppointments, createNow]);
 
-  const upcomingCheckInCount =
-    checkInReminderAppointments.length - overdueCheckInCount;
-
-  const pendingOverdueAppointments = useMemo(() => {
+  const pendingWarningAppointments = useMemo(() => {
     return appointmentsBySelectedDate.filter((appointment) =>
       shouldShowPendingOverdue(appointment, createNow)
     );
   }, [appointmentsBySelectedDate, createNow]);
+
+  const pendingOverdueCount = useMemo(() => {
+    return pendingWarningAppointments.filter(
+      (appointment) =>
+        getPendingOverdueStatus(appointment, createNow)?.type ===
+        "pending-overdue"
+    ).length;
+  }, [pendingWarningAppointments, createNow]);
+
+  const pendingUpcomingCount =
+    pendingWarningAppointments.length - pendingOverdueCount;
 
   const filteredCustomers = useMemo(() => {
     return customerOptions.filter((customer) => {
@@ -1671,18 +1686,21 @@ function StaffAppointments() {
             </button>
           </div>
 
-          {pendingOverdueAppointments.length > 0 && (
+          {pendingWarningAppointments.length > 0 && (
             <div className="staff-appointments-pending-alert">
               <AlertTriangle size={20} />
 
               <div>
                 <strong>
-                  Có {pendingOverdueAppointments.length} lịch chờ xác nhận đã quá giờ
+                  Có {pendingWarningAppointments.length} lịch chờ xác nhận cần kiểm tra
                 </strong>
 
                 <p>
-                  Lễ tân cần kiểm tra, liên hệ khách hàng và cập nhật trạng thái
-                  phù hợp. Không nên tự động huỷ để tránh xử lý sai nghiệp vụ.
+                  {pendingOverdueCount > 0 &&
+                    `${pendingOverdueCount} lịch đã quá giờ hẹn. `}
+                  {pendingUpcomingCount > 0 &&
+                    `${pendingUpcomingCount} lịch còn dưới ${PENDING_WARNING_MINUTES} phút đến giờ hẹn. `}
+                  Lễ tân cần liên hệ khách hàng và cập nhật trạng thái phù hợp.
                 </p>
               </div>
 
@@ -1706,10 +1724,7 @@ function StaffAppointments() {
                 </strong>
 
                 <p>
-                  {overdueCheckInCount > 0 &&
-                    `${overdueCheckInCount} lịch đã quá giờ hẹn. `}
-                  {upcomingCheckInCount > 0 &&
-                    `${upcomingCheckInCount} lịch sắp đến giờ hẹn. `}
+                  {overdueCheckInCount} lịch đã quá giờ hẹn nhưng khách chưa check-in.
                   Lễ tân nên gọi khách xác nhận lại hoặc cập nhật trạng thái check-in khi
                   khách đến.
                 </p>

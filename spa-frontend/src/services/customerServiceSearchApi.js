@@ -32,6 +32,7 @@ export async function searchCustomerServicesApi({
   category = "Tất cả",
   priceRange = "Tất cả mức giá",
   duration = "Tất cả thời lượng",
+  rating = "Tất cả",
   sortBy = "default",
   page = 1,
   limit = 9,
@@ -42,6 +43,7 @@ export async function searchCustomerServicesApi({
   params.set("category", category)
   params.set("priceRange", priceRange)
   params.set("duration", duration)
+  params.set("rating", rating)
   params.set("sortBy", sortBy)
   params.set("page", String(page))
   params.set("limit", String(limit))

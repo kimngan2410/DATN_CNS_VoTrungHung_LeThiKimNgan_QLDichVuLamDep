@@ -75,16 +75,6 @@ function HeroSection() {
                 </h1>
 
                 <p className="hero-slide__description">{banner.description}</p>
-
-                <div className="hero-slide__actions">
-                  <Link to="/dat-lich" className="hero-slide__btn hero-slide__btn--primary">
-                    {banner.primaryButton}
-                  </Link>
-
-                  <Link to="/dich-vu" className="hero-slide__btn hero-slide__btn--secondary">
-                    {banner.secondaryButton}
-                  </Link>
-                </div>
               </div>
             </div>
           </SwiperSlide>

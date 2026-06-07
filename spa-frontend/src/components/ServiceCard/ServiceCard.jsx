@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom"
-import { Clock3, Tag } from "lucide-react"
+import { Clock3, Star, Tag } from "lucide-react"
 import { getCurrentUser } from "../../services/authApi"
 import "./ServiceCard.css"
 
@@ -13,6 +13,9 @@ function formatPrice(value) {
 
 function ServiceCard({ service }) {
   const navigate = useNavigate()
+
+  const averageRating = Number(service.averageRating || service.rating || 0)
+  const totalReviews = Number(service.totalReviews || service.reviewCount || 0)
 
   const handleOpenDetail = () => {
     navigate(`/dich-vu/${service.id}`)
@@ -60,9 +63,20 @@ function ServiceCard({ service }) {
           <Tag size={13} />
           {service.category}
         </span>
+
+        <span className="service-card__rating-badge">
+          <Star size={14} fill="currentColor" />
+          {averageRating > 0 ? averageRating.toFixed(1) : "0"}
+        </span>
       </div>
 
       <div className="service-card__content">
+        <div className="service-card__meta-row">
+          <span className="service-card__review-count">
+            {totalReviews} đánh giá
+          </span>
+        </div>
+
         <h3 className="service-card__title" title={service.title}>
           {service.title}
         </h3>
