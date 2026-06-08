@@ -22,6 +22,7 @@ import {
 } from "../../../services/adminCustomerApi"
 
 import "./AdminCustomersList.css"
+import { exportStyledExcel, formatExcelMoney } from "../../../utils/exportExcel"
 
 const API_ORIGIN =
   import.meta.env.VITE_API_ORIGIN || "http://127.0.0.1:8000"
@@ -142,16 +143,6 @@ const getCreatedAtTimestamp = (customer) => {
 
 const formatMoney = (value = 0) => {
   return `${Number(value || 0).toLocaleString("vi-VN")} đ`
-}
-
-const escapeCsvValue = (value) => {
-  const text = String(value ?? "")
-
-  if (text.includes(",") || text.includes('"') || text.includes("\n")) {
-    return `"${text.replace(/"/g, '""')}"`
-  }
-
-  return text
 }
 
 const isActiveStatus = (status) => {
@@ -351,53 +342,84 @@ function AdminCustomers() {
   }
 
   const handleExportCustomers = () => {
-    const lines = [
-      [
-        "Mã khách hàng",
-        "Mã tài khoản",
-        "Họ tên",
-        "Email",
-        "Số điện thoại",
-        "Giới tính",
-        "Ngày sinh",
-        "Ngày tạo",
-        "Trạng thái",
-        "Loại khách hàng",
-        "Số lịch hẹn",
-        "Tổng chi tiêu",
+    exportStyledExcel({
+      title: "DANH SÁCH KHÁCH HÀNG",
+      subtitle: `Tổng số khách hàng: ${filteredCustomers.length}`,
+      fileName: "danh-sach-khach-hang",
+      columns: [
+        {
+          label: "STT",
+          value: (_, index) => index + 1,
+          align: "center",
+        },
+        {
+          label: "Mã khách hàng",
+          value: (item) => getCustomerCode(item),
+        },
+        {
+          label: "Mã tài khoản",
+          value: (item) => item.idTaiKhoan || "",
+        },
+        {
+          label: "Họ tên",
+          value: (item) => item.fullName || "",
+        },
+        {
+          label: "Email",
+          value: (item) => item.email || "",
+        },
+        {
+          label: "Số điện thoại",
+          value: (item) => item.phone || "",
+          type: "text",
+        },
+        {
+          label: "Giới tính",
+          value: (item) => item.gender || "",
+        },
+        {
+          label: "Ngày sinh",
+          value: (item) => item.birthday || "",
+        },
+        {
+          label: "Ngày tạo",
+          value: (item) => item.createdAt || "",
+        },
+        {
+          label: "Trạng thái",
+          value: (item) => item.status || "",
+          type: "status",
+        },
+        {
+          label: "Loại khách hàng",
+          value: (item) => item.loaiKH || "Thường",
+        },
+        {
+          label: "Số lịch hẹn",
+          value: (item) => item.totalAppointments || 0,
+          align: "center",
+        },
+        {
+          label: "Tổng chi tiêu",
+          value: (item) => formatExcelMoney(getTotalSpent(item)),
+          type: "money",
+        },
       ],
-      ...filteredCustomers.map((customer) => [
-        getCustomerCode(customer),
-        customer.idTaiKhoan || "",
-        customer.fullName || "",
-        customer.email || "",
-        customer.phone || "",
-        customer.gender || "",
-        customer.birthday || "",
-        customer.createdAt || "",
-        customer.status || "",
-        customer.loaiKH || "Thường",
-        customer.totalAppointments || 0,
-        getTotalSpent(customer),
-      ]),
-    ]
-
-    const csv =
-      "\uFEFF" +
-      lines.map((row) => row.map(escapeCsvValue).join(",")).join("\n")
-
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;",
+      rows: filteredCustomers,
+      summaryRows: [
+        {
+          label: "Tổng khách hàng",
+          value: filteredCustomers.length,
+        },
+        {
+          label: "Tổng chi tiêu",
+          value: formatExcelMoney(
+            filteredCustomers.reduce((sum, item) => sum + getTotalSpent(item), 0)
+          ),
+          type: "money",
+        },
+      ],
     })
-
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-
-    link.href = url
-    link.download = "danh-sach-khach-hang.csv"
-    link.click()
-
-    URL.revokeObjectURL(url)
   }
 
   const handleOpenCustomerDetail = async (customer) => {

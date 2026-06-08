@@ -49,6 +49,7 @@
   color: #d7a93f;
   font-size: 18px;
   margin-bottom: 18px;
+  font-weight: 600;
 }
 
 .footer ul {
@@ -137,4 +138,75 @@
 
 .footer__bottom-links a:hover{
   color:#d7a93f;
+}
+
+.footer__links li {
+  margin-bottom: 14px;
+}
+
+.footer__links a {
+  position: relative;
+  color: #d9d2cc;
+  text-decoration: none;
+  font-size: 14px;
+  transition:
+    color 0.25s ease,
+    padding-left 0.25s ease;
+}
+
+.footer__links a::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: #d7a93f;
+  transition: width 0.25s ease;
+}
+
+.footer__links a:hover {
+  color: #d7a93f;
+  padding-left: 8px;
+}
+
+.footer__links a:hover::before {
+  width: 22px;
+}
+
+.footer__contact-list li {
+  color: #d9d2cc;
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.footer__contact-list li svg {
+  color: #d9d2cc;
+  flex-shrink: 0;
+  transition: color 0.25s ease;
+}
+
+.footer__contact-list li:hover {
+  color: #ffffff;
+  transform: translateX(5px);
+}
+
+.footer__contact-list li:hover svg {
+  color: #d7a93f;
+}
+
+.footer__bottom-links a {
+  color: #b7b4b2;
+  text-decoration: none;
+  font-size: 15px;
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.footer__bottom-links a:hover {
+  color: #d7a93f;
+  transform: translateY(-2px);
 }

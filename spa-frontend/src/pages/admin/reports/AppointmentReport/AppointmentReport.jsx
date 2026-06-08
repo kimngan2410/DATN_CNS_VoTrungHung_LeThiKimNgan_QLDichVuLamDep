@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react"
 
+import { exportStyledExcel } from "../../../../utils/exportExcel"
 import { getAdminAppointmentReportApi } from "../../../../services/adminAppointmentReportApi"
 import "./AppointmentReport.css"
 
@@ -156,54 +157,81 @@ function AppointmentReport() {
   }
 
   const handleExportReport = () => {
-    const lines = [
-      ["Báo cáo lịch hẹn"],
-      ["Từ ngày", fromDate],
-      ["Đến ngày", toDate],
-      ["Trạng thái", statusFilter],
-      [],
-      [
-        "Mã lịch hẹn",
-        "Khách hàng",
-        "Số điện thoại",
-        "Dịch vụ",
-        "Thời gian bắt đầu",
-        "Thời gian kết thúc",
-        "Trạng thái",
-        "Nguồn tạo",
-        "Ghi chú",
-        "Lý do huỷ/không đến",
+    exportStyledExcel({
+      title: "BÁO CÁO LỊCH HẸN",
+      subtitle: `Từ ngày ${formatDateVN(fromDate)} đến ${formatDateVN(
+        toDate
+      )} · Trạng thái: ${statusFilter}`,
+      fileName: `bao-cao-lich-hen-${fromDate}-${toDate}`,
+      columns: [
+        {
+          label: "STT",
+          value: (_, index) => index + 1,
+          align: "center",
+        },
+        {
+          label: "Mã lịch hẹn",
+          value: "maLH",
+        },
+        {
+          label: "Khách hàng",
+          value: "customer",
+        },
+        {
+          label: "Số điện thoại",
+          value: "phone",
+          type: "text",
+        },
+        {
+          label: "Dịch vụ",
+          value: (item) => item.services?.join(" | ") || "",
+        },
+        {
+          label: "Thời gian bắt đầu",
+          value: (item) => formatDateTime(item.thoiGianBatDau),
+        },
+        {
+          label: "Thời gian kết thúc",
+          value: (item) => formatDateTime(item.thoiGianKetThuc),
+        },
+        {
+          label: "Trạng thái",
+          value: "trangThai",
+          type: "status",
+        },
+        {
+          label: "Nguồn tạo",
+          value: (item) => item.nguonTao || "",
+        },
+        {
+          label: "Ghi chú",
+          value: (item) => item.ghiChu || "",
+        },
       ],
-      ...filteredAppointments.map((item) => [
-        item.maLH,
-        item.customer,
-        item.phone,
-        item.services.join(" | "),
-        formatDateTime(item.thoiGianBatDau),
-        formatDateTime(item.thoiGianKetThuc),
-        item.trangThai,
-        item.nguonTao || "",
-        item.ghiChu || "",
-        item.lyDoHuy || "",
-      ]),
-      [],
-      ["Tổng lịch hẹn", summary.totalAppointments],
-      ["Đã hoàn thành", summary.completedCount],
-      ["Đã huỷ", summary.cancelledCount],
-      ["Không đến", summary.noShowCount],
-      ["Tỷ lệ hoàn thành", `${summary.completionRate}%`],
-    ]
-
-    const csv = "\uFEFF" + lines.map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `bao-cao-lich-hen-${fromDate}-${toDate}.csv`
-    link.click()
-
-    URL.revokeObjectURL(url)
+      rows: filteredAppointments,
+      summaryRows: [
+        {
+          label: "Tổng lịch hẹn",
+          value: summary.totalAppointments,
+        },
+        {
+          label: "Đã hoàn thành",
+          value: summary.completedCount,
+        },
+        {
+          label: "Đã huỷ",
+          value: summary.cancelledCount,
+        },
+        {
+          label: "Không đến",
+          value: summary.noShowCount,
+        },
+        {
+          label: "Tỷ lệ hoàn thành",
+          value: `${summary.completionRate}%`,
+        },
+      ],
+    })
   }
 
   return (

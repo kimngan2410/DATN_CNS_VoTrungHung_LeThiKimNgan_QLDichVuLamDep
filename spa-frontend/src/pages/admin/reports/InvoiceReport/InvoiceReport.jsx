@@ -14,6 +14,7 @@ import {
   RotateCcw,
 } from "lucide-react"
 
+import { exportStyledExcel, formatExcelMoney } from "../../../../utils/exportExcel"
 import { getAdminInvoiceReportApi } from "../../../../services/adminInvoiceReportApi"
 import "./InvoiceReport.css"
 
@@ -155,58 +156,98 @@ function InvoiceReport() {
   }
 
   const handleExportReport = () => {
-    const lines = [
-      ["Báo cáo giao dịch hoá đơn"],
-      ["Từ ngày", fromDate],
-      ["Đến ngày", toDate],
-      ["Từ khoá", keyword],
-      ["Phương thức thanh toán", paymentFilter],
-      ["Trạng thái", statusFilter],
-      [],
-      [
-        "Mã hoá đơn",
-        "Mã lịch hẹn",
-        "Khách hàng",
-        "Email",
-        "Phương thức thanh toán",
-        "Giá trị hoá đơn",
-        "Thời gian tạo/thanh toán",
-        "Trạng thái",
-        "Ghi chú",
+    exportStyledExcel({
+      title: "BÁO CÁO GIAO DỊCH HOÁ ĐƠN",
+      subtitle: `Từ ngày ${formatDateVN(fromDate)} đến ${formatDateVN(
+        toDate
+      )} · PTTT: ${paymentFilter} · Trạng thái: ${statusFilter}`,
+      fileName: `bao-cao-giao-dich-hoa-don-${fromDate}-${toDate}`,
+      columns: [
+        {
+          label: "STT",
+          value: (_, index) => index + 1,
+          align: "center",
+        },
+        {
+          label: "Mã hoá đơn",
+          value: "invoiceCode",
+        },
+        {
+          label: "Mã lịch hẹn",
+          value: "appointmentCode",
+        },
+        {
+          label: "Khách hàng",
+          value: "customer",
+        },
+        {
+          label: "Email",
+          value: "customerEmail",
+        },
+        {
+          label: "Phương thức",
+          value: "paymentMethod",
+        },
+        {
+          label: "Giá trị hoá đơn",
+          value: (item) => formatExcelMoney(item.totalAmount),
+          type: "money",
+        },
+        {
+          label: "Thời gian",
+          value: (item) => formatDateTime(item.paidAt),
+        },
+        {
+          label: "Trạng thái",
+          value: "status",
+          type: "status",
+        },
+        {
+          label: "Ghi chú",
+          value: (item) => item.note || "",
+        },
       ],
-      ...filteredInvoices.map((invoice) => [
-        invoice.invoiceCode,
-        invoice.appointmentCode,
-        invoice.customer,
-        invoice.customerEmail,
-        invoice.paymentMethod,
-        invoice.totalAmount,
-        formatDateTime(invoice.paidAt),
-        invoice.status,
-        invoice.note,
-      ]),
-      [],
-      ["Doanh thu thực tính", summary.totalRevenue],
-      ["Tổng hoá đơn", summary.totalInvoices],
-      ["Hoá đơn đã thanh toán", summary.paidCount],
-      ["Hoá đơn đã huỷ", summary.cancelledCount],
-      ["Giá trị hoá đơn đã huỷ", summary.cancelledValue],
-      ["Doanh thu tiền mặt", summary.cashRevenue],
-      ["Doanh thu chuyển khoản", summary.transferRevenue],
-      ["Doanh thu thẻ ngân hàng", summary.cardRevenue],
-      ["Doanh thu khác", summary.otherRevenue],
-    ]
-
-    const csv = "\uFEFF" + lines.map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `bao-cao-giao-dich-hoa-don-${fromDate}-${toDate}.csv`
-    link.click()
-
-    URL.revokeObjectURL(url)
+      rows: filteredInvoices,
+      summaryRows: [
+        {
+          label: "Doanh thu thực tính",
+          value: formatExcelMoney(summary.totalRevenue),
+          type: "money",
+        },
+        {
+          label: "Tổng hoá đơn",
+          value: summary.totalInvoices,
+        },
+        {
+          label: "Hoá đơn đã thanh toán",
+          value: summary.paidCount,
+        },
+        {
+          label: "Hoá đơn đã huỷ",
+          value: summary.cancelledCount,
+        },
+        {
+          label: "Giá trị hoá đơn đã huỷ",
+          value: formatExcelMoney(summary.cancelledValue),
+          type: "money",
+        },
+        {
+          label: "Doanh thu tiền mặt",
+          value: formatExcelMoney(summary.cashRevenue),
+          type: "money",
+        },
+        {
+          label: "Doanh thu chuyển khoản",
+          value: formatExcelMoney(summary.transferRevenue),
+          type: "money",
+        },
+        {
+          label: "Doanh thu thẻ ngân hàng",
+          value: formatExcelMoney(summary.cardRevenue),
+          type: "money",
+        },
+      ],
+    })
   }
 
   return (

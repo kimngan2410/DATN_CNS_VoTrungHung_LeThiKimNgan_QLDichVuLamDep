@@ -21,6 +21,7 @@ import {
   YAxis,
 } from "recharts"
 
+import { exportStyledExcel, formatExcelMoney } from "../../../../utils/exportExcel"
 import { getAdminServiceUsageReportApi } from "../../../../services/adminServiceUsageReportApi"
 import "./ServiceUsageReport.css"
 
@@ -192,63 +193,106 @@ function ServiceUsageReport() {
   }
 
   const handleExportReport = () => {
-    const lines = [
-      ["Báo cáo tình hình sử dụng dịch vụ"],
-      ["Từ ngày", fromDate],
-      ["Đến ngày", toDate],
-      ["Danh mục", categoryFilter],
-      ["Tình trạng sử dụng", usageStatusFilter],
-      ["Trạng thái dịch vụ", serviceStatusFilter],
-      ["Sắp xếp", sortBy],
-      [],
-      [
-        "Mã dịch vụ",
-        "Tên dịch vụ",
-        "Danh mục",
-        "Lượt sử dụng",
-        "Số khách sử dụng",
-        "Tổng thời lượng phục vụ",
-        "Doanh thu tham khảo",
-        "Lượt đánh giá",
-        "Số sao TB",
-        "Trạng thái dịch vụ",
-        "Cập nhật gần nhất",
+    exportStyledExcel({
+      title: "BÁO CÁO TÌNH HÌNH SỬ DỤNG DỊCH VỤ",
+      subtitle: `Từ ngày ${formatDateVN(fromDate)} đến ${formatDateVN(
+        toDate
+      )} · Danh mục: ${categoryFilter}`,
+      fileName: `bao-cao-tinh-hinh-su-dung-dich-vu-${fromDate}-${toDate}`,
+      columns: [
+        {
+          label: "STT",
+          value: (_, index) => index + 1,
+          align: "center",
+        },
+        {
+          label: "Mã DV",
+          value: "serviceCode",
+        },
+        {
+          label: "Tên dịch vụ",
+          value: "serviceName",
+        },
+        {
+          label: "Danh mục",
+          value: "category",
+        },
+        {
+          label: "Lượt dùng",
+          value: "usageCount",
+          align: "center",
+        },
+        {
+          label: "Số khách",
+          value: "customerCount",
+          align: "center",
+        },
+        {
+          label: "Tổng thời lượng",
+          value: (item) => formatDuration(item.totalDuration),
+        },
+        {
+          label: "Doanh thu",
+          value: (item) => formatExcelMoney(item.revenue),
+          type: "money",
+        },
+        {
+          label: "Đánh giá",
+          value: (item) => item.reviewCount || 0,
+          align: "center",
+        },
+        {
+          label: "Sao TB",
+          value: (item) => (item.averageRating ? `${item.averageRating}/5` : "Chưa có"),
+          align: "center",
+        },
+        {
+          label: "Trạng thái",
+          value: "serviceStatus",
+          type: "status",
+        },
+        {
+          label: "Cập nhật gần nhất",
+          value: (item) => item.lastUsedAt || "",
+        },
       ],
-      ...filteredServices.map((item) => [
-        item.serviceCode,
-        item.serviceName,
-        item.category,
-        item.usageCount,
-        item.customerCount,
-        item.totalDuration,
-        item.revenue,
-        item.reviewCount || 0,
-        item.averageRating || 0,
-        item.serviceStatus,
-        item.lastUsedAt || "",
-      ]),
-      [],
-      ["Tổng dịch vụ", summary.totalServices],
-      ["Dịch vụ đã sử dụng", summary.usedServices],
-      ["Dịch vụ chưa sử dụng", summary.unusedServices],
-      ["Tổng lượt sử dụng", summary.totalUsage],
-      ["Tổng số khách", summary.totalCustomers],
-      ["Tổng thời lượng phục vụ", summary.totalDuration],
-      ["Tổng doanh thu tham khảo", summary.totalRevenue],
-      ["Tổng lượt đánh giá", summary.totalReviews],
-      ["Số sao trung bình", summary.averageRating],
-    ]
-
-    const csv = "\uFEFF" + lines.map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `bao-cao-tinh-hinh-su-dung-dich-vu-${fromDate}-${toDate}.csv`
-    link.click()
-
-    URL.revokeObjectURL(url)
+      rows: filteredServices,
+      summaryRows: [
+        {
+          label: "Tổng dịch vụ",
+          value: summary.totalServices,
+        },
+        {
+          label: "Dịch vụ đã sử dụng",
+          value: summary.usedServices,
+        },
+        {
+          label: "Dịch vụ chưa sử dụng",
+          value: summary.unusedServices,
+        },
+        {
+          label: "Tổng lượt sử dụng",
+          value: summary.totalUsage,
+        },
+        {
+          label: "Tổng số khách",
+          value: summary.totalCustomers,
+        },
+        {
+          label: "Tổng thời lượng phục vụ",
+          value: formatDuration(summary.totalDuration),
+        },
+        {
+          label: "Tổng doanh thu tham khảo",
+          value: formatExcelMoney(summary.totalRevenue),
+          type: "money",
+        },
+        {
+          label: "Số sao trung bình",
+          value: `${summary.averageRating || 0}/5`,
+        },
+      ],
+    })
   }
 
   return (

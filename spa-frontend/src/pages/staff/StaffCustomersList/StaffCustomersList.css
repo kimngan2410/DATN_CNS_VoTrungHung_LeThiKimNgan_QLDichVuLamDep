@@ -1117,3 +1117,37 @@
   border-color: rgba(215, 169, 63, 0.6);
   background: #fffdf8;
 }
+
+.staff-customers-export-btn {
+  height: 44px;
+  padding: 0 17px;
+  border: 1px solid var(--staff-dark, #4d4a4b);
+  border-radius: 11px;
+  background: var(--staff-dark, #4d4a4b);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.staff-customers-export-btn:hover:not(:disabled) {
+  background: #3f3c3d;
+  border-color: #3f3c3d;
+}
+
+.staff-customers-export-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 1100px) {
+  .staff-customers-export-btn {
+    width: 100%;
+  }
+}

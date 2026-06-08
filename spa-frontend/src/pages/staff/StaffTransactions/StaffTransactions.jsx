@@ -271,52 +271,199 @@ function StaffTransactions() {
 
   const handleExportFile = () => {
     if (filteredTransactions.length === 0) {
-      alert("Không có dữ liệu để xuất file.");
-      return;
+      alert("Không có dữ liệu để xuất file.")
+      return
     }
 
-    const headers = [
-      "Mã hóa đơn",
-      "Mã lịch hẹn",
-      "Khách hàng",
-      "Số điện thoại",
-      "Ngày thanh toán/tạo",
-      "Phương thức thanh toán",
-      "Giá trị hóa đơn",
-      "Trạng thái",
-    ];
+    const escapeHtml = (value) => {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+    }
 
-    const rows = filteredTransactions.map((item) => [
-      item.idHoaDon,
-      item.maLichHen,
-      item.customer,
-      item.phone,
-      item.paymentTime,
-      item.paymentMethod,
-      getTransactionTotal(item),
-      item.status,
-    ]);
+    const exportDate = new Date().toLocaleString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((value) => `"${value}"`).join(",")),
-      "",
-      `"Tổng doanh thu","${summary.totalRevenue}"`,
-    ].join("\n");
+    const rowsHtml = filteredTransactions
+      .map((item, index) => {
+        const total = getTransactionTotal(item)
 
-    const blob = new Blob(["\uFEFF" + csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
+        return `
+          <tr>
+            <td class="center">${index + 1}</td>
+            <td>${escapeHtml(item.idHoaDon)}</td>
+            <td>${escapeHtml(item.maLichHen)}</td>
+            <td>${escapeHtml(item.customer)}</td>
+            <td class="text">${escapeHtml(item.phone)}</td>
+            <td>${escapeHtml(item.paymentTime)}</td>
+            <td>${escapeHtml(item.paymentMethod)}</td>
+            <td class="money">${Number(total || 0).toLocaleString("vi-VN")} đ</td>
+            <td class="status">${escapeHtml(item.status)}</td>
+          </tr>
+        `
+      })
+      .join("")
 
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
+    const htmlContent = `
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              color: #2f2a27;
+            }
 
-    link.setAttribute("href", url);
-    link.setAttribute("download", "danh-sach-giao-dich-hoa-don.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+            table {
+              border-collapse: collapse;
+              width: 100%;
+            }
+
+            .report-title {
+              font-size: 22px;
+              font-weight: 700;
+              color: #2f2a27;
+              text-align: center;
+            }
+
+            .report-subtitle {
+              font-size: 13px;
+              color: #6b7280;
+              text-align: center;
+            }
+
+            .summary-label {
+              font-weight: 700;
+              background: #fff7e6;
+              color: #8d6915;
+            }
+
+            .summary-value {
+              font-weight: 700;
+              color: #2f2a27;
+            }
+
+            th {
+              background: #4d4a4b;
+              color: #ffffff;
+              font-weight: 700;
+              text-align: center;
+              border: 1px solid #d9d9d9;
+              padding: 10px;
+            }
+
+            td {
+              border: 1px solid #d9d9d9;
+              padding: 9px;
+              vertical-align: middle;
+            }
+
+            .center {
+              text-align: center;
+            }
+
+            .money {
+              text-align: right;
+              font-weight: 700;
+              color: #8d6915;
+            }
+
+            .status {
+              text-align: center;
+              font-weight: 700;
+            }
+
+            .text {
+              mso-number-format: "\\@";
+            }
+
+            .total-row td {
+              background: #fff7e6;
+              font-weight: 700;
+            }
+          </style>
+        </head>
+
+        <body>
+          <table>
+            <tr>
+              <td colspan="9" class="report-title">
+                DANH SÁCH GIAO DỊCH HOÁ ĐƠN
+              </td>
+            </tr>
+
+            <tr>
+              <td colspan="9" class="report-subtitle">
+                Ngày xuất file: ${escapeHtml(exportDate)}
+              </td>
+            </tr>
+
+            <tr>
+              <td colspan="9"></td>
+            </tr>
+
+            <tr>
+              <td class="summary-label" colspan="2">Tổng số giao dịch</td>
+              <td class="summary-value" colspan="2">${filteredTransactions.length}</td>
+              <td class="summary-label" colspan="2">Tổng doanh thu</td>
+              <td class="summary-value money" colspan="3">
+                ${Number(summary.totalRevenue || 0).toLocaleString("vi-VN")} đ
+              </td>
+            </tr>
+
+            <tr>
+              <td colspan="9"></td>
+            </tr>
+
+            <tr>
+              <th>STT</th>
+              <th>Mã hoá đơn</th>
+              <th>Mã lịch hẹn</th>
+              <th>Khách hàng</th>
+              <th>Số điện thoại</th>
+              <th>Ngày thanh toán/tạo</th>
+              <th>Phương thức thanh toán</th>
+              <th>Giá trị hoá đơn</th>
+              <th>Trạng thái</th>
+            </tr>
+
+            ${rowsHtml}
+
+            <tr class="total-row">
+              <td colspan="7">TỔNG DOANH THU</td>
+              <td class="money">
+                ${Number(summary.totalRevenue || 0).toLocaleString("vi-VN")} đ
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `
+
+    const blob = new Blob(["\uFEFF" + htmlContent], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    })
+
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+
+    link.href = url
+    link.download = `danh-sach-giao-dich-hoa-don-${selectedDateValue}.xls`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    URL.revokeObjectURL(url)
+  }
 
   const handlePrintInvoice = (transaction) => {
     if (!transaction || transaction.status !== "Đã thanh toán") {

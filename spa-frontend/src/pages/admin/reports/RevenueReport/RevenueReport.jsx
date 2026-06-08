@@ -25,6 +25,7 @@ import {
 } from "recharts"
 
 import { getAdminRevenueReportApi } from "../../../../services/adminRevenueReportApi"
+import { exportStyledExcel, formatExcelMoney } from "../../../../utils/exportExcel"
 import "./RevenueReport.css"
 
 const ADMIN_GOLD = "#d7a93f"
@@ -198,47 +199,74 @@ function RevenueReport() {
   const categoryRevenue = reportData.categoryRevenue || []
 
   const handleExportReport = () => {
-    const lines = [
-      ["Báo cáo doanh thu"],
-      ["Từ ngày", reportData.fromDate || fromDate],
-      ["Đến ngày", reportData.toDate || toDate],
-      ["So sánh", getCompareLabel(compare)],
-      [],
-      [
-        "Ngày",
-        "Số hoá đơn",
-        "Số khách",
-        "Doanh thu dịch vụ",
-        "Giảm giá",
-        "Doanh thu thuần",
-        "Tăng/giảm",
+    exportStyledExcel({
+      title: "BÁO CÁO DOANH THU",
+      subtitle: `Từ ngày ${formatDateVN(fromDate)} đến ${formatDateVN(
+        toDate
+      )} · So sánh: ${getCompareLabel(compare)}`,
+      fileName: `bao-cao-doanh-thu-${fromDate}-${toDate}`,
+      columns: [
+        {
+          label: "STT",
+          value: (_, index) => index + 1,
+          align: "center",
+        },
+        {
+          label: "Ngày",
+          value: "date",
+        },
+        {
+          label: "Số hoá đơn",
+          value: "invoices",
+          align: "center",
+        },
+        {
+          label: "Số khách",
+          value: "customers",
+          align: "center",
+        },
+        {
+          label: "Doanh thu dịch vụ",
+          value: (item) => formatExcelMoney(item.serviceRevenue),
+          type: "money",
+        },
+        {
+          label: "Giảm giá",
+          value: (item) => formatExcelMoney(item.discount),
+          type: "money",
+        },
+        {
+          label: "Doanh thu thuần",
+          value: (item) => formatExcelMoney(item.netRevenue),
+          type: "money",
+        },
+        {
+          label: "Tăng/giảm",
+          value: (item) => item.change || "",
+        },
       ],
-      ...filteredRows.map((row) => [
-        row.date,
-        row.invoices,
-        row.customers,
-        row.serviceRevenue,
-        row.discount,
-        row.netRevenue,
-        row.change,
-      ]),
-      [],
-      ["Tổng doanh thu", summary.totalRevenue],
-      ["Tổng hoá đơn", summary.totalInvoices],
-      ["Tổng khách", summary.totalCustomers],
-      ["Trung bình / hoá đơn", summary.averageInvoice],
-    ]
-
-    const csv = "\uFEFF" + lines.map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `bao-cao-doanh-thu-${fromDate}-${toDate}.csv`
-    link.click()
-
-    URL.revokeObjectURL(url)
+      rows: filteredRows,
+      summaryRows: [
+        {
+          label: "Tổng doanh thu",
+          value: formatExcelMoney(summary.totalRevenue),
+          type: "money",
+        },
+        {
+          label: "Tổng hoá đơn",
+          value: summary.totalInvoices,
+        },
+        {
+          label: "Tổng khách",
+          value: summary.totalCustomers,
+        },
+        {
+          label: "Trung bình / hoá đơn",
+          value: formatExcelMoney(summary.averageInvoice),
+          type: "money",
+        },
+      ],
+    })
   }
 
   return (

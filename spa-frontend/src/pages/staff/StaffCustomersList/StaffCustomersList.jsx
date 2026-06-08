@@ -13,10 +13,12 @@ import {
   Wallet,
   RotateCcw,
   ArrowUpDown,
+  Download,
 } from "lucide-react";
 
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
 import { getStaffCustomersApi } from "../../../services/staffCustomerApi";
+import { exportStyledExcel, formatExcelMoney } from "../../../utils/exportExcel";
 
 import "./StaffCustomersList.css";
 
@@ -259,6 +261,102 @@ function StaffCustomers() {
     setSortOption("default");
   };
 
+  const handleExportCustomers = () => {
+    if (filteredCustomers.length === 0) {
+      alert("Không có dữ liệu khách hàng để xuất file.");
+      return;
+    }
+
+    exportStyledExcel({
+      title: "DANH SÁCH KHÁCH HÀNG",
+      subtitle: `Tổng số khách hàng: ${filteredCustomers.length}`,
+      fileName: "danh-sach-khach-hang-staff",
+      columns: [
+        {
+          label: "STT",
+          value: (_, index) => index + 1,
+          align: "center",
+        },
+        {
+          label: "Mã khách hàng",
+          value: (item) => item.id || item.maKH || "",
+        },
+        {
+          label: "Họ tên",
+          value: (item) => item.fullName || "",
+        },
+        {
+          label: "Số điện thoại",
+          value: (item) => item.phone || "",
+          type: "text",
+        },
+        {
+          label: "Email",
+          value: (item) => item.email || "",
+        },
+        {
+          label: "Giới tính",
+          value: (item) => item.gender || "Chưa cập nhật",
+        },
+        {
+          label: "Loại khách hàng",
+          value: (item) => item.loaiKH || "Thường",
+        },
+        {
+          label: "Ngày sinh",
+          value: (item) => item.birthday || "Chưa cập nhật",
+        },
+        {
+          label: "Ngày tạo",
+          value: (item) => item.createdAt || "Chưa cập nhật",
+        },
+        {
+          label: "Trạng thái",
+          value: (item) => item.status || "Chưa cập nhật",
+          type: "status",
+        },
+        {
+          label: "Tổng lịch hẹn",
+          value: (item) => item.totalAppointments || 0,
+          align: "center",
+        },
+        {
+          label: "Tổng chi tiêu",
+          value: (item) => formatExcelMoney(item.totalSpent || 0),
+          type: "money",
+        },
+        {
+          label: "Lần gần nhất",
+          value: (item) => item.lastVisit || "Chưa có",
+        },
+      ],
+      rows: filteredCustomers,
+      summaryRows: [
+        {
+          label: "Tổng khách hàng",
+          value: filteredCustomers.length,
+        },
+        {
+          label: "Tổng lịch hẹn",
+          value: filteredCustomers.reduce(
+            (sum, item) => sum + Number(item.totalAppointments || 0),
+            0
+          ),
+        },
+        {
+          label: "Tổng chi tiêu",
+          value: formatExcelMoney(
+            filteredCustomers.reduce(
+              (sum, item) => sum + Number(item.totalSpent || 0),
+              0
+            )
+          ),
+          type: "money",
+        },
+      ],
+    });
+  };
+
   const handleCloseDetailModal = () => {
     setSelectedCustomer(null);
     setHistoryModal(null);
@@ -315,6 +413,16 @@ function StaffCustomers() {
                 <option value="created-asc">Ngày tạo cũ nhất</option>
               </select>
             </div>
+
+            <button
+              type="button"
+              className="staff-customers-export-btn"
+              onClick={handleExportCustomers}
+              disabled={isLoadingCustomers || filteredCustomers.length === 0}
+            >
+              <Download size={17} />
+              Xuất danh sách
+            </button>
           </div>
 
           {isFilterOpen && (

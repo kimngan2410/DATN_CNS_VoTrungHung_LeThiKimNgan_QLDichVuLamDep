@@ -30,6 +30,7 @@ import {
 } from "recharts"
 
 import { getAdminOverviewApi } from "../../../services/adminOverviewApi"
+import { exportStyledExcel, formatExcelMoney } from "../../../utils/exportExcel"
 import "./AdminOverview.css"
 
 const ADMIN_GOLD = "#d7a93f"
@@ -315,43 +316,147 @@ function AdminOverview() {
   ]
 
   const handleExportOverview = () => {
-    const lines = [
-      ["Báo cáo tổng quan"],
-      ["Thời gian", currentData.label],
-      ["Từ ngày", currentData.startDate || ""],
-      ["Đến ngày", currentData.endDate || ""],
-      ["Tổng doanh thu", currentData.summary.revenue],
-      ["Tổng lịch hẹn", currentData.summary.appointments],
-      ["Khách hàng đăng ký", currentData.summary.registeredCustomers],
-      ["Dịch vụ đã dùng", currentData.summary.usedServices],
-      ["Hoá đơn đã thanh toán", currentData.summary.paidInvoices],
-      ["Tỷ lệ hoàn thành lịch hẹn", `${currentData.summary.completionRate}%`],
-      [],
-      ["Top dịch vụ", "Số lượt", "Doanh thu"],
-      ...currentData.topServices.map((item) => [
-        item.name,
-        item.value,
-        item.revenue,
-      ]),
-      [],
-      ["Phương thức thanh toán", "Số giao dịch", "Tổng tiền"],
-      ...currentData.paymentMethods.map((item) => [
-        item.name,
-        item.value,
-        item.amount,
-      ]),
+    const overviewRows = [
+      {
+        group: "Tổng quan",
+        metric: "Thời gian",
+        value: currentData.label || "",
+        note:
+          currentData.startDate && currentData.endDate
+            ? currentData.startDate === currentData.endDate
+              ? formatDateVN(currentData.startDate)
+              : `${formatDateVN(currentData.startDate)} đến ${formatDateVN(
+                  currentData.endDate
+                )}`
+            : formatDateVN(selectedFilterValue),
+      },
+      {
+        group: "Tổng quan",
+        metric: "Tổng doanh thu",
+        value: formatExcelMoney(currentData.summary.revenue),
+        note: currentData.growth.revenue
+          ? `${currentData.growth.revenue} ${currentData.compareText || ""}`
+          : "",
+      },
+      {
+        group: "Tổng quan",
+        metric: "Tổng lịch hẹn",
+        value: currentData.summary.appointments,
+        note: currentData.growth.appointments
+          ? `${currentData.growth.appointments} ${currentData.compareText || ""}`
+          : "",
+      },
+      {
+        group: "Tổng quan",
+        metric: "Khách hàng đăng ký",
+        value: currentData.summary.registeredCustomers,
+        note: currentData.growth.registeredCustomers
+          ? `${currentData.growth.registeredCustomers} ${
+              currentData.compareText || ""
+            }`
+          : "",
+      },
+      {
+        group: "Tổng quan",
+        metric: "Dịch vụ đã dùng",
+        value: currentData.summary.usedServices,
+        note: currentData.growth.usedServices
+          ? `${currentData.growth.usedServices} ${currentData.compareText || ""}`
+          : "",
+      },
+      {
+        group: "Tổng quan",
+        metric: "Hoá đơn đã thanh toán",
+        value: currentData.summary.paidInvoices,
+        note: currentData.growth.paidInvoices
+          ? `${currentData.growth.paidInvoices} ${currentData.compareText || ""}`
+          : "",
+      },
+      {
+        group: "Tổng quan",
+        metric: "Tỷ lệ hoàn thành lịch hẹn",
+        value: `${currentData.summary.completionRate}%`,
+        note: "",
+      },
+      ...currentData.topServices.map((item) => ({
+        group: "Top dịch vụ",
+        metric: item.name,
+        value: item.value,
+        note: formatExcelMoney(item.revenue),
+      })),
+      ...currentData.paymentMethods.map((item) => ({
+        group: "Phương thức thanh toán",
+        metric: item.name,
+        value: `${item.value} giao dịch`,
+        note: formatExcelMoney(item.amount),
+      })),
+      ...currentData.recentInvoices.map((item) => ({
+        group: "Hoá đơn gần đây",
+        metric: item.id,
+        value: item.customer,
+        note: `${item.method || ""} - ${formatExcelMoney(item.amount)}`,
+      })),
+      ...currentData.recentActivities.map((item) => ({
+        group: "Hoạt động gần đây",
+        metric: item.title,
+        value: item.desc,
+        note: item.time,
+      })),
     ]
 
-    const csv = "\uFEFF" + lines.map((row) => row.join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `tong-quan-${selectedPeriod}-${selectedFilterValue}.csv`
-    link.click()
-
-    URL.revokeObjectURL(url)
+    exportStyledExcel({
+      title: "BÁO CÁO TỔNG QUAN",
+      subtitle: `${
+        currentData.label || activePeriodOption.label
+      } · Kỳ xem: ${activePeriodOption.label}`,
+      fileName: `tong-quan-${selectedPeriod}-${selectedFilterValue}`,
+      columns: [
+        {
+          label: "Nhóm dữ liệu",
+          value: "group",
+        },
+        {
+          label: "Chỉ số / Nội dung",
+          value: "metric",
+        },
+        {
+          label: "Giá trị",
+          value: "value",
+        },
+        {
+          label: "Ghi chú",
+          value: "note",
+        },
+      ],
+      rows: overviewRows,
+      summaryRows: [
+        {
+          label: "Tổng doanh thu",
+          value: formatExcelMoney(currentData.summary.revenue),
+          type: "money",
+        },
+        {
+          label: "Tổng lịch hẹn",
+          value: currentData.summary.appointments,
+        },
+        {
+          label: "Khách hàng đăng ký",
+          value: currentData.summary.registeredCustomers,
+        },
+        {
+          label: "Dịch vụ đã dùng",
+          value: currentData.summary.usedServices,
+        },
+        {
+          label: "Hoá đơn đã thanh toán",
+          value: currentData.summary.paidInvoices,
+        },
+        {
+          label: "Tỷ lệ hoàn thành lịch hẹn",
+          value: `${currentData.summary.completionRate}%`,
+        },
+      ],
+    })
   }
 
   const renderFilterCard = () => (
