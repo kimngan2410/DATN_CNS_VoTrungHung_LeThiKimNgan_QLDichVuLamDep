@@ -162,6 +162,8 @@ def build_staff_invoice_response(db: Session, hoa_don: HoaDon):
         "bookedServices": booked_services,
         "extraServices": [],
         "note": note_value,
+        "subtotalAmount": format_money_value(hoa_don.tongTien),
+        "discountAmount": format_money_value(hoa_don.giamGia),
         "totalAmount": format_money_value(hoa_don.thanhTien),
         "cancelReason": note_value if status_value == CANCELLED_STATUS else "",
         "cancelledBy": "Lễ tân" if status_value == CANCELLED_STATUS else "",
@@ -397,6 +399,8 @@ def build_staff_invoice_response(db: Session, hoa_don: HoaDon):
         "bookedServices": booked_services,
         "extraServices": [],
         "note": note_value,
+        "subtotalAmount": float(hoa_don.tongTien or 0),
+        "discountAmount": float(hoa_don.giamGia or 0),
         "totalAmount": float(hoa_don.thanhTien or 0),
 
         # Thông tin huỷ hoá đơn
@@ -519,7 +523,7 @@ def create_staff_invoice(db: Session, payload):
         final_amount = Decimal("0")
 
     hoa_don = HoaDon(
-        maHD=generate_invoice_code(),
+        maHD=generate_invoice_code(db),
         idLichHen=lich_hen.idLichHen,
         idTaiKhoan=lich_hen.idTaiKhoan,
         tongTien=total_amount,

@@ -254,6 +254,10 @@ function StaffConversations() {
 
   const currentStaff = getCurrentStaffUser()
 
+  const refreshSidebarBadges = () => {
+    window.dispatchEvent(new Event("staff-notifications-refresh"))
+  }
+
   useEffect(() => {
     selectedIdRef.current = selectedId
   }, [selectedId])
@@ -276,6 +280,7 @@ function StaffConversations() {
         const data = await getStaffConversationsApi()
 
         setConversations(data)
+        refreshSidebarBadges()
 
         setSelectedId((currentSelectedId) => {
           if (currentSelectedId) return currentSelectedId
@@ -397,6 +402,7 @@ function StaffConversations() {
       )
 
       scrollToBottom()
+      refreshSidebarBadges()
     },
     [scrollToBottom]
   )
@@ -680,6 +686,8 @@ function StaffConversations() {
 
         if (ok) {
           setReplyText("")
+          fetchConversationList({ silent: true })
+          refreshSidebarBadges()
           return
         }
       }
@@ -694,6 +702,8 @@ function StaffConversations() {
       setReplyText("")
       scrollToBottom()
       fetchConversationList({ silent: true })
+      refreshSidebarBadges()
+      
     } catch (error) {
       setErrorMessage(error.message || "Không thể gửi phản hồi.")
     } finally {

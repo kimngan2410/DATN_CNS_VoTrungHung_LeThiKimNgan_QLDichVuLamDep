@@ -51,20 +51,52 @@ const weekdayLabels = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "T
 
 const formatMoney = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
-const getItemTotal = (item) => item.soLuong * item.donGia;
+const escapeHtml = (value) => {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
 
-const getTransactionTotal = (transaction) => {
-  const bookedTotal = transaction.bookedServices.reduce(
+const getItemTotal = (item) => {
+  if (item?.thanhTien !== undefined && item?.thanhTien !== null) {
+    return Number(item.thanhTien || 0);
+  }
+
+  return Number(item?.soLuong || 0) * Number(item?.donGia || 0);
+};
+
+const getTransactionSubtotal = (transaction) => {
+  const bookedTotal = (transaction?.bookedServices || []).reduce(
     (sum, item) => sum + getItemTotal(item),
     0
   );
 
-  const extraTotal = transaction.extraServices.reduce(
+  const extraTotal = (transaction?.extraServices || []).reduce(
     (sum, item) => sum + getItemTotal(item),
     0
   );
 
   return bookedTotal + extraTotal;
+};
+
+const getTransactionDiscount = (transaction) => {
+  return Number(
+    transaction?.discountAmount ??
+      transaction?.giamGia ??
+      transaction?.discount ??
+      0
+  );
+};
+
+const getTransactionTotal = (transaction) => {
+  if (transaction?.totalAmount !== undefined && transaction?.totalAmount !== null) {
+    return Number(transaction.totalAmount || 0);
+  }
+
+  return Math.max(getTransactionSubtotal(transaction) - getTransactionDiscount(transaction), 0);
 };
 
 const formatDateToValue = (date) => {
@@ -275,15 +307,6 @@ function StaffTransactions() {
       return
     }
 
-    const escapeHtml = (value) => {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;")
-    }
-
     const exportDate = new Date().toLocaleString("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",
@@ -471,34 +494,47 @@ function StaffTransactions() {
       return;
     }
 
-    const bookedRows = transaction.bookedServices
-      .map(
-        (item) => `
-          <tr>
-            <td>${item.tenDichVu}</td>
-            <td style="text-align:center;">${item.soLuong}</td>
-            <td style="text-align:right;">${formatMoney(item.donGia)}</td>
-            <td style="text-align:right;">${formatMoney(getItemTotal(item))}</td>
-          </tr>
-        `
-      )
+    const allServices = [
+      ...(transaction.bookedServices || []),
+      ...(transaction.extraServices || []),
+    ];
+
+    const serviceRows = allServices
+      .map((item, index) => `
+        <tr>
+          <td class="center">${index + 1}</td>
+          <td>
+            <strong>${escapeHtml(item.tenDichVu)}</strong>
+            ${index >= (transaction.bookedServices || []).length ? '<small>Dịch vụ phát sinh</small>' : ''}
+          </td>
+          <td class="center">${Number(item.soLuong || 1)}</td>
+          <td class="money">${formatMoney(item.donGia)}</td>
+          <td class="money">${formatMoney(getItemTotal(item))}</td>
+        </tr>
+      `)
       .join("");
 
-    const extraRows = transaction.extraServices
-      .map(
-        (item) => `
-          <tr>
-            <td>${item.tenDichVu}</td>
-            <td style="text-align:center;">${item.soLuong}</td>
-            <td style="text-align:right;">${formatMoney(item.donGia)}</td>
-            <td style="text-align:right;">${formatMoney(getItemTotal(item))}</td>
-          </tr>
-        `
-      )
-      .join("");
+    const subtotal = getTransactionSubtotal(transaction);
+    const discount = getTransactionDiscount(transaction);
+    const finalTotal = getTransactionTotal(transaction);
+    const discountPercent = subtotal > 0 && discount > 0
+      ? Math.round((discount / subtotal) * 100)
+      : 0;
 
-    const total = getTransactionTotal(transaction);
-    const printWindow = window.open("", "_blank", "width=900,height=700");
+    const discountRow = discount > 0
+      ? `
+        <div class="summary-row discount">
+          <span>Giảm giá${discountPercent > 0 ? ` (${discountPercent}%)` : ""}</span>
+          <strong>- ${formatMoney(discount)}</strong>
+        </div>
+      `
+      : "";
+
+    const noteRow = transaction.note
+      ? `<div class="note-box"><strong>Ghi chú:</strong> ${escapeHtml(transaction.note)}</div>`
+      : "";
+
+    const printWindow = window.open("", "_blank", "width=520,height=760");
 
     if (!printWindow) {
       alert("Trình duyệt đã chặn cửa sổ in.");
@@ -508,158 +544,269 @@ function StaffTransactions() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Hóa đơn ${transaction.idHoaDon}</title>
+          <title>Hoá đơn ${escapeHtml(transaction.idHoaDon)}</title>
+          <meta charset="UTF-8" />
           <style>
+            * {
+              box-sizing: border-box;
+            }
+
             body {
-              font-family: Arial, sans-serif;
-              padding: 30px;
-              color: #333;
-            }
-
-            .invoice-wrap {
-              max-width: 800px;
-              margin: 0 auto;
-            }
-
-            h1, h2, h3, p {
               margin: 0;
+              padding: 18px;
+              background: #f3f4f6;
+              color: #222;
+              font-family: Arial, Helvetica, sans-serif;
             }
 
-            .invoice-top {
+            .receipt {
+              width: 380px;
+              max-width: 100%;
+              margin: 0 auto;
+              padding: 20px 18px 18px;
+              background: #ffffff;
+              border: 1px dashed #9ca3af;
+              box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+            }
+
+            .shop-header {
+              display: grid;
+              grid-template-columns: 72px 1fr;
+              gap: 12px;
+              align-items: center;
+              margin-bottom: 14px;
+            }
+
+            .logo-box {
+              width: 72px;
+              height: 62px;
+              border: 1px solid #e5e7eb;
               display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              margin-bottom: 24px;
-            }
-
-            .invoice-top-left h2 {
+              align-items: center;
+              justify-content: center;
               font-size: 28px;
-              margin-bottom: 8px;
+              font-weight: 900;
+              color: #8d6915;
+              letter-spacing: 1px;
             }
 
-            .invoice-top-left p {
-              font-size: 14px;
+            .shop-name {
+              font-size: 22px;
+              font-weight: 900;
+              line-height: 1.15;
+            }
+
+            .shop-info {
+              margin-top: 4px;
+              font-size: 12px;
+              line-height: 1.45;
               color: #555;
-              line-height: 1.6;
             }
 
             .invoice-title {
+              margin: 14px 0 6px;
+              text-align: center;
               font-size: 24px;
-              font-weight: 700;
-              margin-bottom: 18px;
+              font-weight: 900;
+              letter-spacing: 0.3px;
             }
 
-            .section {
-              margin-bottom: 22px;
+            .invoice-code {
+              text-align: center;
+              font-size: 17px;
+              font-weight: 800;
+              margin-bottom: 14px;
             }
 
-            .info-grid {
+            .meta-grid {
               display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 12px 24px;
-              font-size: 14px;
+              grid-template-columns: 1fr 1fr;
+              gap: 6px 12px;
+              margin-bottom: 10px;
+              font-size: 12px;
+              line-height: 1.35;
+            }
+
+            .meta-grid div:nth-child(even) {
+              text-align: right;
+            }
+
+            .line {
+              border-top: 1px dashed #bdbdbd;
+              margin: 12px 0;
             }
 
             table {
               width: 100%;
               border-collapse: collapse;
-              margin-top: 10px;
+              font-size: 12px;
             }
 
             th,
             td {
-              border: 1px solid #ddd;
-              padding: 10px;
-              font-size: 14px;
+              border: 1px solid #999;
+              padding: 6px 5px;
+              vertical-align: top;
             }
 
             th {
-              background: #f5f5f5;
+              background: #f4f4f5;
+              text-align: center;
+              font-weight: 800;
             }
 
-            .total-box {
-              margin-top: 20px;
+            td strong {
+              display: block;
+              font-size: 12px;
+              font-weight: 700;
+            }
+
+            td small {
+              display: block;
+              margin-top: 2px;
+              color: #777;
+              font-size: 10px;
+            }
+
+            .center {
+              text-align: center;
+            }
+
+            .money {
               text-align: right;
-              font-size: 18px;
-              font-weight: 700;
+              white-space: nowrap;
             }
 
-            .group-title {
+            .summary {
               margin-top: 14px;
-              margin-bottom: 8px;
+              font-size: 13px;
+            }
+
+            .summary-row {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 16px;
+              padding: 5px 0;
+            }
+
+            .summary-row span {
+              color: #333;
+            }
+
+            .summary-row strong {
+              font-weight: 800;
+            }
+
+            .summary-row.discount strong {
+              color: #c2410c;
+            }
+
+            .summary-row.total {
+              margin-top: 5px;
+              padding-top: 9px;
+              border-top: 1px dashed #bdbdbd;
               font-size: 15px;
+              font-weight: 900;
+            }
+
+            .summary-row.total strong {
+              font-size: 18px;
+            }
+
+            .note-box {
+              margin-top: 10px;
+              padding: 8px;
+              border: 1px dashed #d6d3d1;
+              background: #fffaf0;
+              font-size: 11px;
+              line-height: 1.4;
+            }
+
+            .thanks {
+              margin-top: 16px;
+              text-align: center;
+              font-size: 12px;
               font-weight: 700;
+              line-height: 1.5;
+            }
+
+            @media print {
+              body {
+                padding: 0;
+                background: #ffffff;
+              }
+
+              .receipt {
+                width: 80mm;
+                box-shadow: none;
+                border: 1px dashed #999;
+              }
             }
           </style>
         </head>
 
         <body>
-          <div class="invoice-wrap">
-            <div class="invoice-top">
-              <div class="invoice-top-left">
-                <h2>${transaction.spaName}</h2>
-                <p>${transaction.spaAddress}</p>
-                <p>SĐT: ${transaction.spaPhone}</p>
-              </div>
-
+          <div class="receipt">
+            <div class="shop-header">
+              <div class="logo-box">S</div>
               <div>
-                <div class="invoice-title">HÓA ĐƠN THANH TOÁN</div>
+                <div class="shop-name">${escapeHtml(transaction.spaName || "Serinity Spa")}</div>
+                <div class="shop-info">
+                  ${escapeHtml(transaction.spaAddress || "")}<br />
+                  SĐT: ${escapeHtml(transaction.spaPhone || "")}
+                </div>
               </div>
             </div>
 
-            <div class="section">
-              <div class="info-grid">
-                <div><strong>Mã hóa đơn:</strong> ${transaction.idHoaDon}</div>
-                <div><strong>Mã lịch hẹn:</strong> ${transaction.maLichHen}</div>
-                <div><strong>Khách hàng:</strong> ${transaction.customer}</div>
-                <div><strong>SĐT:</strong> ${transaction.phone}</div>
-                <div><strong>Ngày thanh toán:</strong> ${transaction.paymentTime}</div>
-                <div><strong>Phương thức:</strong> ${transaction.paymentMethod}</div>
-                <div><strong>Trạng thái:</strong> ${transaction.status}</div>
+            <div class="invoice-title">HOÁ ĐƠN THANH TOÁN</div>
+            <div class="invoice-code">Số HĐ: ${escapeHtml(transaction.idHoaDon)}</div>
+
+            <div class="meta-grid">
+              <div><strong>Mã LH:</strong> ${escapeHtml(transaction.maLichHen)}</div>
+              <div><strong>TN:</strong> Lễ tân</div>
+              <div><strong>Khách:</strong> ${escapeHtml(transaction.customer)}</div>
+              <div><strong>Ngày:</strong> ${escapeHtml(transaction.paymentTime)}</div>
+              <div><strong>SĐT:</strong> ${escapeHtml(transaction.phone)}</div>
+              <div><strong>PTTT:</strong> ${escapeHtml(transaction.paymentMethod)}</div>
+            </div>
+
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:32px;">TT</th>
+                  <th>Tên dịch vụ</th>
+                  <th style="width:36px;">SL</th>
+                  <th style="width:76px;">Đơn giá</th>
+                  <th style="width:82px;">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${serviceRows}
+              </tbody>
+            </table>
+
+            <div class="line"></div>
+
+            <div class="summary">
+              <div class="summary-row">
+                <span>Thành tiền:</span>
+                <strong>${formatMoney(subtotal)}</strong>
+              </div>
+              ${discountRow}
+              <div class="summary-row total">
+                <span>Tổng thanh toán:</span>
+                <strong>${formatMoney(finalTotal)}</strong>
               </div>
             </div>
 
-            <div class="section">
-              <div class="group-title">Dịch vụ đã đặt</div>
+            ${noteRow}
 
-              <table>
-                <thead>
-                  <tr>
-                    <th>Dịch vụ</th>
-                    <th>Số lượng</th>
-                    <th>Đơn giá</th>
-                    <th>Thành tiền</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${bookedRows}
-                </tbody>
-              </table>
+            <div class="line"></div>
 
-              ${
-                transaction.extraServices.length > 0
-                  ? `
-                    <div class="group-title">Dịch vụ phát sinh</div>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Dịch vụ</th>
-                          <th>Số lượng</th>
-                          <th>Đơn giá</th>
-                          <th>Thành tiền</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        ${extraRows}
-                      </tbody>
-                    </table>
-                  `
-                  : ""
-              }
-
-              <div class="total-box">
-                Tổng thanh toán: ${formatMoney(total)}
-              </div>
+            <div class="thanks">
+              Cảm ơn quý khách đã sử dụng dịch vụ!<br />
+              Hẹn gặp lại quý khách.
             </div>
           </div>
         </body>
@@ -1121,10 +1268,23 @@ function StaffTransactions() {
 
               <div className="staff-transaction-total-box">
                 <span>Tổng thanh toán</span>
-                <strong>
-                  {formatMoney(getTransactionTotal(selectedTransaction))}
-                </strong>
+                <strong>{formatMoney(getTransactionTotal(selectedTransaction))}</strong>
               </div>
+
+              {getTransactionDiscount(selectedTransaction) > 0 && (
+                <div className="staff-transaction-note-box">
+                  <h4>Thông tin giảm giá</h4>
+                  <p>
+                    Tạm tính: <strong>{formatMoney(getTransactionSubtotal(selectedTransaction))}</strong>
+                  </p>
+                  <p>
+                    Giảm giá: <strong>- {formatMoney(getTransactionDiscount(selectedTransaction))}</strong>
+                  </p>
+                  <p>
+                    Thành tiền sau giảm: <strong>{formatMoney(getTransactionTotal(selectedTransaction))}</strong>
+                  </p>
+                </div>
+              )}
 
               {selectedTransaction.note && (
                 <div className="staff-transaction-note-box">

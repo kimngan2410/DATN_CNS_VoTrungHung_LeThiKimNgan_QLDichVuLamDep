@@ -23,6 +23,8 @@ import {
   UserX,
   AlertTriangle,
 } from "lucide-react";
+import Swal from "sweetalert2";
+import "sweetalert2/dist/sweetalert2.min.css";
 
 import StaffPageHeader from "../../../components/StaffPageHeader/StaffPageHeader";
 import {
@@ -415,6 +417,64 @@ const normalizeStaffService = (service) => {
   };
 };
 
+const spaToast = Swal.mixin({
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 2200,
+  timerProgressBar: true,
+});
+
+const getStatusSuccessMessage = (nextStatus) => {
+  switch (nextStatus) {
+    case "Đã xác nhận":
+      return "Xác nhận lịch hẹn thành công";
+    case "Đã check-in":
+      return "Check-in khách hàng thành công";
+    case "Đang thực hiện":
+      return "Đã bắt đầu thực hiện dịch vụ";
+    case "Đã huỷ":
+      return "Đã huỷ lịch hẹn thành công";
+    case "Không đến":
+      return "Đã cập nhật trạng thái Không đến";
+    default:
+      return "Cập nhật trạng thái lịch hẹn thành công";
+  }
+};
+
+const showSuccessToast = (title) => {
+  spaToast.fire({
+    icon: "success",
+    title,
+    background: "#fffdf9",
+    color: "#3a2e2a",
+  });
+};
+
+const showErrorAlert = (title, text) => {
+  Swal.fire({
+    icon: "error",
+    title,
+    text,
+    confirmButtonText: "Đóng",
+    confirmButtonColor: "#d33",
+    background: "#fffdf9",
+    color: "#3a2e2a",
+  });
+};
+
+const showWarningAlert = (title, text) => {
+  Swal.fire({
+    icon: "warning",
+    title,
+    text,
+    confirmButtonText: "Đã hiểu",
+    confirmButtonColor: "#b88a44",
+    background: "#fffdf9",
+    color: "#3a2e2a",
+  });
+};
+
 function StaffAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
@@ -444,6 +504,8 @@ function StaffAppointments() {
 
   const [paymentMethod, setPaymentMethod] = useState("Tiền mặt");
   const [extraServices, setExtraServices] = useState([]);
+  const [invoiceDiscountType, setInvoiceDiscountType] = useState("amount");
+  const [invoiceDiscountInput, setInvoiceDiscountInput] = useState("");
   const [invoiceExtraServiceSearch, setInvoiceExtraServiceSearch] = useState("");
   const [invoiceExtraServiceCategory, setInvoiceExtraServiceCategory] = useState("Tất cả");
 
@@ -613,6 +675,22 @@ function StaffAppointments() {
     invoiceExtraServiceSearch,
     invoiceExtraServiceCategory,
   ]);
+
+  const invoiceSubtotal = useMemo(() => {
+    return (
+      getTotalPrice(invoiceAppointment?.services || []) +
+      getTotalPrice(extraServices)
+    );
+  }, [invoiceAppointment, extraServices]);
+
+  const invoiceDiscountRawValue = Number(invoiceDiscountInput || 0);
+
+  const invoiceDiscountAmount =
+    invoiceDiscountType === "percent"
+      ? Math.round((invoiceSubtotal * invoiceDiscountRawValue) / 100)
+      : invoiceDiscountRawValue;
+
+  const invoiceFinalTotal = Math.max(invoiceSubtotal - invoiceDiscountAmount, 0);
 
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
@@ -1085,7 +1163,10 @@ function StaffAppointments() {
     if (!reasonModal) return;
 
     if (!reasonText.trim()) {
-      alert("Vui lòng nhập lý do.");
+      showWarningAlert(
+        "Chưa nhập lý do",
+        "Vui lòng nhập lý do trước khi xác nhận."
+      );
       return;
     }
 
@@ -1112,7 +1193,10 @@ function StaffAppointments() {
     const isAllowed = allowedTransitions[currentStatus]?.includes(nextStatus);
 
     if (!isAllowed) {
-      alert("Không thể cập nhật trạng thái này theo quy trình hiện tại.");
+      showWarningAlert(
+        "Không thể cập nhật trạng thái",
+        "Thao tác này không phù hợp với quy trình hiện tại."
+      );
       return;
     }
 
@@ -1136,9 +1220,14 @@ function StaffAppointments() {
       );
 
       setSelectedAppointment(updatedAppointment);
-      alert("Cập nhật trạng thái lịch hẹn thành công.");
+
+      showSuccessToast(getStatusSuccessMessage(nextStatus));
+      window.dispatchEvent(new Event("staff-notifications-refresh"));
     } catch (error) {
-      alert(error.message || "Không thể cập nhật trạng thái lịch hẹn.");
+      showErrorAlert(
+        "Cập nhật trạng thái thất bại",
+        error.message || "Không thể cập nhật trạng thái lịch hẹn."
+      );
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -1148,7 +1237,10 @@ function StaffAppointments() {
     if (!selectedAppointment) return;
 
     if (selectedAppointment.status !== "Đang thực hiện") {
-      alert("Chỉ lịch hẹn đang thực hiện mới được lập hoá đơn.");
+      showWarningAlert(
+        "Không thể lập hoá đơn",
+        "Chỉ lịch hẹn đang thực hiện mới được lập hoá đơn."
+      );
       return;
     }
 
@@ -1156,6 +1248,8 @@ function StaffAppointments() {
     setSelectedAppointment(null);
     setPaymentMethod("Tiền mặt");
     setExtraServices([]);
+    setInvoiceDiscountType("amount");
+    setInvoiceDiscountInput("");
     setInvoiceExtraServiceSearch("");
     setInvoiceExtraServiceCategory("Tất cả");
   };
@@ -1164,6 +1258,8 @@ function StaffAppointments() {
     setInvoiceAppointment(null);
     setPaymentMethod("Tiền mặt");
     setExtraServices([]);
+    setInvoiceDiscountType("amount");
+    setInvoiceDiscountInput("");
     setInvoiceExtraServiceSearch("");
     setInvoiceExtraServiceCategory("Tất cả");
   };
@@ -1223,16 +1319,58 @@ function StaffAppointments() {
     );
   };
 
+  const handleChangeInvoiceDiscount = (event) => {
+    const onlyNumber = event.target.value.replace(/[^\d]/g, "");
+    setInvoiceDiscountInput(onlyNumber);
+  };
+
+  const handleChangeInvoiceDiscountType = (type) => {
+    setInvoiceDiscountType(type);
+    setInvoiceDiscountInput("");
+  };
+
+  const handleClearInvoiceDiscount = () => {
+    setInvoiceDiscountInput("");
+  };
+
   const handleConfirmPayment = async () => {
     if (!invoiceAppointment || isSubmittingInvoice) return;
 
     if (!paymentMethod) {
-      alert("Vui lòng chọn phương thức thanh toán.");
+      showWarningAlert(
+        "Chưa chọn phương thức thanh toán",
+        "Vui lòng chọn phương thức thanh toán trước khi xác nhận."
+      );
+      return;
+    }
+
+    if (invoiceDiscountType === "percent" && invoiceDiscountRawValue > 100) {
+      showWarningAlert(
+        "Giảm giá không hợp lệ",
+        "Phần trăm giảm giá không được lớn hơn 100%."
+      );
+      return;
+    }
+
+    if (invoiceDiscountType === "amount" && invoiceDiscountAmount > invoiceSubtotal) {
+      showWarningAlert(
+        "Giảm giá vượt quá tổng tiền",
+        "Số tiền giảm giá không được lớn hơn tổng tiền hoá đơn."
+      );
       return;
     }
 
     try {
       setIsSubmittingInvoice(true);
+
+      const discountNote =
+        invoiceDiscountAmount > 0
+          ? invoiceDiscountType === "percent"
+            ? ` Giảm giá: ${invoiceDiscountRawValue}% tương đương ${formatMoney(
+                invoiceDiscountAmount
+              )}.`
+            : ` Giảm giá: ${formatMoney(invoiceDiscountAmount)}.`
+          : "";
 
       const result = await createStaffInvoiceApi({
         idLichHen: Number(invoiceAppointment.appointmentId),
@@ -1241,8 +1379,8 @@ function StaffAppointments() {
           idDichVu: Number(service.idDichVu || service.id),
           soLuong: getServiceQuantity(service),
         })),
-        giamGia: 0,
-        ghiChu: `Hoá đơn được lập tại quầy. Phương thức thanh toán: ${paymentMethod}`,
+        giamGia: invoiceDiscountAmount,
+        ghiChu: `Hoá đơn được lập tại quầy. Phương thức thanh toán: ${paymentMethod}.${discountNote}`,
       });
 
       const updatedAppointment = result.appointment;
@@ -1258,12 +1396,40 @@ function StaffAppointments() {
       setInvoiceAppointment(null);
       setPaymentMethod("Tiền mặt");
       setExtraServices([]);
+      setInvoiceDiscountType("amount");
+      setInvoiceDiscountInput("");
       setInvoiceExtraServiceSearch("");
       setInvoiceExtraServiceCategory("Tất cả");
 
-      alert("Thanh toán thành công. Lịch hẹn đã được cập nhật thành Đã hoàn thành.");
+      Swal.fire({
+        icon: "success",
+        title: "Thanh toán thành công",
+        html: `
+          <div style="font-size:15px; line-height:1.6">
+            Hoá đơn đã được lập thành công.<br/>
+            ${
+              invoiceDiscountAmount > 0
+                ? `Đã áp dụng giảm giá <b>${formatMoney(invoiceDiscountAmount)}</b>.<br/>`
+                : ""
+            }
+            Lịch hẹn đã chuyển sang <b>Đã hoàn thành</b>.
+          </div>
+        `,
+        confirmButtonText: "Hoàn tất",
+        confirmButtonColor: "#b88a44",
+        background: "#fffdf9",
+        color: "#3a2e2a",
+        timer: 2400,
+        timerProgressBar: true,
+      });
     } catch (error) {
-      alert(error.message || "Không thể lập hoá đơn thanh toán.");
+      Swal.fire({
+        icon: "error",
+        title: "Thanh toán thất bại",
+        text: error.message || "Không thể lập hoá đơn thanh toán.",
+        confirmButtonText: "Đóng",
+        confirmButtonColor: "#d33",
+      });
     } finally {
       setIsSubmittingInvoice(false);
     }
@@ -2084,14 +2250,80 @@ function StaffAppointments() {
                 </div>
               </div>
 
-              <div className="appointment-modal-total invoice-total">
-                <span>Tổng thanh toán</span>
-                <strong>
-                  {formatMoney(
-                    getTotalPrice(invoiceAppointment.services || []) +
-                      getTotalPrice(extraServices)
-                  )}
-                </strong>
+              <div className="appointment-modal-section">
+                <h3>Giảm giá</h3>
+
+                <div className="invoice-discount-type">
+                  <button
+                    type="button"
+                    className={invoiceDiscountType === "amount" ? "active" : ""}
+                    onClick={() => handleChangeInvoiceDiscountType("amount")}
+                  >
+                    Giảm theo tiền
+                  </button>
+
+                  <button
+                    type="button"
+                    className={invoiceDiscountType === "percent" ? "active" : ""}
+                    onClick={() => handleChangeInvoiceDiscountType("percent")}
+                  >
+                    Giảm theo %
+                  </button>
+                </div>
+
+                <div className="invoice-discount-box">
+                  <div className="invoice-discount-input">
+                    <input
+                      type="text"
+                      value={invoiceDiscountInput}
+                      onChange={handleChangeInvoiceDiscount}
+                      placeholder={
+                        invoiceDiscountType === "percent"
+                          ? "Nhập phần trăm giảm, ví dụ 10"
+                          : "Nhập số tiền giảm, ví dụ 50000"
+                      }
+                    />
+                    <span>{invoiceDiscountType === "percent" ? "%" : "đ"}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleClearInvoiceDiscount}
+                    disabled={!invoiceDiscountInput}
+                  >
+                    Xoá
+                  </button>
+                </div>
+
+                <p className="invoice-discount-note">
+                  {invoiceDiscountType === "percent"
+                    ? `Giảm ${invoiceDiscountRawValue || 0}% tương đương ${formatMoney(
+                        invoiceDiscountAmount
+                      )}.`
+                    : "Nhập số tiền giảm trực tiếp cho hoá đơn."}
+                </p>
+              </div>
+
+              <div className="invoice-summary-box">
+                <div className="invoice-summary-row">
+                  <span>Tạm tính</span>
+                  <strong>{formatMoney(invoiceSubtotal)}</strong>
+                </div>
+
+                <div className="invoice-summary-row discount">
+                  <span>
+                    Giảm giá
+                    {invoiceDiscountType === "percent" && invoiceDiscountRawValue > 0
+                      ? ` (${invoiceDiscountRawValue}%)`
+                      : ""}
+                  </span>
+                  <strong>- {formatMoney(invoiceDiscountAmount)}</strong>
+                </div>
+
+                <div className="invoice-summary-row total">
+                  <span>Tổng thanh toán</span>
+                  <strong>{formatMoney(invoiceFinalTotal)}</strong>
+                </div>
               </div>
             </div>
 

@@ -14,12 +14,7 @@ class HoiThoai(Base):
         BigInteger,
         ForeignKey("KhachHang.idKhachHang"),
         nullable=False,
-    )
-
-    idNhanVienPhuTrach = Column(
-        BigInteger,
-        ForeignKey("NhanVien.idNhanVien"),
-        nullable=True,
+        unique=True,
     )
 
     trangThai = Column(String(50), nullable=False, default="Đang mở")
@@ -27,4 +22,3 @@ class HoiThoai(Base):
     ngayTao = Column(DateTime, server_default=func.now())
 
     khachHang = relationship("KhachHang")
-    nhanVienPhuTrach = relationship("NhanVien")

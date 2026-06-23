@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -10,7 +10,10 @@ import {
   LogOut,
   X,
 } from "lucide-react";
+
 import { logoutStaff } from "../../services/authApi";
+import { getStaffNotificationCountsApi } from "../../services/staffNotificationApi";
+
 import "./StaffSidebar.css";
 import spaLogo from "../../assets/images/logo_footer.png";
 
@@ -24,6 +27,7 @@ const menuItems = [
     label: "Lịch hẹn",
     icon: CalendarDays,
     path: "/staff/lich-hen",
+    badgeKey: "appointments",
   },
   {
     label: "Giao dịch",
@@ -34,6 +38,7 @@ const menuItems = [
     label: "Hội thoại",
     icon: MessageSquare,
     path: "/staff/hoi-thoai",
+    badgeKey: "conversations",
   },
   {
     label: "Khách hàng",
@@ -44,7 +49,57 @@ const menuItems = [
 
 function StaffSidebar() {
   const navigate = useNavigate();
+
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [notificationCounts, setNotificationCounts] = useState({
+    appointments: 0,
+    conversations: 0,
+  });
+
+  const fetchNotificationCounts = useCallback(async () => {
+    try {
+      const counts = await getStaffNotificationCountsApi();
+
+      setNotificationCounts({
+        appointments: Number(counts.appointments || 0),
+        conversations: Number(counts.conversations || 0),
+      });
+    } catch (error) {
+      console.error("Không thể tải số thông báo:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchNotificationCounts();
+
+    // Tự cập nhật mỗi 10 giây
+    const intervalId = setInterval(() => {
+      fetchNotificationCounts();
+    }, 10000);
+
+    // Khi tab được mở lại thì cập nhật ngay
+    const handleFocus = () => {
+      fetchNotificationCounts();
+    };
+
+    // Khi trang lịch hẹn hoặc hội thoại bắn event refresh thì cập nhật ngay
+    const handleRefreshEvent = () => {
+      fetchNotificationCounts();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("staff-notifications-refresh", handleRefreshEvent);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener(
+        "staff-notifications-refresh",
+        handleRefreshEvent
+      );
+    };
+  }, [fetchNotificationCounts]);
 
   const handleOpenLogoutModal = () => {
     setIsLogoutModalOpen(true);
@@ -65,6 +120,20 @@ function StaffSidebar() {
     navigate("/staff/dang-nhap", {
       replace: true,
     });
+  };
+
+  const renderBadge = (badgeKey) => {
+    if (!badgeKey) return null;
+
+    const value = Number(notificationCounts[badgeKey] || 0);
+
+    if (value <= 0) return null;
+
+    return (
+      <span className="staff-menu-badge">
+        {value > 99 ? "99+" : value}
+      </span>
+    );
   };
 
   return (
@@ -91,7 +160,8 @@ function StaffSidebar() {
                 }
               >
                 <Icon size={18} />
-                <span>{item.label}</span>
+                <span className="staff-menu-label">{item.label}</span>
+                {renderBadge(item.badgeKey)}
               </NavLink>
             );
           })}
@@ -105,7 +175,7 @@ function StaffSidebar() {
             }
           >
             <Settings size={18} />
-            <span>Cài đặt</span>
+            <span className="staff-menu-label">Cài đặt</span>
           </NavLink>
 
           <button
@@ -114,7 +184,7 @@ function StaffSidebar() {
             onClick={handleOpenLogoutModal}
           >
             <LogOut size={18} />
-            <span>Đăng xuất</span>
+            <span className="staff-menu-label">Đăng xuất</span>
           </button>
         </div>
       </aside>

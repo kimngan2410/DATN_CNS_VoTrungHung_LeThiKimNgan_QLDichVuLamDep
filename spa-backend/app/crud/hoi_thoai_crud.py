@@ -176,7 +176,6 @@ def get_or_create_customer_conversation(db: Session, id_tai_khoan: int):
 
     conversation = HoiThoai(
         idKhachHang=khach_hang.idKhachHang,
-        idNhanVienPhuTrach=None,
         trangThai=CONVERSATION_OPEN_STATUS,
     )
 
@@ -484,9 +483,6 @@ def send_staff_message(
 
     nhan_vien = get_staff_by_account_or_404(db, id_tai_khoan_nhan_vien)
     conversation = get_conversation_or_404(db, id_hoi_thoai)
-
-    if not conversation.idNhanVienPhuTrach:
-        conversation.idNhanVienPhuTrach = nhan_vien.idNhanVien
 
     message = TinNhan(
         idHoiThoai=conversation.idHoiThoai,
